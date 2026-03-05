@@ -80,14 +80,28 @@ export const ChatsPage = () => {
       `}>
         {/* Header */}
         <div className="px-4 pt-4 pb-3 border-b border-slate-50 flex-shrink-0">
-          <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">Чати</h1>
-          <p className="text-xs text-slate-400">{chats.length} розмови</p>
+          <motion.h1 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          viewport={{ once: true }}
+          className="text-lg font-extrabold text-slate-900 tracking-tight">Чати</motion.h1>
+          <motion.p 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          viewport={{ once: true }}
+          className="text-xs text-slate-400">{chats.length} розмови</motion.p>
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto py-2">
+        <div className="flex-1 overflow-y-auto py-2 overflow-hidden">
           {chats.map((chat) => (
-            <button
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              viewport={{ once: true }}
               key={chat.id}
               onClick={() => { setActiveChat(chat); setShowSidebar(false); }}
               className={`w-full flex items-center gap-3 px-3 sm:px-4 py-3
@@ -126,7 +140,7 @@ export const ChatsPage = () => {
                   <span className="text-[10px] font-bold text-white">{chat.unread}</span>
                 </div>
               )}
-            </button>
+            </motion.button>
           ))}
         </div>
       </aside>
