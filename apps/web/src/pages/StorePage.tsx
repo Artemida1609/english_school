@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import storeItems from "../data/storeItems.json";
-// import { CoinIcon } from "../icons/CoinIcon";
-import { Coins } from "lucide-react";
+import { CoinIcon } from "../icons/CoinIcon";
 
 export const StorePage = () => {
   return (
@@ -34,7 +33,7 @@ export const StorePage = () => {
               px-3 py-1.5 rounded-xl flex-shrink-0"
           >
             <span className="text-base">
-              <Coins size={18} className="text-amber-500" />
+              <CoinIcon size={20} className="text-amber-500" />
             </span>
             <span className="text-sm font-extrabold text-amber-600">350</span>
           </motion.div>
@@ -87,7 +86,7 @@ export const StorePage = () => {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                   <span className="text-base">
-                    <Coins size={18} className="text-amber-500" />
+                    <CoinIcon size={18} className="text-amber-500" />
                   </span>
                   <span className="text-base font-extrabold text-slate-800">
                     {item.price}
