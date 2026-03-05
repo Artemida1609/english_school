@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+@theme {
+  --ultra-light-green: #f5fcfa;
+  --light-green: #57e6c2;
+}

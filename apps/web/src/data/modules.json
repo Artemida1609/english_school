@@ -1,0 +1,98 @@
+[
+  {
+    "title": "Основи граматики",
+    "description": "Вивчи базові граматичні структури: часи, артиклі, прийменники та порядок слів у реченні.",
+    "img": "/images/module-img.png",
+    "difficulty": "Beginner",
+    "xp": 100,
+    "duration": "2h 30m"
+  },
+  {
+    "title": "Базова лексика",
+    "description": "Опануй 500 найуживаніших слів для повсякденного спілкування та побутових ситуацій.",
+    "img": "/images/module-img.png",
+    "difficulty": "Beginner",
+    "xp": 120,
+    "duration": "3h 00m"
+  },
+  {
+    "title": "Вимова та фонетика",
+    "description": "Постав правильну вимову звуків, навчись читати транскрипцію та говорити без акценту.",
+    "img": "/images/module-img.png",
+    "difficulty": "Beginner",
+    "xp": 150,
+    "duration": "2h 45m"
+  },
+  {
+    "title": "Present & Past Tenses",
+    "description": "Детальне вивчення теперішніх та минулих часів з практичними вправами та діалогами.",
+    "img": "/images/module-img.png",
+    "difficulty": "Intermediate",
+    "xp": 200,
+    "duration": "4h 00m"
+  },
+  {
+    "title": "Future Tenses",
+    "description": "Навчись говорити про майбутнє: will, going to, Present Continuous та їх відмінності.",
+    "img": "/images/module-img.png",
+    "difficulty": "Intermediate",
+    "xp": 220,
+    "duration": "3h 30m"
+  },
+  {
+    "title": "Розмовна практика",
+    "description": "Реальні діалоги на теми: подорожі, робота, покупки, ресторани та соціальні ситуації.",
+    "img": "/images/module-img.png",
+    "difficulty": "Intermediate",
+    "xp": 250,
+    "duration": "4h 30m"
+  },
+  {
+    "title": "Business English",
+    "description": "Ділова лексика, ведення переговорів, написання листів та презентації англійською.",
+    "img": "/images/module-img.png",
+    "difficulty": "Intermediate",
+    "xp": 300,
+    "duration": "5h 00m"
+  },
+  {
+    "title": "Складні граматичні часи",
+    "description": "Perfect tenses, conditionals та складні граматичні конструкції для впевненого мовлення.",
+    "img": "/images/module-img.png",
+    "difficulty": "Advanced",
+    "xp": 350,
+    "duration": "5h 30m"
+  },
+  {
+    "title": "Академічне письмо",
+    "description": "Есе, звіти та академічні тексти: структура, аргументація та стиль наукового письма.",
+    "img": "/images/module-img.png",
+    "difficulty": "Advanced",
+    "xp": 380,
+    "duration": "6h 00m"
+  },
+  {
+    "title": "Ідіоми та фразові дієслова",
+    "description": "Більше 200 популярних ідіом та фразових дієслів для природного мовлення як у носіїв.",
+    "img": "/images/module-img.png",
+    "difficulty": "Advanced",
+    "xp": 400,
+    "duration": "4h 45m"
+  },
+  {
+    "title": "Підготовка до IELTS",
+    "description": "Стратегії та практика для складання міжнародного іспиту IELTS на рівень 7.0+.",
+    "img": "/images/module-img.png",
+    "difficulty": "Advanced",
+    "xp": 500,
+    "duration": "8h 00m"
+  },
+  {
+    "title": "Культура та традиції",
+    "description": "Культурний контекст англомовних країн: традиції, гумор, етикет та менталітет.",
+    "img": "/images/module-img.png",
+    "difficulty": "Intermediate",
+    "xp": 280,
+    "duration": "3h 45m"
+  }
+]

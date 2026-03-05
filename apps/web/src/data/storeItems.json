@@ -1,0 +1,62 @@
+[
+  {
+    "icon": "⚡",
+    "bg": "from-amber-400 to-orange-400",
+    "badge": "Популярне",
+    "badgeColor": "bg-orange-100 text-orange-600",
+    "title": "XP Boost ×2",
+    "description": "Подвій XP за всі завдання на 24 години",
+    "price": 50,
+    "currency": "🪙"
+  },
+  {
+    "icon": "❄️",
+    "bg": "from-sky-400 to-blue-500",
+    "badge": "Корисне",
+    "badgeColor": "bg-sky-100 text-sky-600",
+    "title": "Заморозка стріку",
+    "description": "Збережи свій стрік якщо пропустив день",
+    "price": 30,
+    "currency": "🪙"
+  },
+  {
+    "icon": "🎨",
+    "bg": "from-violet-400 to-purple-500",
+    "badge": "Новинка",
+    "badgeColor": "bg-violet-100 text-violet-600",
+    "title": "Темна тема",
+    "description": "Переключи інтерфейс у темний режим",
+    "price": 100,
+    "currency": "🪙"
+  },
+  {
+    "icon": "🏆",
+    "bg": "from-emerald-400 to-teal-500",
+    "badge": "Преміум",
+    "badgeColor": "bg-emerald-100 text-emerald-600",
+    "title": "Золотий профіль",
+    "description": "Золота рамка та значок на профілі",
+    "price": 200,
+    "currency": "🪙"
+  },
+  {
+    "icon": "📖",
+    "bg": "from-rose-400 to-pink-500",
+    "badge": "Корисне",
+    "badgeColor": "bg-rose-100 text-rose-600",
+    "title": "Безліміт підказок",
+    "description": "Необмежені підказки протягом тижня",
+    "price": 80,
+    "currency": "🪙"
+  },
+  {
+    "icon": "🚀",
+    "bg": "from-indigo-400 to-blue-500",
+    "badge": "Топ",
+    "badgeColor": "bg-indigo-100 text-indigo-600",
+    "title": "Турбо режим",
+    "description": "Пропускай рекламу та паузи між уроками",
+    "price": 120,
+    "currency": "🪙"
+  }
+]

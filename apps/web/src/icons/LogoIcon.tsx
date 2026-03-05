@@ -1,0 +1,14 @@
+export const LogoIcon = () => {
+  return (
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 64 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="32" cy="32" r="30" fill="#4fd1d9" />
+      <path d="M20.2 17.5h6.4l11.5 20.2V17.5h5.6v29h-6.1L25.9 25.9v20.6h-5.6l-.1-29" fill="#ffffff"></path>
+    </svg>
+  );
+};
