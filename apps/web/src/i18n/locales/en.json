@@ -1,0 +1,184 @@
+{
+  "nav": {
+    "home": "Home",
+    "courses": "Courses",
+    "chats": "Chats",
+    "store": "Store",
+    "settings": "Settings"
+  },
+
+  "home": {
+    "continueLabel": "Continue",
+    "continueLearning": "Continue Learning",
+    "learnMore": "Learn more",
+    "module": "Module",
+    "yourProgress": "Your progress",
+    "leaderboard": "Leaderboard",
+    "achievements": "Achievements",
+    "yourPurchases": "Your purchases",
+    "daysInRow": "days in a row",
+    "xpProgress": "XP Progress",
+    "level": "Level",
+    "toLevel": "to Level",
+    "seeAll": "All",
+    "today": "Today",
+    "thisWeek": "this week",
+    "free": "Free",
+    "you": "You"
+  },
+
+  "module": {
+    "backToModules": "Back to modules",
+    "progress": "Progress",
+    "videoDescription": "In this video you will learn the basics of English grammar. Watch the full video, then proceed to the theory and tasks.",
+    "nextTheory": "Next → Read theory",
+    "nextTask": "Next → Complete task",
+    "task": "Task",
+    "check": "Check",
+    "nextLesson": "Next lesson →",
+    "correct": "✅ Correct!",
+    "incorrect": "❌ Incorrect",
+    "earnedXp": "Great job! You earned",
+    "correctAnswer": "Correct answer"
+  },
+
+  "progress": {
+    "tasksCompleted": "Tasks completed",
+    "wordsLearned": "Words learned",
+    "topicsLearned": "Topics learned",
+    "accuracy": "Accuracy",
+    "thisWeek": "+3 this week",
+    "todayWords": "+12 today",
+    "ofModules": "of 12 modules",
+    "avgScore": "average score"
+  },
+
+  "modules": {
+    "course": "Course",
+    "module": "MODULE",
+    "modules": "modules",
+    "fromZero": "from",
+    "zero": "zero",
+    "to": "to",
+    "hero": "hero",
+    "duration": "Duration",
+    "difficulty": {
+      "Beginner": "Beginner",
+      "Intermediate": "Intermediate",
+      "Advanced": "Advanced"
+    }
+  },
+
+  "chats": {
+    "title": "Chats",
+    "conversations": "conversations",
+    "placeholder": "Write a message...",
+    "online": "online",
+    "yesterday": "Yesterday"
+  },
+
+  "store": {
+    "title": "Our store",
+    "subtitle": "Store",
+    "buy": "Buy",
+    "balance": "Balance"
+  },
+
+  "settings": {
+    "title": "My account",
+    "subtitle": "Settings",
+    "groups": {
+      "account": "Account",
+      "learning": "Learning",
+      "app": "App",
+      "other": "Other"
+    },
+    "logout": "Log out",
+    "saveChanges": "Save changes",
+    "back": "Back",
+
+    "profile": {
+      "title": "Profile",
+      "subtitle": "Name, photo, personal data",
+      "photoTitle": "Profile photo",
+      "photoHint": "JPG, PNG up to 5MB",
+      "personalData": "Personal data",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "firstNamePlaceholder": "John",
+      "lastNamePlaceholder": "Smith",
+      "email": "Email",
+      "emailPlaceholder": "john@example.com",
+      "city": "City / Country",
+      "cityPlaceholder": "London, UK",
+      "telegram": "Telegram",
+      "telegramPlaceholder": "@username"
+    },
+
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Push and email notifications",
+      "channels": "Channels",
+      "types": "Notification types",
+      "emailAddress": "Email address",
+      "forNotifications": "For notifications",
+      "push": "Push notifications",
+      "pushSub": "To your device",
+      "emailNotif": "Email newsletter",
+      "emailSub": "To your inbox",
+      "streak": "Day streaks",
+      "streakSub": "Daily learning reminders",
+      "achievements": "Achievements",
+      "achievementsSub": "New badges and rewards",
+      "reminders": "Reminders",
+      "remindersSub": "Time for a lesson"
+    },
+
+    "language": {
+      "title": "Interface language",
+      "subtitle": "English",
+      "sectionTitle": "Interface language"
+    },
+
+    "goal": {
+      "title": "Learning goal",
+      "subtitle": "30 minutes per day",
+      "sectionTitle": "Learning goal",
+      "casual": "Casual",
+      "casualSub": "10 minutes per day",
+      "regular": "Regular",
+      "regularSub": "30 minutes per day",
+      "intense": "Intense",
+      "intenseSub": "1 hour per day"
+    },
+
+    "security": {
+      "title": "Security",
+      "subtitle": "Password and two-factor authentication",
+      "emailSection": "Email",
+      "currentEmail": "Current email",
+      "changePassword": "Change password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "passwordHint": "Password must be at least 8 characters, include an uppercase letter and a number",
+      "passwordPlaceholder": "••••••••"
+    },
+
+    "theme": {
+      "title": "Appearance",
+      "subtitle": "Light theme",
+      "sectionTitle": "Theme",
+      "light": "Light",
+      "lightSub": "Always light theme",
+      "dark": "Dark",
+      "darkSub": "Always dark theme",
+      "system": "System",
+      "systemSub": "Follows system preference"
+    }
+  },
+
+  "days": {
+    "mon": "Mo", "tue": "Tu", "wed": "We",
+    "thu": "Th", "fri": "Fr", "sat": "Sa", "sun": "Su"
+  }
+}

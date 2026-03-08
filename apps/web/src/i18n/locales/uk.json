@@ -1,0 +1,184 @@
+{
+  "nav": {
+    "home": "Головна",
+    "courses": "Курси",
+    "chats": "Чати",
+    "store": "Магазин",
+    "settings": "Налаштування"
+  },
+
+  "home": {
+    "continueLabel": "Продовжити",
+    "continueLearning": "Продовжити навчання",
+    "learnMore": "Вчитись далі",
+    "module": "Модуль",
+    "yourProgress": "Твій прогрес",
+    "leaderboard": "Таблиця лідерів",
+    "achievements": "Твої здобутки",
+    "yourPurchases": "Твої покупки",
+    "daysInRow": "днів поспіль",
+    "xpProgress": "Прогрес XP",
+    "level": "Рівень",
+    "toLevel": "до Рівня",
+    "seeAll": "Всі",
+    "today": "Сьогодні",
+    "thisWeek": "цього тижня",
+    "free": "Безкоштовно",
+    "you": "Ти"
+  },
+
+  "module": {
+    "backToModules": "Назад до модулів",
+    "progress": "Прогрес",
+    "videoDescription": "У цьому відео ти дізнаєшся основи граматики англійської мови. Переглянь відео повністю, після чого перейди до теорії та завдань.",
+    "nextTheory": "Далі → Читати теорію",
+    "nextTask": "Далі → Виконати завдання",
+    "task": "Завдання",
+    "check": "Перевірити",
+    "nextLesson": "Наступний урок →",
+    "correct": "✅ Правильно!",
+    "incorrect": "❌ Не вірно",
+    "earnedXp": "Чудово! Ти заробив",
+    "correctAnswer": "Правильна відповідь"
+  },
+
+  "progress": {
+    "tasksCompleted": "Завдань виконано",
+    "wordsLearned": "Слів вивчено",
+    "topicsLearned": "Тем вивчено",
+    "accuracy": "Точність",
+    "thisWeek": "+3 цього тижня",
+    "todayWords": "+12 сьогодні",
+    "ofModules": "з 12 модулів",
+    "avgScore": "середня оцінка"
+  },
+
+  "modules": {
+    "course": "Course",
+    "module": "МОДУЛЬ",
+    "modules": "modules",
+    "fromZero": "from",
+    "zero": "zero",
+    "to": "to",
+    "hero": "hero",
+    "duration": "Тривалість",
+    "difficulty": {
+      "Beginner": "Початківець",
+      "Intermediate": "Середній",
+      "Advanced": "Просунутий"
+    }
+  },
+
+  "chats": {
+    "title": "Чати",
+    "conversations": "розмови",
+    "placeholder": "Написати повідомлення...",
+    "online": "онлайн",
+    "yesterday": "Вчора"
+  },
+
+  "store": {
+    "title": "Наш магазин",
+    "subtitle": "Магазин",
+    "buy": "Купити",
+    "balance": "Баланс"
+  },
+
+  "settings": {
+    "title": "Мій акаунт",
+    "subtitle": "Налаштування",
+    "groups": {
+      "account": "Акаунт",
+      "learning": "Навчання",
+      "app": "Додаток",
+      "other": "Інше"
+    },
+    "logout": "Вийти з акаунту",
+    "saveChanges": "Зберегти зміни",
+    "back": "Назад",
+
+    "profile": {
+      "title": "Профіль",
+      "subtitle": "Ім'я, фото, особисті дані",
+      "photoTitle": "Фото профілю",
+      "photoHint": "JPG, PNG до 5MB",
+      "personalData": "Особисті дані",
+      "firstName": "Ім'я",
+      "lastName": "Прізвище",
+      "firstNamePlaceholder": "Артем",
+      "lastNamePlaceholder": "Іваненко",
+      "email": "Email",
+      "emailPlaceholder": "artem@example.com",
+      "city": "Місто / Країна",
+      "cityPlaceholder": "Київ, Україна",
+      "telegram": "Telegram",
+      "telegramPlaceholder": "@username"
+    },
+
+    "notifications": {
+      "title": "Сповіщення",
+      "subtitle": "Push-сповіщення та email",
+      "channels": "Канали",
+      "types": "Типи сповіщень",
+      "emailAddress": "Email адреса",
+      "forNotifications": "Для сповіщень",
+      "push": "Push-сповіщення",
+      "pushSub": "На пристрій",
+      "emailNotif": "Email-розсилка",
+      "emailSub": "На вашу пошту",
+      "streak": "Серії днів",
+      "streakSub": "Нагадування про щоденне навчання",
+      "achievements": "Здобутки",
+      "achievementsSub": "Нові бейджі та нагороди",
+      "reminders": "Нагадування",
+      "remindersSub": "Час для уроку"
+    },
+
+    "language": {
+      "title": "Мова інтерфейсу",
+      "subtitle": "Українська",
+      "sectionTitle": "Мова інтерфейсу"
+    },
+
+    "goal": {
+      "title": "Ціль навчання",
+      "subtitle": "30 хвилин на день",
+      "sectionTitle": "Ціль навчання",
+      "casual": "Легко",
+      "casualSub": "10 хвилин на день",
+      "regular": "Помірно",
+      "regularSub": "30 хвилин на день",
+      "intense": "Інтенсивно",
+      "intenseSub": "1 година на день"
+    },
+
+    "security": {
+      "title": "Безпека",
+      "subtitle": "Пароль та двофакторна автентифікація",
+      "emailSection": "Email",
+      "currentEmail": "Поточний email",
+      "changePassword": "Зміна пароля",
+      "currentPassword": "Поточний пароль",
+      "newPassword": "Новий пароль",
+      "passwordHint": "Пароль має містити мінімум 8 символів, велику літеру та цифру",
+      "passwordPlaceholder": "••••••••"
+    },
+
+    "theme": {
+      "title": "Зовнішній вигляд",
+      "subtitle": "Світла тема",
+      "sectionTitle": "Оформлення",
+      "light": "Світла",
+      "lightSub": "Завжди світла тема",
+      "dark": "Темна",
+      "darkSub": "Завжди темна тема",
+      "system": "Системна",
+      "systemSub": "Слідує за системою"
+    }
+  },
+
+  "days": {
+    "mon": "Пн", "tue": "Вт", "wed": "Ср",
+    "thu": "Чт", "fri": "Пт", "sat": "Сб", "sun": "Нд"
+  }
+}

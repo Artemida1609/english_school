@@ -1,4 +1,3 @@
-// App.tsx з layout
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "./layouts/MainLayout";
 import { HomePage } from "./pages/HomePage";
@@ -7,18 +6,61 @@ import { ModulePage } from "./pages/ModulePage";
 import { ChatsPage } from "./pages/ChatsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { StorePage } from "./pages/StorePage";
+import { ModuleLayout } from "./layouts/ModuleLayout";
+import {
+  ProfileSettings,
+  NotificationSettings,
+  LanguageSettings,
+  GoalSettings,
+  SecuritySettings,
+  ThemeSettings,
+} from "./components/Settings";
+import i18n from "./i18n";
+import { useThemeStore } from "./store/themeStore";
+import { useEffect } from "react";
 
 export const App = () => {
+  const { theme, setTheme } = useThemeStore();
+
+  // Ініціалізуємо тему один раз при монтуванні
+  useEffect(() => {
+    setTheme(theme);
+  }, []);
+
+  // Ініціалізуємо мову зі збереженого стану
+  useEffect(() => {
+    const saved = localStorage.getItem("language-storage");
+    if (saved) {
+      try {
+        const { state } = JSON.parse(saved);
+        if (state?.language) i18n.changeLanguage(state.language);
+      } catch {
+        // мовчки ігноруємо — залишиться дефолтна мова
+      }
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/modules" element={<ModulesPage />} />
-          <Route path="/modules/:id" element={<ModulePage />} />
           <Route path="/chats" element={<ChatsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings/profile" element={<ProfileSettings />} />
+          <Route
+            path="/settings/notifications"
+            element={<NotificationSettings />}
+          />
+          <Route path="/settings/language" element={<LanguageSettings />} />
+          <Route path="/settings/goals" element={<GoalSettings />} />
+          <Route path="/settings/security" element={<SecuritySettings />} />
+          <Route path="/settings/theme" element={<ThemeSettings />} />
           <Route path="/store" element={<StorePage />} />
+        </Route>
+        <Route element={<ModuleLayout />}>
+          <Route path="/modules/:id" element={<ModulePage />} />
         </Route>
       </Routes>
     </BrowserRouter>

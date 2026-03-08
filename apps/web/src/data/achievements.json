@@ -1,0 +1,10 @@
+[
+  { "type": "trophy", "name": "Перший модуль", "locked": false },
+  { "type": "fire", "name": "7 днів підряд", "locked": false },
+  { "type": "bolt", "name": "Швидкий старт", "locked": false },
+  { "type": "book", "name": "100 слів", "locked": false },
+  { "type": "graduation", "name": "Сертифікат", "locked": true },
+  { "type": "diamond", "name": "Діамант", "locked": true },
+  { "type": "star", "name": "Зірка", "locked": true },
+  { "type": "rocket", "name": "Ракета", "locked": true }
+]

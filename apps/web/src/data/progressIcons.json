@@ -1,0 +1,34 @@
+[
+  {
+    "label": "Завдань виконано",
+    "value": "23",
+    "sub": "+3 цього тижня",
+    "bg": "bg-emerald-50",
+    "iconColor": "#10b981",
+    "iconType": "clipboard"
+  },
+  {
+    "label": "Слів вивчено",
+    "value": "123",
+    "sub": "+12 сьогодні",
+    "bg": "bg-yellow-50",
+    "iconColor": "#f59e0b",
+    "iconType": "chat"
+  },
+  {
+    "label": "Тем вивчено",
+    "value": "8",
+    "sub": "з 12 модулів",
+    "bg": "bg-sky-50",
+    "iconColor": "#0ea5e9",
+    "iconType": "target"
+  },
+  {
+    "label": "Точність",
+    "value": "87%",
+    "sub": "середня оцінка",
+    "bg": "bg-orange-50",
+    "iconColor": "#f97316",
+    "iconType": "bolt"
+  }
+]

@@ -1,27 +1,28 @@
+// SideBar.tsx
 import { NavLink } from "react-router-dom"
-import { ChatsIcon } from "../icons/ChatsIcon";
-import { CoursesIcon } from "../icons/CoursesIcon";
-import { SettingsIcon } from "../icons/SettingsIcon";
-import { StoreIcon } from "../icons/StoreIcon";
+import { ChatsIcon } from "../icons/ChatsIcon"
+import { CoursesIcon } from "../icons/CoursesIcon"
+import { SettingsIcon } from "../icons/SettingsIcon"
+import { StoreIcon } from "../icons/StoreIcon"
 
-// navItems з правильними шляхами
 const navItems = [
-  { name: "Courses", href: "/modules", icon: <CoursesIcon /> },
+  { name: "Courses",  href: "/modules",  icon: <CoursesIcon /> },
   { name: "Settings", href: "/settings", icon: <SettingsIcon /> },
-  { name: "Chats", href: "/chats", icon: <ChatsIcon /> },
-  { name: "Store", href: "/store", icon: <StoreIcon /> },
-];
+  { name: "Chats",    href: "/chats",    icon: <ChatsIcon /> },
+  { name: "Store",    href: "/store",    icon: <StoreIcon /> },
+]
 
 export const SideBar = () => {
   return (
-    <aside className={`
-      fixed z-40 bg-white border-gray-100
-      /* mobile: bottom navigation bar */
+    <aside className="
+      fixed z-40
+      bg-white dark:bg-slate-900
+      border-gray-100 dark:border-slate-800
       bottom-0 left-0 right-0 h-16 border-t flex flex-row
-      /* desktop: left sidebar */
       md:bottom-auto md:top-16 md:left-0 md:right-auto
       md:h-[calc(100vh-4rem)] md:w-16 md:border-r md:border-t-0 md:flex-col
-    `}>
+      transition-colors duration-300
+    ">
       {navItems.map((item, index) => (
         <NavLink
           to={item.href}
@@ -31,8 +32,8 @@ export const SideBar = () => {
             flex-1 md:flex-none p-2 md:p-4 md:rounded-xl
             transition-colors duration-200
             ${isActive
-              ? "text-emerald-500 bg-emerald-50"
-              : "text-gray-600 hover:text-emerald-500 hover:bg-emerald-50"
+              ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30"
+              : "text-gray-600 dark:text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400"
             }`
           }
         >
@@ -41,5 +42,5 @@ export const SideBar = () => {
         </NavLink>
       ))}
     </aside>
-  );
-};
+  )
+}

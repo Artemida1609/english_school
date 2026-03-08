@@ -1,50 +1,66 @@
 [
   {
     "icon": "👤",
-    "bg": "bg-blue-50",
+    "bg": "bg-emerald-50",
     "title": "Профіль",
-    "subTitle": "Ім'я, фото, особисті дані"
+    "subTitle": "Ім'я, фото, особисті дані",
+    "link": "/settings/profile",
+    "i18nKey": "profile"
   },
   {
     "icon": "🔔",
-    "bg": "bg-amber-50",
+    "bg": "bg-violet-50",
     "title": "Сповіщення",
-    "subTitle": "Push-сповіщення та email"
+    "subTitle": "Push-сповіщення та email",
+    "link": "/settings/notifications",
+    "i18nKey": "notifications"
   },
   {
-    "icon": "🌍",
-    "bg": "bg-emerald-50",
+    "icon": "🌐",
+    "bg": "bg-sky-50",
     "title": "Мова інтерфейсу",
-    "subTitle": "Українська"
+    "subTitle": "Українська",
+    "link": "/settings/language",
+    "i18nKey": "language"
   },
   {
     "icon": "🎯",
-    "bg": "bg-purple-50",
+    "bg": "bg-orange-50",
     "title": "Ціль навчання",
-    "subTitle": "30 хвилин на день"
+    "subTitle": "30 хвилин на день",
+    "link": "/settings/goals",
+    "i18nKey": "goal"
   },
   {
     "icon": "🔒",
     "bg": "bg-rose-50",
     "title": "Безпека",
-    "subTitle": "Пароль та двофакторна автентифікація"
+    "subTitle": "Пароль та двофакторна автентифікація",
+    "link": "/settings/security",
+    "i18nKey": "security"
   },
   {
     "icon": "🎨",
     "bg": "bg-teal-50",
     "title": "Зовнішній вигляд",
-    "subTitle": "Світла тема"
+    "subTitle": "Світла тема",
+    "link": "/settings/theme",
+    "i18nKey": "theme"
   },
   {
-    "icon": "📊",
-    "bg": "bg-orange-50",
+    "icon": "📄",
+    "bg": "bg-slate-50",
     "title": "Конфіденційність",
-    "subTitle": "Дані та аналітика"
+    "subTitle": "Політика та умови",
+    "link": "/settings/privacy",
+    "i18nKey": null
   },
   {
-    "icon": "💳",
-    "bg": "bg-sky-50",
+    "icon": "💎",
+    "bg": "bg-amber-50",
     "title": "Підписка",
-    "subTitle": "Free план · Оновити до Pro"
+    "subTitle": "Безкоштовний план",
+    "link": "/settings/subscription",
+    "i18nKey": null
   }
 ]

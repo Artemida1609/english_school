@@ -1,6 +1,11 @@
 {
   "dependencies": {
+    "express": "^5.2.1",
     "framer-motion": "^12.35.0",
-    "motion": "^12.35.0"
+    "motion": "^12.35.0",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6"
   }
 }
