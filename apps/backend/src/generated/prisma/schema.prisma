@@ -1,0 +1,215 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USERS ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  role         Role     @default(STUDENT)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  profile     UserProfile?
+  progress    UserProgress[]
+  messages    Message[]
+  enrollments Enrollment[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id           String    @id @default(cuid())
+  userId       String    @unique @map("user_id")
+  avatar       String?
+  level        String    @default("beginner")
+  bio          String?
+  learningGoal String?   @map("learning_goal")
+  xp           Int       @default(0)
+  streak       Int       @default(0)
+  lastActivity DateTime? @map("last_activity")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+// ─── COURSES, MODULES & LESSONS ────────────────────────────────────────────────
+
+enum CourseLevel {
+  BEGINNER
+  ELEMENTARY
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+}
+
+enum LessonType {
+  VIDEO
+  THEORY
+  TASK
+  TEST
+}
+
+model Course {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  level       CourseLevel @default(BEGINNER)
+  thumbnail   String?
+  isPublished Boolean     @default(false) @map("is_published")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  modules     Module[]
+  enrollments Enrollment[]
+
+  @@map("courses")
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  courseId    String   @map("course_id")
+  title       String
+  description String?
+  orderIndex  Int      @default(0) @map("order_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@map("modules")
+}
+
+model Enrollment {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  courseId   String   @map("course_id")
+  enrolledAt DateTime @default(now()) @map("enrolled_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model Lesson {
+  id         String     @id @default(cuid())
+  moduleId   String     @map("module_id")
+  title      String
+  type       LessonType @default(THEORY)
+  content    String?
+  videoUrl   String?    @map("video_url")
+  orderIndex Int        @default(0) @map("order_index")
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  module   Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  tests    Test[]
+  progress UserProgress[]
+
+  @@map("lessons")
+}
+
+// ─── TESTS ───────────────────────────────────────────────────────────────────
+
+model Test {
+  id       String @id @default(cuid())
+  lessonId String @map("lesson_id")
+  title    String
+
+  lesson    Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  questions Question[]
+
+  @@map("tests")
+}
+
+model Question {
+  id           String @id @default(cuid())
+  testId       String @map("test_id")
+  questionText String @map("question_text")
+  orderIndex   Int    @default(0) @map("order_index")
+
+  test    Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@map("questions")
+}
+
+model Answer {
+  id         String  @id @default(cuid())
+  questionId String  @map("question_id")
+  answerText String  @map("answer_text")
+  isCorrect  Boolean @default(false) @map("is_correct")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("answers")
+}
+
+// ─── PROGRESS ────────────────────────────────────────────────────────────────
+
+model UserProgress {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  lessonId    String    @map("lesson_id")
+  completed   Boolean   @default(false)
+  score       Int?
+  completedAt DateTime? @map("completed_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("user_progress")
+}
+
+// ─── CHAT ─────────────────────────────────────────────────────────────────────
+
+enum RoomType {
+  PUBLIC
+  PRIVATE
+  GROUP
+}
+
+model ChatRoom {
+  id        String   @id @default(cuid())
+  name      String
+  type      RoomType @default(PUBLIC)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  messages Message[]
+
+  @@map("chat_rooms")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  roomId    String   @map("room_id")
+  userId    String   @map("user_id")
+  message   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
