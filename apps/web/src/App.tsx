@@ -20,6 +20,9 @@ import {
 import i18n from "./i18n";
 import { useThemeStore } from "./store/themeStore";
 import { useEffect } from "react";
+import { LoginPage } from "./pages/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage";
+import { AuthGuard } from "./components/AuthGuard";
 
 export const App = () => {
   const { theme, setTheme } = useThemeStore();
@@ -45,27 +48,35 @@ export const App = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/modules" element={<ModulesPage />} />
-          <Route path="/chats" element={<ChatsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/settings/profile" element={<ProfileSettings />} />
-          <Route
-            path="/settings/notifications"
-            element={<NotificationSettings />}
-          />
-          <Route path="/settings/language" element={<LanguageSettings />} />
-          <Route path="/settings/goals" element={<GoalSettings />} />
-          <Route path="/settings/security" element={<SecuritySettings />} />
-          <Route path="/settings/theme" element={<ThemeSettings />} />
-          <Route path="/settings/privacy" element={<PrivacySettings />} />
-          <Route path="/settings/subscription" element={<SubscriptionSettings />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-          <Route path="/store" element={<StorePage />} />
-        </Route>
-        <Route element={<ModuleLayout />}>
-          <Route path="/modules/:id" element={<ModulePage />} />
+        <Route element={<AuthGuard />}>
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/modules" element={<ModulesPage />} />
+            <Route path="/chats" element={<ChatsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/profile" element={<ProfileSettings />} />
+            <Route
+              path="/settings/notifications"
+              element={<NotificationSettings />}
+            />
+            <Route path="/settings/language" element={<LanguageSettings />} />
+            <Route path="/settings/goals" element={<GoalSettings />} />
+            <Route path="/settings/security" element={<SecuritySettings />} />
+            <Route path="/settings/theme" element={<ThemeSettings />} />
+            <Route path="/settings/privacy" element={<PrivacySettings />} />
+            <Route
+              path="/settings/subscription"
+              element={<SubscriptionSettings />}
+            />
+            <Route path="/store" element={<StorePage />} />
+          </Route>
+
+          <Route element={<ModuleLayout />}>
+            <Route path="/modules/:id" element={<ModulePage />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>
