@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
+const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+
 export const useSocket = (chatId: number) => {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Підключитись до сервера
-    socketRef.current = io("http://localhost:3001");
+    socketRef.current = io(SOCKET_URL);
 
     socketRef.current.on("connect", () => {
       setIsConnected(true);
