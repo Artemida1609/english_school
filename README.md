@@ -31,8 +31,12 @@ english_school/
 │   │
 │   └── backend/           # Бекенд (Express + Socket.IO + Prisma)
 │       ├── src/
-│       │   ├── socket.ts   # HTTP-сервер, Socket.IO, /health, /messages
-│       │   └── prisma.ts  # Prisma Client
+│       │   ├── server.ts      # HTTP-сервер, Socket.IO, CORS
+│       │   ├── config/        # Prisma Client
+│       │   ├── routes/        # auth, courses, lessons, chat
+│       │   ├── controllers/
+│       │   ├── middleware/
+│       │   └── sockets/       # chat.socket.ts
 │       └── prisma/
 │           ├── schema.prisma
 │           └── migrations/
@@ -101,33 +105,93 @@ cd apps/web && npm run dev
 
 ---
 
-## 📡 API та Socket.IO
+## 📡 API ендпоінти
 
-| Метод   | URL       | Опис |
-|---------|-----------|------|
-| `GET`   | `/health`  | Перевірка зʼєднання з БД → `{ "status": "ok" }` |
-| `GET`   | `/messages`| Останні 50 повідомлень з чатів (JSON) |
+Базовий URL: `/api` (окрім `/health`). Авторизація: Bearer JWT (крім публічних маршрутів).
 
-**Socket.IO події:**
+### Загальні
 
-| Подія         | Опис |
-|---------------|------|
-| `join_chat`   | Підключення до кімнати чату |
-| `send_message`| Відправка повідомлення (зберігається в БД) |
-| `receive_message` | Отримання повідомлення в реальному часі |
+| Метод | Шлях | Опис |
+|-------|------|------|
+| `GET` | `/health` | Стан сервера → `{ "status": "ok", "timestamp": "..." }` |
+
+### Auth — `/api/auth`
+
+| Метод | Шлях | Auth | Опис |
+|-------|------|------|------|
+| `POST` | `/register` | — | Реєстрація |
+| `POST` | `/login` | — | Вхід |
+| `POST` | `/refresh` | — | Оновлення токенів |
+| `GET` | `/me` | JWT | Поточний користувач |
+
+### Courses — `/api/courses`
+
+| Метод | Шлях | Auth | Опис |
+|-------|------|------|------|
+| `GET` | `/` | — | Список курсів |
+| `GET` | `/:id` | — | Курс за ID |
+| `POST` | `/:id/enroll` | JWT | Записатись на курс |
+| `GET` | `/:id/enrollments` | JWT, TEACHER/ADMIN | Записи на курс |
+| `POST` | `/` | JWT, TEACHER/ADMIN | Створити курс |
+| `PUT` | `/:id` | JWT, TEACHER/ADMIN | Оновити курс |
+| `POST` | `/:courseId/lessons` | JWT, TEACHER/ADMIN | Додати урок |
+
+### Lessons — `/api/lessons`
+
+| Метод | Шлях | Auth | Опис |
+|-------|------|------|------|
+| `GET` | `/:id` | JWT | Урок за ID |
+| `PUT` | `/:id` | JWT, TEACHER/ADMIN | Оновити урок |
+
+### Chat — `/api/chat`
+
+| Метод | Шлях | Auth | Опис |
+|-------|------|------|------|
+| `GET` | `/rooms` | JWT | Список чат-кімнат |
+| `GET` | `/rooms/:roomId/messages` | JWT | Повідомлення кімнати |
+| `POST` | `/rooms` | JWT, TEACHER/ADMIN | Створити кімнату |
+
+---
+
+## 📡 Socket.IO (WebSocket)
+
+Підключення з JWT: `auth: { token }`.
+
+**Події (клієнт → сервер):**
+
+| Подія | Payload | Опис |
+|-------|---------|------|
+| `join_room` | `roomId: string` | Приєднатися до кімнати |
+| `leave_room` | `roomId: string` | Покинути кімнату |
+| `send_message` | `{ roomId, message }` | Надіслати повідомлення |
+| `typing_start` | `roomId: string` | Початок набору |
+| `typing_stop` | `roomId: string` | Кінець набору |
+
+**Події (сервер → клієнт):**
+
+| Подія | Опис |
+|-------|------|
+| `receive_message` | Нове повідомлення у кімнаті |
+| `user_joined` | Користувач приєднався |
+| `user_left` | Користувач вийшов |
+| `user_typing` | Користувач набирає текст |
+| `user_stopped_typing` | Користувач перестав набирати |
+| `error` | Помилка (наприклад, room not found) |
 
 ---
 
 ## 🗄 База даних
 
-Моделі: **User**, **Course**, **Lesson**, **Enrollment**, **Chat**, **Message**, **Payment**.
+Моделі: **User**, **UserProfile**, **Course**, **Lesson**, **Enrollment**, **Test**, **Question**, **Answer**, **UserProgress**, **ChatRoom**, **Message**.
 
-- **User** (STUDENT / TEACHER / ADMIN) — курси, записи на курс, повідомлення
-- **Course** — уроки, зачислення, чати
-- **Lesson** — контент уроку, чати
-- **Enrollment** — запис студента на курс (ACTIVE / COMPLETED / CANCELLED)
-- **Payment** — оплати за курс (PENDING / PAID / FAILED / REFUNDED)
-- **Chat** — канали (курс, урок)
+- **User** (Role: STUDENT / TEACHER / ADMIN) — профіль, прогрес, повідомлення, записи на курси
+- **UserProfile** — аватар, рівень, bio, XP, streak
+- **Course** — уроки, записи (enrollments)
+- **Lesson** — контент, відео, тести, прогрес
+- **Enrollment** — запис студента на курс
+- **Test** / **Question** / **Answer** — тести до уроків
+- **UserProgress** — прогрес студента по уроках (completed, score)
+- **ChatRoom** (RoomType: PUBLIC / PRIVATE / GROUP) — чат-кімнати
 - **Message** — повідомлення в чаті
 
 **Корисні команди:**
