@@ -20,8 +20,8 @@ app.get("/health", async (_req, res) => {
 // Отримати останні 50 повідомлень (для тесту читання з БД)
 app.get("/messages", async (_req, res) => {
   try {
-    const messages = await prisma.message.findMany({
-      orderBy: { createdAt: "desc" },
+    const messages = await prisma.messages.findMany({
+      orderBy: { created_at: "desc" },
       take: 50,
     });
     res.json(messages);
@@ -57,41 +57,39 @@ io.on("connection", (socket) => {
       time: string;
     }) => {
       const chatIdStr = String(data.chatId);
+      const now = new Date();
 
       // Автоматичне створення (або знаходження) користувача
-      await prisma.user.upsert({
+      await prisma.users.upsert({
         where: { id: data.userId },
         update: {},
         create: {
           id: data.userId,
           email: `${data.userId}@placeholder.local`,
-          passwordHash: "",
+          password_hash: "",
           name: `User ${data.userId}`,
+          updated_at: now,
         },
       });
 
       // Автоматичне створення (або знаходження) чату
-      await prisma.chat.upsert({
+      await prisma.chat_rooms.upsert({
         where: { id: chatIdStr },
         update: {},
         create: {
           id: chatIdStr,
-          title: `Chat ${chatIdStr}`,
+          name: `Chat ${chatIdStr}`,
+          type: "PUBLIC",
         },
       });
 
-      const parsedTime = Date.parse(data.time);
-      const createdAt = Number.isNaN(parsedTime)
-        ? new Date()
-        : new Date(parsedTime);
-
       // Зберегти повідомлення в БД
-      await prisma.message.create({
+      await prisma.messages.create({
         data: {
-          chatId: chatIdStr,
-          authorId: data.userId,
-          text: data.text,
-          createdAt,
+          id: crypto.randomUUID(),
+          room_id: chatIdStr,
+          user_id: data.userId,
+          message: data.text,
         },
       });
 

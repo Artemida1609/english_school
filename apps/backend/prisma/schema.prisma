@@ -3,117 +3,147 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_DIRECT_URL")
 }
 
-enum UserRole {
+model answers {
+  id          String    @id
+  question_id String
+  answer_text String
+  is_correct  Boolean   @default(false)
+  questions   questions @relation(fields: [question_id], references: [id], onDelete: Cascade)
+}
+
+model chat_rooms {
+  id         String     @id
+  name       String
+  type       RoomType   @default(PUBLIC)
+  created_at DateTime   @default(now())
+  messages   messages[]
+}
+
+model courses {
+  id           String        @id
+  title        String
+  description  String
+  level        CourseLevel   @default(BEGINNER)
+  thumbnail    String?
+  is_published Boolean       @default(false)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime
+  enrollments  enrollments[]
+  lessons      lessons[]
+}
+
+model enrollments {
+  id          String   @id
+  user_id     String
+  course_id   String
+  enrolled_at DateTime @default(now())
+  courses     courses  @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  users       users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, course_id])
+}
+
+model lessons {
+  id            String          @id
+  course_id     String
+  title         String
+  content       String?
+  video_url     String?
+  order_index   Int
+  created_at    DateTime        @default(now())
+  courses       courses         @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  tests         tests[]
+  user_progress user_progress[]
+}
+
+model messages {
+  id         String     @id
+  room_id    String
+  user_id    String
+  message    String
+  created_at DateTime   @default(now())
+  chat_rooms chat_rooms @relation(fields: [room_id], references: [id], onDelete: Cascade)
+  users      users      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model questions {
+  id            String    @id
+  test_id       String
+  question_text String
+  order_index   Int       @default(0)
+  answers       answers[]
+  tests         tests     @relation(fields: [test_id], references: [id], onDelete: Cascade)
+}
+
+model tests {
+  id        String      @id
+  lesson_id String
+  title     String
+  questions questions[]
+  lessons   lessons     @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+}
+
+model user_profiles {
+  id            String    @id
+  user_id       String    @unique
+  avatar        String?
+  level         String    @default("beginner")
+  bio           String?
+  learning_goal String?
+  xp            Int       @default(0)
+  streak        Int       @default(0)
+  last_activity DateTime?
+  users         users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model user_progress {
+  id           String    @id
+  user_id      String
+  lesson_id    String
+  completed    Boolean   @default(false)
+  score        Int?
+  completed_at DateTime?
+  lessons      lessons   @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  users        users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, lesson_id])
+}
+
+model users {
+  id            String          @id
+  email         String          @unique
+  password_hash String
+  name          String
+  role          Role            @default(STUDENT)
+  created_at    DateTime        @default(now())
+  updated_at    DateTime
+  enrollments   enrollments[]
+  messages      messages[]
+  user_profiles user_profiles?
+  user_progress user_progress[]
+}
+
+enum CourseLevel {
+  BEGINNER
+  ELEMENTARY
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+}
+
+enum Role {
   STUDENT
   TEACHER
   ADMIN
 }
 
-enum EnrollmentStatus {
-  ACTIVE
-  COMPLETED
-  CANCELLED
+enum RoomType {
+  PUBLIC
+  PRIVATE
+  GROUP
 }
-
-model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  role         UserRole @default(STUDENT)
-
-  coursesTaught   Course[]      @relation("CoursesTaught")
-  enrollments     Enrollment[]
-  messages        Message[]
-
-  createdAt    DateTime @default(now())
-}
-
-model Course {
-  id          String      @id @default(cuid())
-  title       String
-  description String?
-  level       String?
-
-  teacherId   String
-  teacher     User        @relation("CoursesTaught", fields: [teacherId], references: [id])
-
-  lessons     Lesson[]
-  enrollments Enrollment[]
-  chats       Chat[]
-
-  createdAt   DateTime @default(now())
-}
-
-model Lesson {
-  id        String   @id @default(cuid())
-  courseId  String
-  title     String
-  order     Int
-  content   String?
-
-  course    Course   @relation(fields: [courseId], references: [id])
-  chats     Chat[]
-
-  createdAt DateTime @default(now())
-}
-
-model Enrollment {
-  id         String            @id @default(cuid())
-  studentId  String
-  courseId   String
-  status     EnrollmentStatus  @default(ACTIVE)
-
-  student    User              @relation(fields: [studentId], references: [id])
-  course     Course            @relation(fields: [courseId], references: [id])
-
-  payments   Payment[]
-
-  createdAt  DateTime @default(now())
-}
-
-model Payment {
-  id           String   @id @default(cuid())
-  enrollmentId String
-  amount       Decimal
-  currency     String   @default("EUR")
-  status       String   @default("PENDING") // e.g. PENDING, PAID, FAILED, REFUNDED
-  method       String?  // e.g. card, bank_transfer
-  paidAt       DateTime?
-
-  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
-
-  createdAt    DateTime @default(now())
-}
-
-model Chat {
-  id        String    @id @default(cuid())
-  title     String?
-
-  courseId  String?
-  course    Course?   @relation(fields: [courseId], references: [id])
-
-  lessonId  String?
-  lesson    Lesson?   @relation(fields: [lessonId], references: [id])
-
-  messages  Message[]
-
-  createdAt DateTime @default(now())
-}
-
-model Message {
-  id        String   @id @default(cuid())
-  chatId    String
-  authorId  String
-  text      String
-
-  chat      Chat     @relation(fields: [chatId], references: [id])
-  author    User     @relation(fields: [authorId], references: [id])
-
-  createdAt DateTime @default(now())
-}
-
