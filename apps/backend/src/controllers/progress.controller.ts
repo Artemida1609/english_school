@@ -52,7 +52,7 @@ export const getMyProgress = async (req: AuthRequest, res: Response): Promise<vo
       where: { userId },
       include: {
         lesson: {
-          include: { course: { select: { id: true, title: true } } },
+          include: { module: { include: { course: { select: { id: true, title: true } } } } },
         },
       },
       orderBy: { completedAt: 'desc' },
@@ -90,8 +90,8 @@ export const getCourseProgress = async (req: AuthRequest, res: Response): Promis
     }
 
     const lessons = await prisma.lesson.findMany({
-      where: { courseId },
-      select: { id: true, title: true, orderIndex: true },
+      where: { module: { courseId } },
+      select: { id: true, title: true, orderIndex: true, type: true },
     })
 
     const progress = await prisma.userProgress.findMany({

@@ -21,7 +21,7 @@ export const getCourses = async (req: Request, res: Response): Promise<void> => 
           ],
         }),
       },
-      include: { _count: { select: { lessons: true, enrollments: true } } },
+      include: { _count: { select: { modules: true, enrollments: true } } },
       orderBy: { createdAt: 'desc' },
     } as any)
 
@@ -43,9 +43,15 @@ export const getCourseById = async (req: Request, res: Response): Promise<void> 
     const course = await prisma.course.findUnique({
       where: { id },
       include: {
-        lessons: {
+        modules: {
           orderBy: { orderIndex: 'asc' },
-          select: { id: true, title: true, orderIndex: true, videoUrl: true },
+          include: {
+            _count: { select: { lessons: true } },
+            lessons: {
+              orderBy: { orderIndex: 'asc' },
+              select: { id: true, title: true, type: true, orderIndex: true },
+            },
+          },
         },
         _count: { select: { enrollments: true } },
       },

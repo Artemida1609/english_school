@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -51,7 +52,7 @@ model UserProfile {
   @@map("user_profiles")
 }
 
-// ─── COURSES & LESSONS ───────────────────────────────────────────────────────
+// ─── COURSES, MODULES & LESSONS ────────────────────────────────────────────────
 
 enum CourseLevel {
   BEGINNER
@@ -59,6 +60,13 @@ enum CourseLevel {
   INTERMEDIATE
   UPPER_INTERMEDIATE
   ADVANCED
+}
+
+enum LessonType {
+  VIDEO
+  THEORY
+  TASK
+  TEST
 }
 
 model Course {
@@ -71,10 +79,24 @@ model Course {
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
-  lessons     Lesson[]
+  modules     Module[]
   enrollments Enrollment[]
 
   @@map("courses")
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  courseId    String   @map("course_id")
+  title       String
+  description String?
+  orderIndex  Int      @default(0) @map("order_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@map("modules")
 }
 
 model Enrollment {
@@ -91,16 +113,17 @@ model Enrollment {
 }
 
 model Lesson {
-  id         String  @id @default(cuid())
-  courseId   String  @map("course_id")
+  id         String     @id @default(cuid())
+  moduleId   String     @map("module_id")
   title      String
+  type       LessonType @default(THEORY)
   content    String?
-  videoUrl   String? @map("video_url")
-  orderIndex Int     @map("order_index")
-  createdAt  DateTime @default(now()) @map("created_at")
+  videoUrl   String?    @map("video_url")
+  orderIndex Int        @default(0) @map("order_index")
+  createdAt  DateTime   @default(now()) @map("created_at")
 
-  course   Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  tests    Test[]
+  module  Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  tests   Test[]
   progress UserProgress[]
 
   @@map("lessons")

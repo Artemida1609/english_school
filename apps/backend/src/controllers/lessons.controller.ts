@@ -14,7 +14,9 @@ export const getLessonById = async (req: Request, res: Response): Promise<void> 
     const lesson = await prisma.lesson.findUnique({
       where: { id },
       include: {
-        course: { select: { id: true, title: true } },
+        module: {
+          include: { course: { select: { id: true, title: true } } },
+        },
         tests: {
           include: {
             questions: {
@@ -26,25 +28,32 @@ export const getLessonById = async (req: Request, res: Response): Promise<void> 
       },
     })
 
-    if (!lesson) {
+    // Flatten for API response (lesson.module.course)
+    const lessonData = lesson ? {
+      ...lesson,
+      course: lesson.module?.course,
+      module: lesson.module ? { id: lesson.module.id, title: lesson.module.title } : null,
+    } : null
+
+    if (!lessonData) {
       res.status(404).json({ message: 'Lesson not found' })
       return
     }
 
-    res.json(lesson)
+    res.json(lessonData)
   } catch (error) {
     console.error('GetLesson error:', error)
     res.status(500).json({ message: 'Internal server error' })
   }
 }
 
-// POST /api/courses/:courseId/lessons
+// POST /api/modules/:moduleId/lessons
 export const createLesson = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { title, content, videoUrl, orderIndex } = req.body
-    const courseId = getParam(req, 'courseId')
-    if (!courseId) {
-      res.status(400).json({ message: 'Course ID required' })
+    const { title, type, content, videoUrl, orderIndex } = req.body
+    const moduleId = getParam(req, 'moduleId')
+    if (!moduleId) {
+      res.status(400).json({ message: 'Module ID required' })
       return
     }
 
@@ -54,7 +63,14 @@ export const createLesson = async (req: AuthRequest, res: Response): Promise<voi
     }
 
     const lesson = await prisma.lesson.create({
-      data: { courseId, title, content, videoUrl, orderIndex: orderIndex ?? 0 },
+      data: {
+        moduleId,
+        title,
+        type: (type as 'VIDEO' | 'THEORY' | 'TASK' | 'TEST') ?? 'THEORY',
+        content,
+        videoUrl,
+        orderIndex: orderIndex ?? 0,
+      },
     })
 
     res.status(201).json(lesson)
@@ -76,7 +92,7 @@ export const updateLesson = async (req: AuthRequest, res: Response): Promise<voi
 
     const lesson = await prisma.lesson.update({
       where: { id },
-      data: { title, content, videoUrl, orderIndex },
+      data: { title, type: req.body.type, content, videoUrl, orderIndex },
     })
 
     res.json(lesson)

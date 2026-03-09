@@ -129,12 +129,22 @@ cd apps/web && npm run dev
 | Метод | Шлях | Auth | Опис |
 |-------|------|------|------|
 | `GET` | `/` | — | Список курсів |
-| `GET` | `/:id` | — | Курс за ID |
+| `GET` | `/:id` | — | Курс за ID (з модулями та уроками) |
 | `POST` | `/:id/enroll` | JWT | Записатись на курс |
 | `GET` | `/:id/enrollments` | JWT, TEACHER/ADMIN | Записи на курс |
 | `POST` | `/` | JWT, TEACHER/ADMIN | Створити курс |
 | `PUT` | `/:id` | JWT, TEACHER/ADMIN | Оновити курс |
-| `POST` | `/:courseId/lessons` | JWT, TEACHER/ADMIN | Додати урок |
+| `POST` | `/:courseId/modules` | JWT, TEACHER/ADMIN | Додати модуль |
+
+### Modules — `/api/modules`
+
+| Метод | Шлях | Auth | Опис |
+|-------|------|------|------|
+| `GET` | `/:id` | — | Модуль з уроками |
+| `PUT` | `/:id` | JWT, TEACHER/ADMIN | Оновити модуль |
+| `POST` | `/:moduleId/lessons` | JWT, TEACHER/ADMIN | Додати урок до модуля |
+
+Створення модуля: `POST /api/courses/:courseId/modules`
 
 ### Lessons — `/api/lessons`
 
@@ -142,6 +152,8 @@ cd apps/web && npm run dev
 |-------|------|------|------|
 | `GET` | `/:id` | JWT | Урок за ID |
 | `PUT` | `/:id` | JWT, TEACHER/ADMIN | Оновити урок |
+
+Типи уроків: `VIDEO`, `THEORY`, `TASK`, `TEST` (відповідно: відео, теорія, завдання, тест).
 
 ### Chat — `/api/chat`
 
@@ -186,8 +198,9 @@ cd apps/web && npm run dev
 
 - **User** (Role: STUDENT / TEACHER / ADMIN) — профіль, прогрес, повідомлення, записи на курси
 - **UserProfile** — аватар, рівень, bio, XP, streak
-- **Course** — уроки, записи (enrollments)
-- **Lesson** — контент, відео, тести, прогрес
+- **Course** — модулі, записи (enrollments)
+- **Module** — уроки всередині курсу
+- **Lesson** — тип: VIDEO / THEORY / TASK / TEST; контент, відео, тести (для типу TEST), прогрес
 - **Enrollment** — запис студента на курс
 - **Test** / **Question** / **Answer** — тести до уроків
 - **UserProgress** — прогрес студента по уроках (completed, score)
@@ -199,7 +212,10 @@ cd apps/web && npm run dev
 ```bash
 npm run prisma:studio   # Веб-інтерфейс для перегляду БД
 npm run prisma:generate # Регенерація Prisma Client після зміни schema
+npm run prisma:seed    # Seed: курси, модулі, уроки + тестовий юзер
 ```
+
+**Тестовий користувач (після seed):** `student@test.com` / `password123`
 
 ---
 

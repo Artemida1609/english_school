@@ -3,6 +3,7 @@ import { MainLayout } from "./layouts/MainLayout";
 import { HomePage } from "./pages/HomePage";
 import { ModulesPage } from "./pages/ModulesPage";
 import { ModulePage } from "./pages/ModulePage";
+import { CourseDetailPage } from "./pages/CourseDetailPage";
 import { ChatsPage } from "./pages/ChatsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { StorePage } from "./pages/StorePage";
@@ -55,6 +56,7 @@ export const App = () => {
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/modules" element={<ModulesPage />} />
+            <Route path="/courses/:courseId" element={<CourseDetailPage />} />
             <Route path="/chats" element={<ChatsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/profile" element={<ProfileSettings />} />

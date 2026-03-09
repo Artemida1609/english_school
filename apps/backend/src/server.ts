@@ -6,6 +6,7 @@ import cors from 'cors'
 
 import authRoutes from './routes/auth.routes'
 import coursesRoutes from './routes/courses.routes'
+import modulesRoutes from './routes/modules.routes'
 import lessonsRoutes from './routes/lessons.routes'
 import chatRoutes from './routes/chat.routes'
 import { setupSockets } from './sockets/chat.socket'
@@ -32,6 +33,7 @@ app.use(express.urlencoded({ extended: true }))
 
 app.use('/api/auth', authRoutes)
 app.use('/api/courses', coursesRoutes)
+app.use('/api/modules', modulesRoutes)
 app.use('/api/lessons', lessonsRoutes)
 app.use('/api/chat', chatRoutes)
 
