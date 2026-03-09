@@ -1,6 +1,12 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "";
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL ?? "");
+
+if (!import.meta.env.DEV && !API_URL) {
+  console.error(
+    "[Auth] VITE_API_URL не задано. Задайте змінну середовища при збірці (Vercel → Environment Variables)."
+  );
+}
 
 interface User {
   id: string;
@@ -32,7 +38,10 @@ export const login = createAsyncThunk(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error((await res.json()).message ?? "Login failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { message?: string }).message ?? "Login failed");
+      }
       const json = await res.json();
       return { user: json.user, token: json.accessToken, refreshToken: json.refreshToken };
     } catch (e: unknown) {
@@ -57,7 +66,10 @@ export const register = createAsyncThunk(
           name: `${data.firstName} ${data.lastName}`, // бекенд ожидает name
         }),
       });
-      if (!res.ok) throw new Error((await res.json()).message ?? "Register failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { message?: string }).message ?? "Register failed");
+      }
       const json = await res.json();
       return { user: json.user, token: json.accessToken, refreshToken: json.refreshToken };
     } catch (e: unknown) {

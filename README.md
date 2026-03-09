@@ -88,6 +88,17 @@ cd apps/web && npm run dev
 
 У `apps/web/.env` обовʼязково задайте `VITE_API_URL` — URL бекенду (Render у production).
 
+### Render: змінні середовища (обовʼязково)
+
+| Змінна | Опис |
+|--------|------|
+| `DATABASE_URL` | PostgreSQL (Neon) |
+| `JWT_SECRET` | Секрет для access token |
+| `JWT_REFRESH_SECRET` | Секрет для refresh token |
+| `CLIENT_URL` | URL фронтенду (Vercel) для CORS |
+
+Якщо при реєстрації/логіні 500 — перевірте логи Render (Dashboard → Logs) та наявність `JWT_SECRET`, `JWT_REFRESH_SECRET`.
+
 ---
 
 ## 📡 API та Socket.IO
