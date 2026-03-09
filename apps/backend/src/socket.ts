@@ -1,7 +1,10 @@
 import { Server } from "socket.io";
 import { createServer } from "http";
 import express from "express";
-import prisma from "./prisma";
+import prismaClient from "./prisma";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- schema має users/chat_rooms/messages після db pull
+const prisma = prismaClient as any;
 
 const app = express();
 const httpServer = createServer(app);
