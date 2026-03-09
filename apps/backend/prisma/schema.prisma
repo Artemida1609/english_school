@@ -1,132 +1,57 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-model answers {
-  id          String    @id
-  question_id String
-  answer_text String
-  is_correct  Boolean   @default(false)
-  questions   questions @relation(fields: [question_id], references: [id], onDelete: Cascade)
+// ─── USERS ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
 }
 
-model chat_rooms {
-  id         String     @id
-  name       String
-  type       RoomType   @default(PUBLIC)
-  created_at DateTime   @default(now())
-  messages   messages[]
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  role         Role     @default(STUDENT)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  profile      UserProfile?
+  progress     UserProgress[]
+  messages     Message[]
+  enrollments  Enrollment[]
+
+  @@map("users")
 }
 
-model courses {
-  id           String        @id
-  title        String
-  description  String
-  level        CourseLevel   @default(BEGINNER)
-  thumbnail    String?
-  is_published Boolean       @default(false)
-  created_at   DateTime      @default(now())
-  updated_at   DateTime
-  enrollments  enrollments[]
-  lessons      lessons[]
+model UserProfile {
+  id           String  @id @default(cuid())
+  userId       String  @unique @map("user_id")
+  avatar       String?
+  level        String  @default("beginner")
+  bio          String?
+  learningGoal String? @map("learning_goal")
+  xp           Int     @default(0)
+  streak       Int     @default(0)
+  lastActivity DateTime? @map("last_activity")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
 }
 
-model enrollments {
-  id          String   @id
-  user_id     String
-  course_id   String
-  enrolled_at DateTime @default(now())
-  courses     courses  @relation(fields: [course_id], references: [id], onDelete: Cascade)
-  users       users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@unique([user_id, course_id])
-}
-
-model lessons {
-  id            String          @id
-  course_id     String
-  title         String
-  content       String?
-  video_url     String?
-  order_index   Int
-  created_at    DateTime        @default(now())
-  courses       courses         @relation(fields: [course_id], references: [id], onDelete: Cascade)
-  tests         tests[]
-  user_progress user_progress[]
-}
-
-model messages {
-  id         String     @id
-  room_id    String
-  user_id    String
-  message    String
-  created_at DateTime   @default(now())
-  chat_rooms chat_rooms @relation(fields: [room_id], references: [id], onDelete: Cascade)
-  users      users      @relation(fields: [user_id], references: [id], onDelete: Cascade)
-}
-
-model questions {
-  id            String    @id
-  test_id       String
-  question_text String
-  order_index   Int       @default(0)
-  answers       answers[]
-  tests         tests     @relation(fields: [test_id], references: [id], onDelete: Cascade)
-}
-
-model tests {
-  id        String      @id
-  lesson_id String
-  title     String
-  questions questions[]
-  lessons   lessons     @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
-}
-
-model user_profiles {
-  id            String    @id
-  user_id       String    @unique
-  avatar        String?
-  level         String    @default("beginner")
-  bio           String?
-  learning_goal String?
-  xp            Int       @default(0)
-  streak        Int       @default(0)
-  last_activity DateTime?
-  users         users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-}
-
-model user_progress {
-  id           String    @id
-  user_id      String
-  lesson_id    String
-  completed    Boolean   @default(false)
-  score        Int?
-  completed_at DateTime?
-  lessons      lessons   @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
-  users        users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@unique([user_id, lesson_id])
-}
-
-model users {
-  id            String          @id
-  email         String          @unique
-  password_hash String
-  name          String
-  role          Role            @default(STUDENT)
-  created_at    DateTime        @default(now())
-  updated_at    DateTime
-  enrollments   enrollments[]
-  messages      messages[]
-  user_profiles user_profiles?
-  user_progress user_progress[]
-}
+// ─── COURSES & LESSONS ───────────────────────────────────────────────────────
 
 enum CourseLevel {
   BEGINNER
@@ -136,14 +61,132 @@ enum CourseLevel {
   ADVANCED
 }
 
-enum Role {
-  STUDENT
-  TEACHER
-  ADMIN
+model Course {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  level       CourseLevel @default(BEGINNER)
+  thumbnail   String?
+  isPublished Boolean     @default(false) @map("is_published")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  lessons     Lesson[]
+  enrollments Enrollment[]
+
+  @@map("courses")
 }
+
+model Enrollment {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  courseId   String   @map("course_id")
+  enrolledAt DateTime @default(now()) @map("enrolled_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model Lesson {
+  id         String  @id @default(cuid())
+  courseId   String  @map("course_id")
+  title      String
+  content    String?
+  videoUrl   String? @map("video_url")
+  orderIndex Int     @map("order_index")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  course   Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tests    Test[]
+  progress UserProgress[]
+
+  @@map("lessons")
+}
+
+// ─── TESTS ───────────────────────────────────────────────────────────────────
+
+model Test {
+  id       String @id @default(cuid())
+  lessonId String @map("lesson_id")
+  title    String
+
+  lesson    Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  questions Question[]
+
+  @@map("tests")
+}
+
+model Question {
+  id           String @id @default(cuid())
+  testId       String @map("test_id")
+  questionText String @map("question_text")
+  orderIndex   Int    @default(0) @map("order_index")
+
+  test    Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@map("questions")
+}
+
+model Answer {
+  id         String  @id @default(cuid())
+  questionId String  @map("question_id")
+  answerText String  @map("answer_text")
+  isCorrect  Boolean @default(false) @map("is_correct")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("answers")
+}
+
+// ─── PROGRESS ────────────────────────────────────────────────────────────────
+
+model UserProgress {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  lessonId    String    @map("lesson_id")
+  completed   Boolean   @default(false)
+  score       Int?
+  completedAt DateTime? @map("completed_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("user_progress")
+}
+
+// ─── CHAT ─────────────────────────────────────────────────────────────────────
 
 enum RoomType {
   PUBLIC
   PRIVATE
   GROUP
+}
+
+model ChatRoom {
+  id        String   @id @default(cuid())
+  name      String
+  type      RoomType @default(PUBLIC)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  messages Message[]
+
+  @@map("chat_rooms")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  roomId    String   @map("room_id")
+  userId    String   @map("user_id")
+  message   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
 }

@@ -1,10 +1,12 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+
 interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  name: string;
+  role: "STUDENT" | "TEACHER" | "ADMIN";
 }
 
 interface AuthState {
@@ -16,7 +18,7 @@ interface AuthState {
 
 const initialState: AuthState = {
   user: JSON.parse(localStorage.getItem("user") ?? "null"),
-  token: localStorage.getItem("token"),
+  token: localStorage.getItem("accessToken"),
   loading: false,
   error: null,
 };
@@ -25,13 +27,14 @@ export const login = createAsyncThunk(
   "auth/login",
   async (data: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error((await res.json()).message ?? "Login failed");
-      return await res.json(); // { user, token }
+      const json = await res.json();
+      return { user: json.user, token: json.accessToken, refreshToken: json.refreshToken };
     } catch (e: unknown) {
       return rejectWithValue(e instanceof Error ? e.message : "Login failed");
     }
@@ -40,15 +43,23 @@ export const login = createAsyncThunk(
 
 export const register = createAsyncThunk(
   "auth/register",
-  async (data: { email: string; password: string; firstName: string; lastName: string }, { rejectWithValue }) => {
+  async (
+    data: { email: string; password: string; firstName: string; lastName: string },
+    { rejectWithValue }
+  ) => {
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          name: `${data.firstName} ${data.lastName}`, // бекенд ожидает name
+        }),
       });
       if (!res.ok) throw new Error((await res.json()).message ?? "Register failed");
-      return await res.json();
+      const json = await res.json();
+      return { user: json.user, token: json.accessToken, refreshToken: json.refreshToken };
     } catch (e: unknown) {
       return rejectWithValue(e instanceof Error ? e.message : "Register failed");
     }
@@ -63,7 +74,8 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       localStorage.removeItem("user");
-      localStorage.removeItem("token");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
     },
     clearError(state) {
       state.error = null;
@@ -74,12 +86,16 @@ const authSlice = createSlice({
       state.loading = true;
       state.error = null;
     };
-    const handleFulfilled = (state: AuthState, action: PayloadAction<{ user: User; token: string }>) => {
+    const handleFulfilled = (
+      state: AuthState,
+      action: PayloadAction<{ user: User; token: string; refreshToken: string }>
+    ) => {
       state.loading = false;
       state.user = action.payload.user;
       state.token = action.payload.token;
       localStorage.setItem("user", JSON.stringify(action.payload.user));
-      localStorage.setItem("token", action.payload.token);
+      localStorage.setItem("accessToken", action.payload.token);
+      localStorage.setItem("refreshToken", action.payload.refreshToken);
     };
     const handleRejected = (state: AuthState, action: PayloadAction<unknown>) => {
       state.loading = false;
