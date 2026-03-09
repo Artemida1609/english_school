@@ -78,7 +78,7 @@ npm run prisma:migrate
 npm run backend:dev
 ```
 
-Сервер буде на `http://localhost:3001`.
+Сервер слухатиме порт з `PORT` у `.env` (за замовчуванням 4000).
 
 **Фронтенд** (термінал 2):
 
@@ -86,7 +86,7 @@ npm run backend:dev
 cd apps/web && npm run dev
 ```
 
-Сайт відкриється на `http://localhost:5173`.
+У `apps/web/.env` обовʼязково задайте `VITE_API_URL` — URL бекенду (Render у production).
 
 ---
 
@@ -132,7 +132,7 @@ npm run prisma:generate # Регенерація Prisma Client після змі
 
 | Скрипт            | Опис |
 |-------------------|------|
-| `backend:dev`     | Збірка TS → запуск бекенду на порту 3001 |
+| `backend:dev`     | Збірка TS → запуск бекенду на порту 4000 |
 | `backend:build`   | Компіляція TypeScript в `dist/` |
 | `backend:start`   | Запуск скомпільованого бекенду |
 | `prisma:migrate`  | Застосування міграцій до БД |
@@ -150,7 +150,7 @@ npm run prisma:generate # Регенерація Prisma Client після змі
 Для продакшену потрібно:
 1. Розгорнути бекенд і підключити його до Neon.
 2. Додати `DATABASE_URL` в Environment Variables Vercel (для фронтенду, якщо потрібно).
-3. У `useSocket` вказати URL публічного бекенда замість `localhost:3001`.
+3. У Vercel задати `VITE_API_URL` на URL Render-бекенда (наприклад `https://english-school-1izu.onrender.com`).
 
 ---
 

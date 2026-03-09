@@ -15,7 +15,7 @@ const httpServer = createServer(app)
 
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: process.env.CLIENT_URL || true,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -24,7 +24,7 @@ const io = new Server(httpServer, {
 setupSockets(io)
 
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: process.env.CLIENT_URL || true,
   credentials: true,
 }))
 app.use(express.json())
@@ -46,7 +46,7 @@ app.use((_req, res) => {
 const PORT = process.env.PORT || 4000
 
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
+  console.log(`🚀 Server running on port ${PORT}`)
   console.log(`🔌 Socket.io ready`)
 })
 
