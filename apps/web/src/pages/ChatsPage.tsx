@@ -34,7 +34,7 @@ export const ChatsPage = () => {
 
   useEffect(() => {
     onMessage((data) => {
-      const newMsg = { id: Date.now(), text: data.text, mine: false, time: data.time };
+      const newMsg = { id: Date.now(), text: data.text, mine: false, time: data.time ?? "" };
       setMessages((prev) => ({ ...prev, [activeChat.id]: [...(prev[activeChat.id] ?? []), newMsg] }));
     });
   }, [activeChat.id, onMessage]);
