@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { prisma } from '../config/prisma'
 import { AuthRequest } from '../middleware/auth.middleware'
+import { getParam } from '../utils/params'
 
 // GET /api/chats/rooms
 export const getRooms = async (_req: Request, res: Response): Promise<void> => {
@@ -19,7 +20,11 @@ export const getRooms = async (_req: Request, res: Response): Promise<void> => {
 // GET /api/chats/rooms/:roomId/messages
 export const getRoomMessages = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { roomId } = req.params
+    const roomId = getParam(req, 'roomId')
+    if (!roomId) {
+      res.status(400).json({ message: 'Room ID required' })
+      return
+    }
     const limit = parseInt(req.query.limit as string) || 50
     const cursor = req.query.cursor as string | undefined
 

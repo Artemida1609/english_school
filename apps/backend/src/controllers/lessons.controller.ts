@@ -1,12 +1,18 @@
 import { Request, Response } from 'express'
 import { prisma } from '../config/prisma'
 import { AuthRequest } from '../middleware/auth.middleware'
+import { getParam } from '../utils/params'
 
 // GET /api/lessons/:id
 export const getLessonById = async (req: Request, res: Response): Promise<void> => {
   try {
+    const id = getParam(req, 'id')
+    if (!id) {
+      res.status(400).json({ message: 'Lesson ID required' })
+      return
+    }
     const lesson = await prisma.lesson.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: {
         course: { select: { id: true, title: true } },
         tests: {
@@ -36,7 +42,11 @@ export const getLessonById = async (req: Request, res: Response): Promise<void> 
 export const createLesson = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { title, content, videoUrl, orderIndex } = req.body
-    const courseId = req.params.courseId
+    const courseId = getParam(req, 'courseId')
+    if (!courseId) {
+      res.status(400).json({ message: 'Course ID required' })
+      return
+    }
 
     if (!title) {
       res.status(400).json({ message: 'Title is required' })
@@ -58,9 +68,14 @@ export const createLesson = async (req: AuthRequest, res: Response): Promise<voi
 export const updateLesson = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { title, content, videoUrl, orderIndex } = req.body
+    const id = getParam(req, 'id')
+    if (!id) {
+      res.status(400).json({ message: 'Lesson ID required' })
+      return
+    }
 
     const lesson = await prisma.lesson.update({
-      where: { id: req.params.id },
+      where: { id },
       data: { title, content, videoUrl, orderIndex },
     })
 

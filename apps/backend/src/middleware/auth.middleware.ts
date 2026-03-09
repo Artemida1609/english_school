@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import jwt from 'jsonwebtoken'
+import * as jwt from 'jsonwebtoken'
 
 // Extend Express Request type to include user
 export interface AuthRequest extends Request {

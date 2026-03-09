@@ -1,7 +1,9 @@
 import { Request, Response } from 'express'
 import { prisma } from '../config/prisma'
 import { AuthRequest } from '../middleware/auth.middleware'
-import { CourseLevel } from '@prisma/client'
+import { getParam } from '../utils/params'
+
+type CourseLevelType = 'BEGINNER' | 'ELEMENTARY' | 'INTERMEDIATE' | 'UPPER_INTERMEDIATE' | 'ADVANCED'
 
 // GET /api/courses
 export const getCourses = async (req: Request, res: Response): Promise<void> => {
@@ -11,7 +13,7 @@ export const getCourses = async (req: Request, res: Response): Promise<void> => 
     const courses = await prisma.course.findMany({
       where: {
         isPublished: true,
-        ...(level && { level: level as CourseLevel }),
+        ...(level && { level: level as CourseLevelType }),
         ...(search && {
           OR: [
             { title: { contains: search as string, mode: 'insensitive' } },
@@ -19,11 +21,9 @@ export const getCourses = async (req: Request, res: Response): Promise<void> => 
           ],
         }),
       },
-      include: {
-        _count: { select: { lessons: true, enrollments: true } },
-      },
+      include: { _count: { select: { lessons: true, enrollments: true } } },
       orderBy: { createdAt: 'desc' },
-    })
+    } as any)
 
     res.json(courses)
   } catch (error) {
@@ -35,8 +35,13 @@ export const getCourses = async (req: Request, res: Response): Promise<void> => 
 // GET /api/courses/:id
 export const getCourseById = async (req: Request, res: Response): Promise<void> => {
   try {
+    const id = getParam(req, 'id')
+    if (!id) {
+      res.status(400).json({ message: 'Course ID required' })
+      return
+    }
     const course = await prisma.course.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: {
         lessons: {
           orderBy: { orderIndex: 'asc' },
@@ -44,7 +49,7 @@ export const getCourseById = async (req: Request, res: Response): Promise<void> 
         },
         _count: { select: { enrollments: true } },
       },
-    })
+    } as any)
 
     if (!course) {
       res.status(404).json({ message: 'Course not found' })
@@ -72,10 +77,10 @@ export const createCourse = async (req: AuthRequest, res: Response): Promise<voi
       data: {
         title,
         description,
-        level: level as CourseLevel ?? CourseLevel.BEGINNER,
+        level: (level as CourseLevelType) ?? 'BEGINNER',
         thumbnail,
       },
-    })
+    } as any)
 
     res.status(201).json(course)
   } catch (error) {
@@ -88,13 +93,18 @@ export const createCourse = async (req: AuthRequest, res: Response): Promise<voi
 export const updateCourse = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { title, description, level, thumbnail, isPublished } = req.body
+    const id = getParam(req, 'id')
+    if (!id) {
+      res.status(400).json({ message: 'Course ID required' })
+      return
+    }
 
     const course = await prisma.course.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         title,
         description,
-        ...(level && { level: level as CourseLevel }),
+        ...(level && { level: level as CourseLevelType }),
         thumbnail,
         isPublished,
       },
@@ -111,11 +121,15 @@ export const updateCourse = async (req: AuthRequest, res: Response): Promise<voi
 export const enrollCourse = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id
-    const courseId = req.params.id
+    const courseId = getParam(req, 'id')
+    if (!courseId) {
+      res.status(400).json({ message: 'Course ID required' })
+      return
+    }
 
     const existing = await prisma.enrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },
-    })
+    } as any)
 
     if (existing) {
       res.status(409).json({ message: 'Already enrolled' })
@@ -124,7 +138,7 @@ export const enrollCourse = async (req: AuthRequest, res: Response): Promise<voi
 
     const enrollment = await prisma.enrollment.create({
       data: { userId, courseId },
-    })
+    } as any)
 
     res.status(201).json({ message: 'Enrolled successfully', enrollment })
   } catch (error) {
@@ -136,13 +150,18 @@ export const enrollCourse = async (req: AuthRequest, res: Response): Promise<voi
 // GET /api/courses/:id/enrollments (TEACHER/ADMIN)
 export const getCourseEnrollments = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const courseId = getParam(req, 'id')
+    if (!courseId) {
+      res.status(400).json({ message: 'Course ID required' })
+      return
+    }
     const enrollments = await prisma.enrollment.findMany({
-      where: { courseId: req.params.id },
+      where: { courseId },
       include: {
         user: { select: { id: true, name: true, email: true } },
       },
       orderBy: { enrolledAt: 'desc' },
-    })
+    } as any)
 
     res.json(enrollments)
   } catch (error) {

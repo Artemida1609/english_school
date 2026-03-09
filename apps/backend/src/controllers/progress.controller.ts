@@ -1,6 +1,7 @@
 import { Response } from 'express'
 import { prisma } from '../config/prisma'
 import { AuthRequest } from '../middleware/auth.middleware'
+import { getParam } from '../utils/params'
 
 // POST /api/progress — mark lesson as complete / save score
 export const saveProgress = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -59,12 +60,14 @@ export const getMyProgress = async (req: AuthRequest, res: Response): Promise<vo
 
     const stats = {
       totalLessons: progress.length,
-      completedLessons: progress.filter((p) => p.completed).length,
+      completedLessons: progress.filter((p: { completed: boolean }) => p.completed).length,
       averageScore:
-        progress.filter((p) => p.score !== null).length > 0
+        progress.filter((p: { score: number | null }) => p.score !== null).length > 0
           ? Math.round(
-              progress.reduce((acc, p) => acc + (p.score || 0), 0) /
-                progress.filter((p) => p.score !== null).length
+              progress.reduce(
+                (acc: number, p: { score: number | null }) => acc + (p.score || 0),
+                0
+              ) / progress.filter((p: { score: number | null }) => p.score !== null).length
             )
           : null,
     }
@@ -80,7 +83,11 @@ export const getMyProgress = async (req: AuthRequest, res: Response): Promise<vo
 export const getCourseProgress = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id
-    const { courseId } = req.params
+    const courseId = getParam(req, 'courseId')
+    if (!courseId) {
+      res.status(400).json({ message: 'Course ID required' })
+      return
+    }
 
     const lessons = await prisma.lesson.findMany({
       where: { courseId },
@@ -90,18 +97,20 @@ export const getCourseProgress = async (req: AuthRequest, res: Response): Promis
     const progress = await prisma.userProgress.findMany({
       where: {
         userId,
-        lessonId: { in: lessons.map((l) => l.id) },
+        lessonId: { in: lessons.map((l: { id: string }) => l.id) },
       },
     })
 
-    const progressMap = new Map(progress.map((p) => [p.lessonId, p]))
+    const progressMap = new Map(
+      progress.map((p: { lessonId: string }) => [p.lessonId, p] as [string, typeof p])
+    )
 
-    const result = lessons.map((lesson) => ({
+    const result = lessons.map((lesson: { id: string; title: string; orderIndex: number }) => ({
       ...lesson,
       progress: progressMap.get(lesson.id) || null,
     }))
 
-    const completedCount = progress.filter((p) => p.completed).length
+    const completedCount = progress.filter((p: { completed: boolean }) => p.completed).length
     const percentage = lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0
 
     res.json({ lessons: result, completedCount, totalCount: lessons.length, percentage })

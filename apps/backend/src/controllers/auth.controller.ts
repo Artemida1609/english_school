@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import * as bcrypt from 'bcryptjs'
+import * as jwt from 'jsonwebtoken'
 import { prisma } from '../config/prisma'
 import { AuthRequest } from '../middleware/auth.middleware'
 
@@ -97,9 +97,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
         name: true,
         role: true,
         createdAt: true,
-        _count: {
-  select: { enrollments: true },
-},
+        _count: { select: { enrollments: true } },
       },
     })
 
