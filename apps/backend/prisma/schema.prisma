@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         UserRole @default(STUDENT)
+
+  coursesTaught   Course[]      @relation("CoursesTaught")
+  enrollments     Enrollment[]
+  messages        Message[]
+
+  createdAt    DateTime @default(now())
+}
+
+model Course {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  level       String?
+
+  teacherId   String
+  teacher     User        @relation("CoursesTaught", fields: [teacherId], references: [id])
+
+  lessons     Lesson[]
+  enrollments Enrollment[]
+  chats       Chat[]
+
+  createdAt   DateTime @default(now())
+}
+
+model Lesson {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  order     Int
+  content   String?
+
+  course    Course   @relation(fields: [courseId], references: [id])
+  chats     Chat[]
+
+  createdAt DateTime @default(now())
+}
+
+model Enrollment {
+  id         String            @id @default(cuid())
+  studentId  String
+  courseId   String
+  status     EnrollmentStatus  @default(ACTIVE)
+
+  student    User              @relation(fields: [studentId], references: [id])
+  course     Course            @relation(fields: [courseId], references: [id])
+
+  payments   Payment[]
+
+  createdAt  DateTime @default(now())
+}
+
+model Payment {
+  id           String   @id @default(cuid())
+  enrollmentId String
+  amount       Decimal
+  currency     String   @default("EUR")
+  status       String   @default("PENDING") // e.g. PENDING, PAID, FAILED, REFUNDED
+  method       String?  // e.g. card, bank_transfer
+  paidAt       DateTime?
+
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+
+  createdAt    DateTime @default(now())
+}
+
+model Chat {
+  id        String    @id @default(cuid())
+  title     String?
+
+  courseId  String?
+  course    Course?   @relation(fields: [courseId], references: [id])
+
+  lessonId  String?
+  lesson    Lesson?   @relation(fields: [lessonId], references: [id])
+
+  messages  Message[]
+
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  authorId  String
+  text      String
+
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
