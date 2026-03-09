@@ -174,11 +174,50 @@
       "darkSub": "Завжди темна тема",
       "system": "Системна",
       "systemSub": "Слідує за системою"
+    },
+    "privacy": {
+      "title": "Конфіденційність",
+      "subtitle": "Політика та умови",
+      "sectionTitle": "Конфіденційність",
+      "privacyPolicy": "Політика конфіденційності",
+      "termsOfService": "Умови використання",
+      "dataUsage": "Використання даних",
+      "deleteAccount": "Видалити акаунт",
+      "deleteAccountSub": "Назавжди видалити всі дані"
+    },
+
+    "subscription": {
+      "title": "Підписка",
+      "subtitle": "Безкоштовний план",
+      "sectionTitle": "Ваш план",
+      "currentPlan": "Поточний план",
+      "free": "Безкоштовний",
+      "freeSub": "Базовий доступ",
+      "pro": "Pro",
+      "proSub": "Повний доступ до всіх функцій",
+      "upgrade": "Покращити план",
+      "manage": "Керувати підпискою",
+      "expiresOn": "Дійсний до",
+      "cancelSubscription": "Скасувати підписку",
+      "feature": {
+        "courses5": "5 курсів",
+        "basicStats": "Базова статистика",
+        "push": "Push-сповіщення",
+        "unlimitedCourses": "Необмежені курси",
+        "analytics": "Детальна аналітика",
+        "prioritySupport": "Пріоритетна підтримка",
+        "offline": "Офлайн доступ"
+      }
     }
   },
 
   "days": {
-    "mon": "Пн", "tue": "Вт", "wed": "Ср",
-    "thu": "Чт", "fri": "Пт", "sat": "Сб", "sun": "Нд"
+    "mon": "Пн",
+    "tue": "Вт",
+    "wed": "Ср",
+    "thu": "Чт",
+    "fri": "Пт",
+    "sat": "Сб",
+    "sun": "Нд"
   }
 }

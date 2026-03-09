@@ -1,6 +1,16 @@
-[
+import { AppearanceIcon } from "../icons/AppearanceIcon";
+import { GoalIcon } from "../icons/GoalIcon";
+import { LanguageIcon } from "../icons/LanguageIcon";
+import { NotificationIcon } from "../icons/NotificationIcon";
+import { PrivacyIcon } from "../icons/PrivacyIcon";
+import { SecurityIcon } from "../icons/SecurityIcon";
+import { SettingsProfileIcon } from "../icons/SettingsProfileIcon";
+import { SubscriptionIcon } from "../icons/SubscriptionIcon";
+
+
+export const settingsConfig = [
   {
-    "icon": "👤",
+    "icon": SettingsProfileIcon,
     "bg": "bg-emerald-50",
     "title": "Профіль",
     "subTitle": "Ім'я, фото, особисті дані",
@@ -8,7 +18,7 @@
     "i18nKey": "profile"
   },
   {
-    "icon": "🔔",
+    "icon": NotificationIcon,
     "bg": "bg-violet-50",
     "title": "Сповіщення",
     "subTitle": "Push-сповіщення та email",
@@ -16,7 +26,7 @@
     "i18nKey": "notifications"
   },
   {
-    "icon": "🌐",
+    "icon": LanguageIcon,
     "bg": "bg-sky-50",
     "title": "Мова інтерфейсу",
     "subTitle": "Українська",
@@ -24,7 +34,7 @@
     "i18nKey": "language"
   },
   {
-    "icon": "🎯",
+    "icon": GoalIcon,
     "bg": "bg-orange-50",
     "title": "Ціль навчання",
     "subTitle": "30 хвилин на день",
@@ -32,7 +42,7 @@
     "i18nKey": "goal"
   },
   {
-    "icon": "🔒",
+    "icon": SecurityIcon,
     "bg": "bg-rose-50",
     "title": "Безпека",
     "subTitle": "Пароль та двофакторна автентифікація",
@@ -40,7 +50,7 @@
     "i18nKey": "security"
   },
   {
-    "icon": "🎨",
+    "icon": AppearanceIcon,
     "bg": "bg-teal-50",
     "title": "Зовнішній вигляд",
     "subTitle": "Світла тема",
@@ -48,19 +58,19 @@
     "i18nKey": "theme"
   },
   {
-    "icon": "📄",
+    "icon": PrivacyIcon,
     "bg": "bg-slate-50",
     "title": "Конфіденційність",
     "subTitle": "Політика та умови",
     "link": "/settings/privacy",
-    "i18nKey": null
+    "i18nKey": "privacy"
   },
   {
-    "icon": "💎",
+    "icon": SubscriptionIcon,
     "bg": "bg-amber-50",
     "title": "Підписка",
     "subTitle": "Безкоштовний план",
     "link": "/settings/subscription",
-    "i18nKey": null
+    "i18nKey": "subscription"
   }
 ]

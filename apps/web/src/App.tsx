@@ -14,6 +14,8 @@ import {
   GoalSettings,
   SecuritySettings,
   ThemeSettings,
+  PrivacySettings,
+  SubscriptionSettings,
 } from "./components/Settings";
 import i18n from "./i18n";
 import { useThemeStore } from "./store/themeStore";
@@ -57,6 +59,9 @@ export const App = () => {
           <Route path="/settings/goals" element={<GoalSettings />} />
           <Route path="/settings/security" element={<SecuritySettings />} />
           <Route path="/settings/theme" element={<ThemeSettings />} />
+          <Route path="/settings/privacy" element={<PrivacySettings />} />
+          <Route path="/settings/subscription" element={<SubscriptionSettings />} />
+
           <Route path="/store" element={<StorePage />} />
         </Route>
         <Route element={<ModuleLayout />}>

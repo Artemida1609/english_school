@@ -174,11 +174,50 @@
       "darkSub": "Always dark theme",
       "system": "System",
       "systemSub": "Follows system preference"
+    },
+    "privacy": {
+      "title": "Privacy",
+      "subtitle": "Policy and terms",
+      "sectionTitle": "Privacy",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service",
+      "dataUsage": "Data Usage",
+      "deleteAccount": "Delete account",
+      "deleteAccountSub": "Permanently delete all data"
+    },
+
+    "subscription": {
+      "title": "Subscription",
+      "subtitle": "Free plan",
+      "sectionTitle": "Your plan",
+      "currentPlan": "Current plan",
+      "free": "Free",
+      "freeSub": "Basic access",
+      "pro": "Pro",
+      "proSub": "Full access to all features",
+      "upgrade": "Upgrade plan",
+      "manage": "Manage subscription",
+      "expiresOn": "Expires on",
+      "cancelSubscription": "Cancel subscription",
+      "feature": {
+        "courses5": "5 courses",
+        "basicStats": "Basic statistics",
+        "push": "Push notifications",
+        "unlimitedCourses": "Unlimited courses",
+        "analytics": "Detailed analytics",
+        "prioritySupport": "Priority support",
+        "offline": "Offline access"
+      }
     }
   },
 
   "days": {
-    "mon": "Mo", "tue": "Tu", "wed": "We",
-    "thu": "Th", "fri": "Fr", "sat": "Sa", "sun": "Su"
+    "mon": "Mo",
+    "tue": "Tu",
+    "wed": "We",
+    "thu": "Th",
+    "fri": "Fr",
+    "sat": "Sa",
+    "sun": "Su"
   }
 }

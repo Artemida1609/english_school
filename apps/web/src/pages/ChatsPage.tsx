@@ -53,7 +53,7 @@ export const ChatsPage = () => {
   const currentMessages = messages[activeChat.id] ?? [];
 
   return (
-    <section className="flex h-[calc(100vh-4rem)] overflow-hidden rounded-none sm:rounded-2xl
+    <section className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-none sm:rounded-2xl
       border-0 sm:border border-slate-100 dark:border-slate-700
       bg-white dark:bg-slate-800 sm:shadow-sm">
 
@@ -78,7 +78,7 @@ export const ChatsPage = () => {
         <div className="flex-1 overflow-y-auto py-2">
           {chats.map((chat) => (
             <motion.button key={chat.id}
-              initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }} viewport={{ once: true }}
               onClick={() => { setActiveChat(chat); setShowSidebar(false); }}
               className={`w-full flex items-center gap-3 px-3 sm:px-4 py-3

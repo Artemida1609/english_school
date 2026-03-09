@@ -1,21 +1,23 @@
 import { motion } from "framer-motion";
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import settingsData from "../data/settingsData.json";
+import { settingsConfig } from "../data/settingsData";
+import { useThemeStore } from "../store/themeStore";
 
 // settingsData.json більше не містить хардкодних title/subTitle —
 // вони беруться з перекладів за ключем item.i18nKey
 // Якщо хочеш залишити JSON як є — просто видали useTranslation і залиш {item.title}
 
 const groups = [
-  { labelKey: "settings.groups.account",  items: settingsData.slice(0, 2) },
-  { labelKey: "settings.groups.learning", items: settingsData.slice(2, 4) },
-  { labelKey: "settings.groups.app",      items: settingsData.slice(4, 6) },
-  { labelKey: "settings.groups.other",    items: settingsData.slice(6, 8) },
+  { labelKey: "settings.groups.account", items: settingsConfig.slice(0, 2) },
+  { labelKey: "settings.groups.learning", items: settingsConfig.slice(2, 4) },
+  { labelKey: "settings.groups.app", items: settingsConfig.slice(4, 6) },
+  { labelKey: "settings.groups.other", items: settingsConfig.slice(6, 8) },
 ];
 
 export const SettingsPage = () => {
   const { t } = useTranslation();
+  const { theme } = useThemeStore();
 
   return (
     <section className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
@@ -63,33 +65,54 @@ export const SettingsPage = () => {
             >
               {group.items.map((item, i) => (
                 <NavLink to={item.link ?? "#"} key={i}>
-                  <div className="flex items-center gap-2.5 sm:gap-4
+                  <div
+                    className="flex items-center gap-2.5 sm:gap-4
                     px-3 sm:px-4 py-3 sm:py-3.5
                     border-b border-slate-50 dark:border-slate-700/50 last:border-0
                     hover:bg-slate-50/70 dark:hover:bg-slate-700/50 transition-colors duration-150"
                   >
-                    <div className={`w-8 h-8 sm:w-10 sm:h-10 ${item.bg} rounded-lg sm:rounded-xl
-                      flex items-center justify-center text-base sm:text-xl flex-shrink-0`}>
-                      {item.icon}
+                    <div
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl
+                      flex items-center justify-center flex-shrink-0`}
+                    >
+                      <item.icon className="w-[80%] h-[80%] text-slate-600 dark:text-slate-300" />
                     </div>
 
                     <div className="flex-1 min-w-0">
                       {/* Якщо є i18nKey — використати переклад, інакше — дані з JSON */}
                       <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
-                        {item.i18nKey ? t(`settings.${item.i18nKey}.title`) : item.title}
+                        {item.i18nKey
+                          ? t(`settings.${item.i18nKey}.title`)
+                          : item.title}
                       </p>
                       <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                        {item.i18nKey ? t(`settings.${item.i18nKey}.subtitle`) : item.subTitle}
+                        {item.i18nKey === "theme"
+                          ? t(`settings.theme.${theme}`) // "Світла", "Темна", "Системна"
+                          : item.i18nKey
+                            ? t(`settings.${item.i18nKey}.subtitle`)
+                            : item.subTitle}
                       </p>
                     </div>
 
-                    <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg
+                    <div
+                      className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg
                       flex items-center justify-center
                       text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30
-                      border border-emerald-100 dark:border-emerald-800">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                        <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.2"
-                          strokeLinecap="round" strokeLinejoin="round" />
+                      border border-emerald-100 dark:border-emerald-800"
+                    >
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d="M9 18l6-6-6-6"
+                          stroke="currentColor"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     </div>
                   </div>
