@@ -14,6 +14,7 @@ export default defineConfig({
         target: "https://english-school-1izu.onrender.com",
         changeOrigin: true,
         ws: true, // ← важливо для WebSocket
+        secure: false,
       },
     },
   },

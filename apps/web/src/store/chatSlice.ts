@@ -56,6 +56,11 @@ const initialState: ChatState = {
   error: null,
 };
 
+const API_URL = import.meta.env.DEV 
+  ? ""  // ← локально: відносний URL, проксіюється через vite
+  : (import.meta.env.VITE_API_URL ?? "https://english-school-1izu.onrender.com");
+
+
 // іконки та кольори для кімнат
 const ROOM_STYLES: Record<
   string,
@@ -80,7 +85,7 @@ export const fetchRooms = createAsyncThunk(
       const token = localStorage.getItem("accessToken");
       console.log("TOKEN:", token); // ← подивись що виводить
 
-      const res = await fetch("/api/chat/rooms", {
+      const res = await fetch(`${API_URL}/api/chat/rooms`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const text = await res.text();
@@ -99,7 +104,7 @@ export const fetchMessages = createAsyncThunk(
   async (roomId: string, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`/api/chat/rooms/${roomId}/messages`, {
+      const res = await fetch(`${API_URL}/api/chat/rooms/${roomId}/messages`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const text = await res.text();
