@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://english-school-1izu.onrender.com/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
