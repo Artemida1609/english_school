@@ -1,8 +1,10 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 
-const API_URL = import.meta.env.DEV 
-  ? ""  // ← локально: відносний URL, проксіюється через vite
-  : (import.meta.env.VITE_API_URL ?? "https://english-school-1izu.onrender.com");
+// const API_URL = import.meta.env.DEV 
+//   ? ""  // ← локально: відносний URL, проксіюється через vite
+//   : (import.meta.env.VITE_API_URL ?? "https://english-school-1izu.onrender.com");
+
+const API_URL = "";
 
 if (!import.meta.env.DEV && !API_URL) {
   console.error(

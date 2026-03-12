@@ -9,6 +9,7 @@ export default defineConfig({
       "/api": {
         target: "https://english-school-1izu.onrender.com",
         changeOrigin: true,
+        secure: false,
       },
       "/socket.io": {
         target: "https://english-school-1izu.onrender.com",
