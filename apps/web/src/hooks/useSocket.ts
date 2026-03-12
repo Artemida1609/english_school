@@ -5,6 +5,7 @@ type MessagePayload = {
   userId?: string;
   time?: string;
   mine?: boolean;
+  userName: string,
 };
 
 // const SOCKET_URL =
@@ -60,6 +61,7 @@ export const useSocket = (roomId: string | number) => {
         callbackRef.current?.({
           text: data.message,
           userId: data.user?.id,
+          userName: data.user?.name,
           time: new Date(data.createdAt).toLocaleTimeString("uk", {
             hour: "2-digit",
             minute: "2-digit",

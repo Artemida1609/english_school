@@ -62,6 +62,7 @@ export const ChatsPage = () => {
                 minute: "2-digit",
               }),
             userId: data.userId,
+            userName: data.userName,
           },
         }),
       );
@@ -69,10 +70,10 @@ export const ChatsPage = () => {
   }, [resolvedRoomId, currentUser?.id, onMessage, dispatch]);
 
   const handleSend = () => {
-  if (!input.trim() || !resolvedRoomId) return;
-  sendMessage(input.trim()); // ← тільки відправляємо, не додаємо локально
-  setInput("");
-};
+    if (!input.trim() || !resolvedRoomId) return;
+    sendMessage(input.trim()); // ← тільки відправляємо, не додаємо локально
+    setInput("");
+  };
 
   const currentMessages = (
     resolvedRoomId ? (messages[resolvedRoomId] ?? []) : []
@@ -274,19 +275,29 @@ export const ChatsPage = () => {
                     className={`flex ${msg.mine ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[85%] sm:max-w-[75%] md:max-w-[65%] px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl
-                      ${
-                        msg.mine
-                          ? "bg-gradient-to-br from-emerald-500 to-teal-500 text-white rounded-br-sm"
-                          : "bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 text-slate-800 dark:text-slate-200 rounded-bl-sm shadow-sm"
-                      }`}
+                      className={`max-w-[85%] sm:max-w-[75%] md:max-w-[65%] flex flex-col ${msg.mine ? "items-end" : "items-start"}`}
                     >
-                      <p className="text-sm leading-relaxed">{msg.text}</p>
-                      <p
-                        className={`text-[10px] mt-1 text-right ${msg.mine ? "text-white/70" : "text-slate-400"}`}
+                      {/* ім'я відправника — тільки для чужих */}
+                      {!msg.mine && (
+                        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mb-1 px-1">
+                          {msg.userName ?? "Unknown"}
+                        </span>
+                      )}
+                      <div
+                        className={`px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl
+    ${
+      msg.mine
+        ? "bg-gradient-to-br from-emerald-500 to-teal-500 text-white rounded-br-sm"
+        : "bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 text-slate-800 dark:text-slate-200 rounded-bl-sm shadow-sm"
+    }`}
                       >
-                        {msg.time}
-                      </p>
+                        <p className="text-sm leading-relaxed">{msg.text}</p>
+                        <p
+                          className={`text-[10px] mt-1 text-right ${msg.mine ? "text-white/70" : "text-slate-400"}`}
+                        >
+                          {msg.time}
+                        </p>
+                      </div>
                     </div>
                   </motion.div>
                 ))

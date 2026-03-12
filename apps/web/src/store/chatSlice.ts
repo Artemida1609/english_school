@@ -10,6 +10,7 @@ export interface Message {
   mine: boolean;
   time: string;
   userId?: string;
+  userName?: string;
 }
 
 export interface Room {
@@ -186,6 +187,7 @@ const chatSlice = createSlice({
               minute: "2-digit",
             }),
             userId: m.user?.id ?? m.userId, // "user_id" → "userId"
+            userName: m.user?.name ?? "Unknown",
           }),
         );
       })
