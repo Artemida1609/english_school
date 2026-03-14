@@ -6,12 +6,6 @@ import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/tool
 
 const API_URL = "";
 
-if (!import.meta.env.DEV && !API_URL) {
-  console.error(
-    "[Auth] VITE_API_URL не задано. Задайте змінну середовища при збірці (Vercel → Environment Variables)."
-  );
-}
-
 interface User {
   id: string;
   email: string;
