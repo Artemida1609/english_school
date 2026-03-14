@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -21,6 +21,7 @@ export const ChatsPage = () => {
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [showSidebar, setShowSidebar] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // fallback на першу кімнату якщо нічого не вибрано
   const resolvedRoomId = activeRoomId ?? rooms[0]?.id ?? null;
@@ -29,6 +30,13 @@ export const ChatsPage = () => {
   const { isConnected, sendMessage, onMessage } = useSocket(
     resolvedRoomId ?? "",
   );
+
+  const currentMessages = (
+    resolvedRoomId ? (messages[resolvedRoomId] ?? []) : []
+  ).map((msg) => ({
+    ...msg,
+    mine: msg.userId === currentUser?.id,
+  }));
 
   // завантажити кімнати
   useEffect(() => {
@@ -43,6 +51,10 @@ export const ChatsPage = () => {
     }
     dispatch(clearUnread(resolvedRoomId));
   }, [resolvedRoomId, dispatch]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [currentMessages, resolvedRoomId]);
 
   // слухати нові повідомлення через WebSocket
   useEffect(() => {
@@ -74,13 +86,6 @@ export const ChatsPage = () => {
     sendMessage(input.trim()); // ← тільки відправляємо, не додаємо локально
     setInput("");
   };
-
-  const currentMessages = (
-    resolvedRoomId ? (messages[resolvedRoomId] ?? []) : []
-  ).map((msg) => ({
-    ...msg,
-    mine: msg.userId === currentUser?.id,
-  }));
 
   if (roomsLoading) {
     return (
@@ -302,6 +307,7 @@ export const ChatsPage = () => {
                   </motion.div>
                 ))
               )}
+              <div ref={messagesEndRef} />
             </main>
 
             <footer className="px-2 sm:px-3 py-2 sm:py-3 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 flex-shrink-0">
