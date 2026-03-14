@@ -10,7 +10,10 @@ type MessagePayload = {
 
 // const SOCKET_URL =
 //   import.meta.env.VITE_API_URL ?? "https://english-school-1izu.onrender.com";
-const SOCKET_URL = "";
+// const SOCKET_URL = "";
+
+const SOCKET_URL = import.meta.env.VITE_API_URL ?? "https://english-school-1izu.onrender.com";
+
 
 export const useSocket = (roomId: string | number) => {
   const socketRef = useRef<Socket | null>(null);

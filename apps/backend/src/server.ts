@@ -14,9 +14,26 @@ import { setupSockets } from './sockets/chat.socket'
 const app = express()
 const httpServer = createServer(app)
 
+const allowedOrigins = [
+  "https://englishschool-one.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:4173",
+]
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error(`CORS: origin ${origin} not allowed`))
+    }
+  },
+  credentials: true,
+}
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || true,
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -24,10 +41,7 @@ const io = new Server(httpServer, {
 
 setupSockets(io)
 
-app.use(cors({
-  origin: process.env.CLIENT_URL || true,
-  credentials: true,
-}))
+app.use(cors(corsOptions))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
