@@ -6,6 +6,7 @@ import progressIcons from "../data/progressIcons.json";
 import achievements from "../data/achievements.json";
 import { ProgressIcon } from "../icons/ProgressIcon";
 import { AchievementIcon } from "../icons/AchievmentIcon";
+import { StreakCard } from "../components/Streakcard";
 
 export const HomePage = () => {
   const { t } = useTranslation();
@@ -365,48 +366,7 @@ export const HomePage = () => {
         </div>
 
         {/* Streak */}
-        <div
-          className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20
-          border border-orange-100 dark:border-orange-800/30 rounded-xl md:rounded-2xl p-4 md:p-5 flex items-center gap-3 md:gap-4"
-        >
-          <span className="text-3xl md:text-4xl">🔥</span>
-          <div className="min-w-0">
-            <p className="text-2xl md:text-3xl font-extrabold text-orange-600 dark:text-orange-400 leading-none">
-              7
-            </p>
-            <p className="text-xs md:text-sm text-orange-800/70 dark:text-orange-400/70 font-medium mb-2">
-              {t("home.daysInRow")}
-            </p>
-            <div className="flex gap-1 md:gap-1.5">
-              {(
-                [
-                  "days.mon",
-                  "days.tue",
-                  "days.wed",
-                  "days.thu",
-                  "days.fri",
-                  "days.sat",
-                  "days.sun",
-                ] as const
-              ).map((key, i) => (
-                <div
-                  key={key}
-                  className={`w-6 h-6 md:w-7 md:h-7 rounded-md md:rounded-lg
-                  flex items-center justify-center text-[9px] md:text-[10px] font-bold
-                  ${
-                    i === 6
-                      ? "bg-orange-500 text-white shadow-[0_0_0_2px_#fed7aa] dark:shadow-[0_0_0_2px_#78350f]"
-                      : i < 6
-                        ? "bg-orange-400 dark:bg-orange-500 text-white"
-                        : "bg-orange-100 dark:bg-orange-900/30 text-orange-300 dark:text-orange-700"
-                  }`}
-                >
-                  {t(key)}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <StreakCard />
 
         {/* Purchases */}
         <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl border border-slate-100 dark:border-slate-700 p-4 md:p-5">

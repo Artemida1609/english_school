@@ -243,6 +243,19 @@ npm run prisma:seed    # Seed: курси, модулі, уроки + тесто
 2. Додати `DATABASE_URL` в Environment Variables Vercel (для фронтенду, якщо потрібно).
 3. У Vercel задати `VITE_API_URL` на URL Render-бекенда (наприклад `https://english-school-1izu.onrender.com`).
 
+
+TO DO:
+
+Paths:
+courses -> courses/courseId -> courses/courseId/modules -> courses/courseId/modules/moduleId -> courses/courseId/modules/moduleId/taskId
+
+Databases:
+
+1. Store
+2. Achievements
+3. (Fix) user_profile and user_progress
+
+
 ---
 
 ## 🔗 Посилання

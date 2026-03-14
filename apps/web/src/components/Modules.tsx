@@ -129,7 +129,7 @@ export const Modules = () => {
               {courses.length}
             </span>
             <span className="text-[10px] font-semibold text-emerald-400 dark:text-emerald-500 tracking-wide">
-              courses
+              modules
             </span>
           </motion.div>
         </div>
