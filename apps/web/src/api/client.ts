@@ -14,6 +14,14 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
       ...options?.headers,
     },
   });
+
+  if (res.status === 401) {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    window.location.href = "/login";
+    throw new Error("Unauthorized");
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { message?: string }).message ?? `Request failed: ${res.status}`);

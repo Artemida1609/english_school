@@ -4,6 +4,8 @@ import {
   type PayloadAction,
 } from "@reduxjs/toolkit";
 
+import { apiFetch } from "../api/client";
+
 export interface Message {
   id: string;
   text: string;
@@ -61,7 +63,7 @@ const initialState: ChatState = {
 //   ? ""  // ← локально: відносний URL, проксіюється через vite
 //   : (import.meta.env.VITE_API_URL ?? "https://english-school-1izu.onrender.com");
 
-const API_URL = "";
+// const API_URL = "";
 
 
 // іконки та кольори для кімнат
@@ -85,19 +87,9 @@ export const fetchRooms = createAsyncThunk(
   "chat/fetchRooms",
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      console.log("TOKEN:", token); // ← подивись що виводить
-
-      const res = await fetch(`${API_URL}/api/chat/rooms`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const text = await res.text();
-      const json = text ? JSON.parse(text) : {};
-      if (!res.ok)
-        return rejectWithValue(json.message ?? "Failed to fetch rooms");
-      return json as ServerRoom[];
-    } catch {
-      return rejectWithValue("Failed to fetch rooms");
+      return await apiFetch<ServerRoom[]>("/api/chat/rooms");
+    } catch (e) {
+      return rejectWithValue(e instanceof Error ? e.message : "Failed to fetch rooms");
     }
   },
 );
@@ -106,17 +98,10 @@ export const fetchMessages = createAsyncThunk(
   "chat/fetchMessages",
   async (roomId: string, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const res = await fetch(`${API_URL}/api/chat/rooms/${roomId}/messages`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const text = await res.text();
-      const json = text ? JSON.parse(text) : {};
-      if (!res.ok)
-        return rejectWithValue(json.message ?? "Failed to fetch messages");
-      return { roomId, messages: json as ServerMessage[] };
-    } catch {
-      return rejectWithValue("Failed to fetch messages");
+      const messages = await apiFetch<ServerMessage[]>(`/api/chat/rooms/${roomId}/messages`);
+      return { roomId, messages };
+    } catch (e) {
+      return rejectWithValue(e instanceof Error ? e.message : "Failed to fetch messages");
     }
   },
 );
