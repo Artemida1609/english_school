@@ -1,10 +1,20 @@
 // Header.tsx
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { FireIcon } from "../icons/FireIcon";
 import { LogoIcon } from "../icons/LogoIcon";
 import { ProfileIcon } from "../icons/ProfileIcon";
+import { apiFetch } from "../api/client";
 
 export const Header = () => {
+  const [avatar, setAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ profile?: { avatar?: string | null } }>("/api/profile/me")
+      .then((data) => setAvatar(data.profile?.avatar ?? null))
+      .catch(() => setAvatar(null));
+  }, []);
+
   return (
     <header
       className="fixed z-50 w-full h-16 flex items-center justify-between px-6
@@ -65,7 +75,17 @@ export const Header = () => {
           hover:bg-gray-100 dark:hover:bg-slate-800
           transition-colors duration-150 cursor-pointer"
           >
-            <ProfileIcon />
+            {avatar ? (
+              <div className="w-8 h-8 rounded-full overflow-hidden">
+                <img
+                  src={avatar}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <ProfileIcon />
+            )}
           </button>
         </NavLink>
       </div>

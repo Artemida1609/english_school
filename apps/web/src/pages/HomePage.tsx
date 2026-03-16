@@ -16,13 +16,22 @@ export const HomePage = () => {
   const { purchases } = useSelector((s: RootState) => s.shop);
   const { user } = useSelector((s: RootState) => s.auth);
   const [unlockedKeys, setUnlockedKeys] = useState<string[]>([]);
+  const [avatar, setAvatar] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch<{ unlocked: string[] }>("/api/achievements/me")
-      .then((data) => setUnlockedKeys(data.unlocked))
-      .catch(() => {
-        // якщо бекенд недоступний, просто залишаємо дефолтне значення
-      });
+    const loadData = async () => {
+      try {
+        const [achievementsRes, profileRes] = await Promise.all([
+          apiFetch<{ unlocked: string[] }>("/api/achievements/me"),
+          apiFetch<{ profile?: { avatar?: string | null } }>("/api/profile/me"),
+        ]);
+        setUnlockedKeys(achievementsRes.unlocked);
+        setAvatar(profileRes.profile?.avatar ?? null);
+      } catch {
+        // якщо бекенд недоступний, просто залишаємо дефолтні значення
+      }
+    };
+    loadData();
   }, []);
 
   return (
@@ -317,9 +326,17 @@ export const HomePage = () => {
           <div className="relative inline-block mb-3">
             <div
               className="w-14 h-14 md:w-[72px] md:h-[72px] rounded-full bg-gradient-to-br
-              from-teal-400 to-emerald-500 flex items-center justify-center mx-auto text-2xl md:text-3xl"
+              from-teal-400 to-emerald-500 flex items-center justify-center mx-auto text-2xl md:text-3xl overflow-hidden"
             >
-              👤
+              {avatar ? (
+                <img
+                  src={avatar}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                "👤"
+              )}
             </div>
             <div
               className="absolute bottom-0.5 right-0.5 w-3 h-3 md:w-3.5 md:h-3.5
