@@ -610,7 +610,7 @@ export const SecuritySettings = () => {
 export const ThemeSettings = () => {
   const { t } = useTranslation();
   const { theme, setTheme } = useThemeStore();
-  const [selected, setSelected] = useState(theme);
+  const [selected, setSelected] = useState(theme); 
 
   const themes = [
     {
@@ -768,11 +768,11 @@ export const ThemeSettings = () => {
         <SectionTitle>{t("settings.theme.sectionTitle")}</SectionTitle>
         <div className="space-y-2">
           {themes.map((th) => {
-            const isActive = theme === th.id;
+            const isActive = selected === th.id;
             return (
               <button
                 key={th.id}
-                onClick={() => setTheme(th.id)}
+                onClick={() => setSelected(th.id)}
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 transition-all duration-200
                   ${isActive
                     ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
@@ -820,6 +820,7 @@ export const ThemeSettings = () => {
           })}
         </div>
       </div>
+      <SaveButton onClick={() => setTheme(selected)} />
     </section>
   );
 };
@@ -1101,37 +1102,72 @@ export const SubscriptionSettings = () => {
         <SectionTitle>{t("settings.subscription.sectionTitle")}</SectionTitle>
         <div className="space-y-3">
           {plans.map((plan) => {
-            const isActive = selected === plan.id;
+            const isActive = selected === plan.id; // ← використовується
             return (
-              <button onClick={() => setSubscription(selected as "free" | "pro")}>
-                {selected === "pro"
-                  ? t("settings.subscription.manage")
-                  : t("settings.subscription.upgrade")}
+              <button
+                key={plan.id}
+                onClick={() => setSelected(plan.id as "free" | "pro")}
+                className={`w-full flex items-start gap-4 px-4 py-4 rounded-xl border-2 transition-all duration-200 text-left
+          ${isActive ? plan.activeBg : "border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600"}`}
+              >
+                <div className={`mt-0.5 transition-colors ${isActive ? plan.activeText : "text-slate-400 dark:text-slate-500"}`}>
+                  {plan.icon}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className={`font-bold text-sm ${isActive ? plan.activeText : "text-slate-800 dark:text-slate-200"}`}>
+                      {plan.label}
+                    </p>
+                    <span className={`text-sm font-extrabold ${isActive ? plan.activeText : "text-slate-500 dark:text-slate-400"}`}>
+                      {plan.price}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">{plan.sub}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {plan.features.map((f, i) => (
+                      <span key={i} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full
+                ${isActive
+                          ? "bg-white/60 dark:bg-slate-800/60 " + plan.activeText
+                          : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                        }`}>
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all
+          ${isActive ? "border-current bg-current " + plan.activeText : "border-slate-300 dark:border-slate-600"}`}>
+                  {isActive && (
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </div>
               </button>
             );
           })}
         </div>
-      </div>
 
-      <button
-        className="mt-2 w-full h-12 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600
-        text-white font-bold text-sm tracking-wide
-        hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5
-        active:translate-y-0 transition-all duration-200"
-      >
-        {selected === "pro"
-          ? t("settings.subscription.manage")
-          : t("settings.subscription.upgrade")}
-      </button>
-
-      {selected === "pro" && (
+        {/* Кнопка зберігає в store */}
         <button
-          className="w-full py-3 text-sm font-semibold text-rose-400 dark:text-rose-500
-          hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
+          onClick={() => setSubscription(selected as "free" | "pro")}
+          className="mt-2 w-full h-12 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600
+    text-white font-bold text-sm tracking-wide
+    hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5
+    active:translate-y-0 transition-all duration-200"
         >
-          {t("settings.subscription.cancelSubscription")}
+          {selected === "pro"
+            ? t("settings.subscription.manage")
+            : t("settings.subscription.upgrade")}
         </button>
-      )}
+
+        {selected === "pro" && (
+          <button className="w-full py-3 text-sm font-semibold text-rose-400 dark:text-rose-500
+    hover:text-rose-500 dark:hover:text-rose-400 transition-colors">
+            {t("settings.subscription.cancelSubscription")}
+          </button>
+        )}
+      </div>
     </section>
   );
 };
