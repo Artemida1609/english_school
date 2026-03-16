@@ -1,19 +1,28 @@
 // Header.tsx
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { FireIcon } from "../icons/FireIcon";
 import { LogoIcon } from "../icons/LogoIcon";
 import { ProfileIcon } from "../icons/ProfileIcon";
 import { apiFetch } from "../api/client";
+import type { RootState } from "../store";
 
 export const Header = () => {
+  const { user } = useSelector((s: RootState) => s.auth);
   const [avatar, setAvatar] = useState<string | null>(null);
 
   useEffect(() => {
+    // Якщо користувач не залогінений – аватарка відсутня
+    if (!user) {
+      setAvatar(null);
+      return;
+    }
+
     apiFetch<{ profile?: { avatar?: string | null } }>("/api/profile/me")
       .then((data) => setAvatar(data.profile?.avatar ?? null))
       .catch(() => setAvatar(null));
-  }, []);
+  }, [user?.id]);
 
   return (
     <header
