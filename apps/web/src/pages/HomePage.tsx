@@ -1,18 +1,29 @@
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "../store";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import progressIcons from "../data/progressIcons.json";
-import achievements from "../data/achievements.json";
+import achievementsData from "../data/achievements.json";
 import { ProgressIcon } from "../icons/ProgressIcon";
 import { AchievementIcon } from "../icons/AchievmentIcon";
 import { StreakCard } from "../components/Streakcard";
+import { apiFetch } from "../api/client";
 
 export const HomePage = () => {
   const { t } = useTranslation();
   const progress = 100;
   const { purchases } = useSelector((s: RootState) => s.shop);
   const { user } = useSelector((s: RootState) => s.auth);
+  const [unlockedKeys, setUnlockedKeys] = useState<string[]>([]);
+
+  useEffect(() => {
+    apiFetch<{ unlocked: string[] }>("/api/achievements/me")
+      .then((data) => setUnlockedKeys(data.unlocked))
+      .catch(() => {
+        // якщо бекенд недоступний, просто залишаємо дефолтне значення
+      });
+  }, []);
 
   return (
     <main className="grid md:grid-cols-[1fr_280px] xl:grid-cols-[1fr_300px] grid-cols-1 gap-4 md:gap-6 p-4 md:p-6">
@@ -270,24 +281,27 @@ export const HomePage = () => {
           {t("home.achievements")}
         </h3>
         <div className="grid grid-cols-4 gap-2 md:gap-3">
-          {achievements.map((a, i) => (
+          {achievementsData.map((a, i) => {
+            const unlocked = unlockedKeys.includes(a.key);
+            return (
             <motion.div
               key={a.name}
               initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: a.locked ? 0.4 : 1, scale: 1 }}
+              animate={{ opacity: unlocked ? 1 : 0.4, scale: 1 }}
               transition={{ duration: 0.3, delay: i * 0.05 }}
               className={`bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl p-2 md:p-3
                 border border-slate-100 dark:border-slate-700 text-center transition-all duration-200
-                ${a.locked ? "grayscale" : "hover:border-emerald-200 dark:hover:border-emerald-700 hover:-translate-y-0.5"}`}
+                ${unlocked ? "hover:border-emerald-200 dark:hover:border-emerald-700 hover:-translate-y-0.5" : "grayscale"}`}
             >
               <div className="flex items-center justify-center mb-1.5">
-                <AchievementIcon type={a.type} locked={a.locked} />
+                <AchievementIcon type={a.type} locked={!unlocked} />
               </div>
               <p className="text-[9px] md:text-[10px] font-semibold text-slate-500 dark:text-slate-400 leading-tight">
                 {a.name}
               </p>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

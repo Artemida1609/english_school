@@ -9,6 +9,7 @@ import coursesRoutes from './routes/courses.routes'
 import modulesRoutes from './routes/modules.routes'
 import lessonsRoutes from './routes/lessons.routes'
 import chatRoutes from './routes/chat.routes'
+import achievementsRoutes from './routes/achievements.routes'
 import storeRoutes from './routes/store.routes'
 import { setupSockets } from './sockets/chat.socket'
 
@@ -51,6 +52,7 @@ app.use('/api/courses', coursesRoutes)
 app.use('/api/modules', modulesRoutes)
 app.use('/api/lessons', lessonsRoutes)
 app.use('/api/chat', chatRoutes)
+app.use('/api/achievements', achievementsRoutes)
 app.use('/api/store', storeRoutes)
 
 app.get('/health', (_req, res) => {
