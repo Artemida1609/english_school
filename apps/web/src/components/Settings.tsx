@@ -4,6 +4,7 @@ import { useThemeStore } from "../store/themeStore";
 import { useTranslation } from "react-i18next";
 import { useLanguageStore } from "../store/languageStore";
 import { LANGUAGES } from "../i18n";
+import { useSettingsStore } from "../store/settingsStore";
 // import { motion } from "framer-motion";
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -138,22 +139,26 @@ const NotifRow = ({
   </div>
 );
 
+// ─── Notifications ────────────────────────────────────────────────────────────
+// ─── Notifications ────────────────────────────────────────────────────────────
 export const NotificationSettings = () => {
   const { t } = useTranslation();
-  const [push, setPush] = useState(true);
-  const [email, setEmail] = useState(true);
-  const [streak, setStreak] = useState(true);
-  const [achievements, setAchievements] = useState(false);
-  const [reminders, setReminders] = useState(true);
+  const { notifications, setNotifications } = useSettingsStore();
+  const [local, setLocal] = useState(notifications);
+  const toggle = (key: keyof typeof local) =>
+    setLocal((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <section className="max-w-lg space-y-4 justify-self-center">
       <BackButton title={t("settings.notifications.title")} />
+
       <div className={cardCls}>
         <SectionTitle>{t("settings.notifications.channels")}</SectionTitle>
+
+        {/* Push */}
         <NotifRow
-          checked={push}
-          onChange={() => setPush(!push)}
+          checked={local.push}
+          onChange={() => toggle("push")}
           title={t("settings.notifications.push")}
           sub={t("settings.notifications.pushSub")}
           icon={
@@ -174,9 +179,11 @@ export const NotificationSettings = () => {
             </svg>
           }
         />
+
+        {/* Email */}
         <NotifRow
-          checked={email}
-          onChange={() => setEmail(!email)}
+          checked={local.email}
+          onChange={() => toggle("email")}
           title={t("settings.notifications.emailNotif")}
           sub={t("settings.notifications.emailSub")}
           icon={
@@ -201,9 +208,11 @@ export const NotificationSettings = () => {
 
       <div className={cardCls}>
         <SectionTitle>{t("settings.notifications.types")}</SectionTitle>
+
+        {/* Streak */}
         <NotifRow
-          checked={streak}
-          onChange={() => setStreak(!streak)}
+          checked={local.streak}
+          onChange={() => toggle("streak")}
           title={t("settings.notifications.streak")}
           sub={t("settings.notifications.streakSub")}
           icon={
@@ -218,9 +227,11 @@ export const NotificationSettings = () => {
             </svg>
           }
         />
+
+        {/* Achievements */}
         <NotifRow
-          checked={achievements}
-          onChange={() => setAchievements(!achievements)}
+          checked={local.achievements}
+          onChange={() => toggle("achievements")}
           title={t("settings.notifications.achievements")}
           sub={t("settings.notifications.achievementsSub")}
           icon={
@@ -235,20 +246,16 @@ export const NotificationSettings = () => {
             </svg>
           }
         />
+
+        {/* Reminders */}
         <NotifRow
-          checked={reminders}
-          onChange={() => setReminders(!reminders)}
+          checked={local.reminders}
+          onChange={() => toggle("reminders")}
           title={t("settings.notifications.reminders")}
           sub={t("settings.notifications.remindersSub")}
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <circle
-                cx="12"
-                cy="12"
-                r="9"
-                stroke="#10b981"
-                strokeWidth="1.8"
-              />
+              <circle cx="12" cy="12" r="9" stroke="#10b981" strokeWidth="1.8" />
               <polyline
                 points="12 7 12 12 15 15"
                 stroke="#10b981"
@@ -272,7 +279,8 @@ export const NotificationSettings = () => {
           placeholder={t("settings.profile.emailPlaceholder")}
         />
       </div>
-      <SaveButton />
+
+      <SaveButton onClick={() => setNotifications(local)} />
     </section>
   );
 };
@@ -295,10 +303,9 @@ export const LanguageSettings = () => {
               key={lang.code}
               onClick={() => setSelected(lang.code)}
               className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border transition-all duration-200
-                ${
-                  selected === lang.code
-                    ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 shadow-sm shadow-emerald-100 dark:shadow-emerald-900"
-                    : "border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                ${selected === lang.code
+                  ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 shadow-sm shadow-emerald-100 dark:shadow-emerald-900"
+                  : "border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700/50"
                 }`}
             >
               <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
@@ -306,21 +313,19 @@ export const LanguageSettings = () => {
               </div>
               <span
                 className={`font-semibold text-sm flex-1 text-left
-                ${
-                  selected === lang.code
+                ${selected === lang.code
                     ? "text-emerald-700 dark:text-emerald-400"
                     : "text-slate-700 dark:text-slate-300"
-                }`}
+                  }`}
               >
                 {lang.label}
               </span>
               <div
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
-                ${
-                  selected === lang.code
+                ${selected === lang.code
                     ? "border-emerald-500 bg-emerald-500"
                     : "border-slate-300 dark:border-slate-600"
-                }`}
+                  }`}
               >
                 {selected === lang.code && (
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -347,7 +352,8 @@ export const LanguageSettings = () => {
 
 export const GoalSettings = () => {
   const { t } = useTranslation();
-  const [selected, setSelected] = useState("regular");
+  const { goal, setGoal } = useSettingsStore();
+  const [selected, setSelected] = useState<string>(goal);
 
   const goals = [
     {
@@ -490,7 +496,7 @@ export const GoalSettings = () => {
           })}
         </div>
       </div>
-      <SaveButton />
+      <SaveButton onClick={() => setGoal(selected as "casual" | "regular" | "intense")} />
     </section>
   );
 };
@@ -604,6 +610,7 @@ export const SecuritySettings = () => {
 export const ThemeSettings = () => {
   const { t } = useTranslation();
   const { theme, setTheme } = useThemeStore();
+  const [selected, setSelected] = useState(theme);
 
   const themes = [
     {
@@ -767,10 +774,9 @@ export const ThemeSettings = () => {
                 key={th.id}
                 onClick={() => setTheme(th.id)}
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 transition-all duration-200
-                  ${
-                    isActive
-                      ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
-                      : "border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                  ${isActive
+                    ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
+                    : "border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700/50"
                   }`}
               >
                 <div
@@ -814,7 +820,6 @@ export const ThemeSettings = () => {
           })}
         </div>
       </div>
-      <SaveButton />
     </section>
   );
 };
@@ -1011,7 +1016,8 @@ export const PrivacySettings = () => {
 
 export const SubscriptionSettings = () => {
   const { t } = useTranslation();
-  const [selected, setSelected] = useState("free");
+  const { subscription, setSubscription } = useSettingsStore();
+  const [selected, setSelected] = useState(subscription);
 
   const plans = [
     {
@@ -1097,66 +1103,10 @@ export const SubscriptionSettings = () => {
           {plans.map((plan) => {
             const isActive = selected === plan.id;
             return (
-              <button
-                key={plan.id}
-                onClick={() => setSelected(plan.id)}
-                className={`w-full flex items-start gap-4 px-4 py-4 rounded-xl border-2 transition-all duration-200 text-left
-                  ${isActive ? plan.activeBg : "border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600"}`}
-              >
-                <div
-                  className={`mt-0.5 transition-colors ${isActive ? plan.activeText : "text-slate-400 dark:text-slate-500"}`}
-                >
-                  {plan.icon}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <p
-                      className={`font-bold text-sm ${isActive ? plan.activeText : "text-slate-800 dark:text-slate-200"}`}
-                    >
-                      {plan.label}
-                    </p>
-                    <span
-                      className={`text-sm font-extrabold ${isActive ? plan.activeText : "text-slate-500 dark:text-slate-400"}`}
-                    >
-                      {plan.price}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">
-                    {plan.sub}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {plan.features.map((f, i) => (
-                      <span
-                        key={i}
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full
-                        ${
-                          isActive
-                            ? "bg-white/60 dark:bg-slate-800/60 " +
-                              plan.activeText
-                            : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
-                        }`}
-                      >
-                        {f}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all
-                  ${isActive ? "border-current bg-current " + plan.activeText : "border-slate-300 dark:border-slate-600"}`}
-                >
-                  {isActive && (
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                      <path
-                        d="M2 5l2.5 2.5L8 3"
-                        stroke="white"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
-                </div>
+              <button onClick={() => setSubscription(selected as "free" | "pro")}>
+                {selected === "pro"
+                  ? t("settings.subscription.manage")
+                  : t("settings.subscription.upgrade")}
               </button>
             );
           })}

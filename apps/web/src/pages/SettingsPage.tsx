@@ -3,6 +3,9 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { settingsConfig } from "../data/settingsData";
 import { useThemeStore } from "../store/themeStore";
+import { useSettingsStore } from "../store/settingsStore";
+import { useLanguageStore } from "../store/languageStore";
+import { LANGUAGES } from "../i18n";
 import { useDispatch } from "react-redux";
 import { logout } from "../store/authSlice";
 import type { AppDispatch } from "../store";
@@ -17,12 +20,46 @@ const groups = [
 export const SettingsPage = () => {
   const { t } = useTranslation();
   const { theme } = useThemeStore();
+  const { goal, notifications, subscription } = useSettingsStore();
+  const { language } = useLanguageStore();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     dispatch(logout());
     navigate("/login");
+  };
+
+  // Динамічні підзаголовки для кожного i18nKey
+  const getDynamicSubtitle = (i18nKey: string): string | null => {
+    switch (i18nKey) {
+      case "theme":
+        return t(`settings.theme.${theme}`);
+
+      case "language": {
+        const lang = LANGUAGES.find((l) => l.code === language);
+        return lang?.label ?? null;
+      }
+
+      case "goal":
+        return t(`settings.goal.${goal}`);
+
+      case "notifications": {
+        const activeCount = Object.values(notifications).filter(Boolean).length;
+        const total = Object.values(notifications).length;
+        return t("settings.notifications.activeCount", {
+          count: activeCount,
+          total,
+          defaultValue: `${activeCount} з ${total} увімкнено`,
+        });
+      }
+
+      case "subscription":
+        return t(`settings.subscription.${subscription}`);
+
+      default:
+        return null;
+    }
   };
 
   return (
@@ -69,61 +106,54 @@ export const SettingsPage = () => {
               className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl
                 border border-slate-100 dark:border-slate-700 overflow-hidden"
             >
-              {group.items.map((item, i) => (
-                <NavLink to={item.link ?? "#"} key={i}>
-                  <div
-                    className="flex items-center gap-2.5 sm:gap-4
-                    px-3 sm:px-4 py-3 sm:py-3.5
-                    border-b border-slate-50 dark:border-slate-700/50 last:border-0
-                    hover:bg-slate-50/70 dark:hover:bg-slate-700/50 transition-colors duration-150"
-                  >
-                    <div
-                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl
-                      flex items-center justify-center flex-shrink-0`}
-                    >
-                      <item.icon className="w-[80%] h-[80%] text-slate-600 dark:text-slate-300" />
-                    </div>
+              {group.items.map((item, i) => {
+                const dynamicSub = item.i18nKey
+                  ? getDynamicSubtitle(item.i18nKey)
+                  : null;
 
-                    <div className="flex-1 min-w-0">
-                      {/* Якщо є i18nKey — використати переклад, інакше — дані з JSON */}
-                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
-                        {item.i18nKey
-                          ? t(`settings.${item.i18nKey}.title`)
-                          : item.title}
-                      </p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                        {item.i18nKey === "theme"
-                          ? t(`settings.theme.${theme}`) // "Світла", "Темна", "Системна"
-                          : item.i18nKey
-                            ? t(`settings.${item.i18nKey}.subtitle`)
-                            : item.subTitle}
-                      </p>
-                    </div>
-
+                return (
+                  <NavLink to={item.link ?? "#"} key={i}>
                     <div
-                      className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg
-                      flex items-center justify-center
-                      text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30
-                      border border-emerald-100 dark:border-emerald-800"
+                      className="flex items-center gap-2.5 sm:gap-4
+                      px-3 sm:px-4 py-3 sm:py-3.5
+                      border-b border-slate-50 dark:border-slate-700/50 last:border-0
+                      hover:bg-slate-50/70 dark:hover:bg-slate-700/50 transition-colors duration-150"
                     >
-                      <svg
-                        width="13"
-                        height="13"
-                        viewBox="0 0 24 24"
-                        fill="none"
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                        <item.icon className="w-[80%] h-[80%] text-slate-600 dark:text-slate-300" />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
+                          {item.i18nKey
+                            ? t(`settings.${item.i18nKey}.title`)
+                            : item.title}
+                        </p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                          {dynamicSub ?? item.subTitle}
+                        </p>
+                      </div>
+
+                      <div
+                        className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg
+                        flex items-center justify-center
+                        text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30
+                        border border-emerald-100 dark:border-emerald-800"
                       >
-                        <path
-                          d="M9 18l6-6-6-6"
-                          stroke="currentColor"
-                          strokeWidth="2.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M9 18l6-6-6-6"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
                     </div>
-                  </div>
-                </NavLink>
-              ))}
+                  </NavLink>
+                );
+              })}
             </motion.div>
           </div>
         ))}
@@ -131,7 +161,7 @@ export const SettingsPage = () => {
 
       {/* Logout */}
       <motion.button
-      onClick={handleLogout}
+        onClick={handleLogout}
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}

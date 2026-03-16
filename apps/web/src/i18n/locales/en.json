@@ -6,7 +6,6 @@
     "store": "Store",
     "settings": "Settings"
   },
-
   "home": {
     "continueLabel": "Continue",
     "continueLearning": "Continue Learning",
@@ -24,9 +23,36 @@
     "today": "Today",
     "thisWeek": "this week",
     "free": "Free",
-    "you": "You"
+    "you": "You",
+    "noPurchases": "No purchases yet",
+    "currentStreak": "Current Streak",
+    "daily": "Daily",
+    "frozen": "Frozen",
+    "weekly": "Weekly",
+    "weekDays": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+      "Sun"
+    ],
+    "months": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ]
   },
-
   "module": {
     "backToModules": "Back to modules",
     "progress": "Progress",
@@ -41,7 +67,6 @@
     "earnedXp": "Great job! You earned",
     "correctAnswer": "Correct answer"
   },
-
   "progress": {
     "tasksCompleted": "Tasks completed",
     "wordsLearned": "Words learned",
@@ -52,7 +77,6 @@
     "ofModules": "of 12 modules",
     "avgScore": "average score"
   },
-
   "modules": {
     "course": "Course",
     "module": "MODULE",
@@ -68,7 +92,6 @@
       "Advanced": "Advanced"
     }
   },
-
   "chats": {
     "title": "Chats",
     "conversations": "conversations",
@@ -76,14 +99,12 @@
     "online": "online",
     "yesterday": "Yesterday"
   },
-
   "store": {
     "title": "Our store",
     "subtitle": "Store",
     "buy": "Buy",
     "balance": "Balance"
   },
-
   "settings": {
     "title": "My account",
     "subtitle": "Settings",
@@ -96,7 +117,6 @@
     "logout": "Log out",
     "saveChanges": "Save changes",
     "back": "Back",
-
     "profile": {
       "title": "Profile",
       "subtitle": "Name, photo, personal data",
@@ -116,7 +136,6 @@
       "phone": "Phone",
       "phonePlaceholder": "+380 XX XXX XX XX"
     },
-
     "notifications": {
       "title": "Notifications",
       "subtitle": "Push and email notifications",
@@ -135,13 +154,11 @@
       "reminders": "Reminders",
       "remindersSub": "Time for a lesson"
     },
-
     "language": {
       "title": "Interface language",
       "subtitle": "English",
       "sectionTitle": "Interface language"
     },
-
     "goal": {
       "title": "Learning goal",
       "subtitle": "30 minutes per day",
@@ -153,7 +170,6 @@
       "intense": "Intense",
       "intenseSub": "1 hour per day"
     },
-
     "security": {
       "title": "Security",
       "subtitle": "Password and two-factor authentication",
@@ -165,7 +181,6 @@
       "passwordHint": "Password must be at least 8 characters, include an uppercase letter and a number",
       "passwordPlaceholder": "••••••••"
     },
-
     "theme": {
       "title": "Appearance",
       "subtitle": "Light theme",
@@ -187,7 +202,6 @@
       "deleteAccount": "Delete account",
       "deleteAccountSub": "Permanently delete all data"
     },
-
     "subscription": {
       "title": "Subscription",
       "subtitle": "Free plan",
@@ -212,7 +226,6 @@
       }
     }
   },
-
   "days": {
     "mon": "Mo",
     "tue": "Tu",

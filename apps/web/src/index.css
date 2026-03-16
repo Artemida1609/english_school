@@ -1,6 +1,44 @@
 @import "tailwindcss";
 @variant dark (&:where(.dark, .dark *));
 
+:root {
+  color-scheme: light;
+}
+
+/* Scrollbar для темної теми */
+.dark {
+  color-scheme: dark;
+}
+
+/* Кастомний scrollbar для Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Світла тема */
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* slate-300 */
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* slate-400 */
+}
+
+/* Темна тема */
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155; /* slate-700 */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569; /* slate-600 */
+}
+
 @theme {
   --ultra-light-green: #f5fcfa;
   --light-green: #57e6c2;

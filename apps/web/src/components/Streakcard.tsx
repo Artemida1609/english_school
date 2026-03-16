@@ -23,10 +23,10 @@ export const StreakCard = () => {
   const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const monthName = currentMonth.toLocaleDateString("uk", {
-    month: "long",
-    year: "numeric",
-  });
+  const weekDays = t("home.weekDays", { returnObjects: true }) as string[];
+
+  const months = t("home.months", { returnObjects: true }) as string[];
+  const monthName = `${months[month]} ${year}`;
 
   const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
@@ -39,7 +39,6 @@ export const StreakCard = () => {
   const isActive = (day: number) =>
     ACTIVE_DAYS.has(day) && month === today.getMonth();
 
-  const weekDays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
 
   return (
     <motion.div
@@ -72,14 +71,9 @@ export const StreakCard = () => {
 
           {/* Заморожено */}
           <div className="px-3 md:px-4">
-            <div className="flex items-center gap-1 mb-1">
-              <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                {t("home.frozen", { defaultValue: "Заморожено" })}
-              </p>
-              <div className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                <span className="text-[7px] text-slate-400 dark:text-slate-500 font-bold">i</span>
-              </div>
-            </div>
+            <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1 truncate">
+              {t("home.frozen", { defaultValue: "Заморожено" })}
+            </p>
             <div className="flex items-center gap-1.5">
               <span className="text-base md:text-lg">🧊</span>
               <span className="text-xl md:text-2xl font-extrabold text-sky-500 dark:text-sky-400 leading-none">
@@ -90,14 +84,9 @@ export const StreakCard = () => {
 
           {/* Тижневий */}
           <div className="pl-3 md:pl-4">
-            <div className="flex items-center gap-1 mb-1">
-              <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                {t("home.weekly", { defaultValue: "Тижневий" })}
-              </p>
-              <div className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                <span className="text-[7px] text-slate-400 dark:text-slate-500 font-bold">i</span>
-              </div>
-            </div>
+            <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1 truncate">
+              {t("home.weekly", { defaultValue: "Тижневий" })}
+            </p>
             <div className="flex items-center gap-1.5">
               <span className="text-base md:text-lg">⚡</span>
               <span className="text-xl md:text-2xl font-extrabold text-yellow-500 dark:text-yellow-400 leading-none">
