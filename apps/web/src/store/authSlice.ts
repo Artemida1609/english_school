@@ -13,6 +13,13 @@ interface User {
   role: "STUDENT" | "TEACHER" | "ADMIN";
 }
 
+interface AuthPayload {
+  user: User;
+  token: string;
+  refreshToken: string;
+  avatar?: string | null;
+}
+
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -43,7 +50,24 @@ export const login = createAsyncThunk(
         throw new Error((data as { message?: string }).message ?? "Login failed");
       }
       const json = await res.json();
-      return { user: json.user, token: json.accessToken, refreshToken: json.refreshToken };
+
+      let avatar: string | null = null;
+      try {
+        const profileRes = await fetch(`${API_URL}/api/profile/me`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${json.accessToken}`,
+          },
+        });
+        if (profileRes.ok) {
+          const profileJson = await profileRes.json();
+          avatar = (profileJson as { profile?: { avatar?: string | null } }).profile?.avatar ?? null;
+        }
+      } catch {
+        // ігноруємо помилку профілю – логін все одно успішний
+      }
+
+      return { user: json.user, token: json.accessToken, refreshToken: json.refreshToken, avatar } as AuthPayload;
     } catch (e: unknown) {
       return rejectWithValue(e instanceof Error ? e.message : "Login failed");
     }
@@ -71,7 +95,24 @@ export const register = createAsyncThunk(
         throw new Error((data as { message?: string }).message ?? "Register failed");
       }
       const json = await res.json();
-      return { user: json.user, token: json.accessToken, refreshToken: json.refreshToken };
+
+      let avatar: string | null = null;
+      try {
+        const profileRes = await fetch(`${API_URL}/api/profile/me`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${json.accessToken}`,
+          },
+        });
+        if (profileRes.ok) {
+          const profileJson = await profileRes.json();
+          avatar = (profileJson as { profile?: { avatar?: string | null } }).profile?.avatar ?? null;
+        }
+      } catch {
+        // ігноруємо помилку профілю – реєстрація все одно успішна
+      }
+
+      return { user: json.user, token: json.accessToken, refreshToken: json.refreshToken, avatar } as AuthPayload;
     } catch (e: unknown) {
       return rejectWithValue(e instanceof Error ? e.message : "Register failed");
     }
@@ -110,11 +151,19 @@ const authSlice = createSlice({
     };
     const handleFulfilled = (
       state: AuthState,
-      action: PayloadAction<{ user: User; token: string; refreshToken: string }>
+      action: PayloadAction<AuthPayload>
     ) => {
       state.loading = false;
       state.user = action.payload.user;
       state.token = action.payload.token;
+      if (typeof action.payload.avatar !== "undefined") {
+        state.avatar = action.payload.avatar;
+        if (action.payload.avatar) {
+          localStorage.setItem("avatar", action.payload.avatar);
+        } else {
+          localStorage.removeItem("avatar");
+        }
+      }
       localStorage.setItem("user", JSON.stringify(action.payload.user));
       localStorage.setItem("accessToken", action.payload.token);
       localStorage.setItem("refreshToken", action.payload.refreshToken);
