@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { CoinIcon } from "../icons/CoinIcon";
 import { setBalance, addPurchase } from "../store/shopSlice";
+import { setAvatar } from "../store/authSlice";
 import type { RootState } from "../store";
 import { apiFetch } from "../api/client";
 
@@ -83,6 +84,7 @@ export const StorePage = () => {
     try {
       const res = await apiFetch<{
         coins: number;
+        avatar?: string | null;
         purchase: {
           itemKey: string;
           title: string;
@@ -97,6 +99,9 @@ export const StorePage = () => {
       });
 
       dispatch(setBalance(res.coins));
+      if (res.avatar !== undefined) {
+        dispatch(setAvatar(res.avatar));
+      }
       dispatch(
         addPurchase({
           icon: res.purchase.icon ?? "🛒",

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { BackButton } from "../components/BackButton";
 import { motion } from "framer-motion";
 import {
@@ -12,9 +12,11 @@ import {
 } from "../components/Settings";
 import type { RootState } from "../store";
 import { apiFetch } from "../api/client";
+import { setAvatar as setAvatarInStore } from "../store/authSlice";
 
 export const ProfilePage = () => {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   const { user } = useSelector((s: RootState) => s.auth);
 
   // Розбиваємо name на firstName / lastName (бекенд зберігає як "Ім'я Прізвище")
@@ -36,9 +38,13 @@ export const ProfilePage = () => {
   useEffect(() => {
     // Load profile avatar from backend (Multiavatar or saved avatar URL)
     apiFetch<{ profile?: { avatar?: string | null } }>("/api/profile/me")
-      .then((data) => setServerAvatar(data.profile?.avatar ?? null))
+      .then((data) => {
+        const av = data.profile?.avatar ?? null;
+        setServerAvatar(av);
+        dispatch(setAvatarInStore(av));
+      })
       .catch(() => setServerAvatar(null));
-  }, []);
+  }, [dispatch]);
 
   // Initials для аватара-заглушки
   const initials =
