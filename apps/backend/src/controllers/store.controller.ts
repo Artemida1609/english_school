@@ -1,9 +1,12 @@
 import { Response } from 'express'
+import crypto from 'crypto'
+import multiavatar from '@multiavatar/multiavatar'
 import { prisma } from '../config/prisma'
 import { AuthRequest } from '../middleware/auth.middleware'
 
 const getMaxPurchases = (key: string): number => {
   if (key === 'dark-theme' || key === 'gold-profile') return 1
+  if (key === 'avatar-reroll') return 999
   return 5
 }
 
@@ -92,6 +95,43 @@ export const buyItem = async (req: AuthRequest, res: Response): Promise<void> =>
 
     if (profile.coins < item.price) {
       res.status(400).json({ message: 'Not enough coins' })
+      return
+    }
+
+    if (item.key === 'avatar-reroll') {
+      const seed = crypto.randomUUID()
+      const svg = multiavatar(seed)
+      const avatarDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+
+      const [updatedProfile, purchase] = await prisma.$transaction([
+        prisma.userProfile.update({
+          where: { userId },
+          data: { coins: { decrement: item.price }, avatar: avatarDataUrl },
+        }),
+        prisma.storePurchase.create({
+          data: {
+            userId,
+            itemId: item.id,
+            title: item.title,
+            price: item.price,
+          },
+        }),
+      ])
+
+      res.status(201).json({
+        coins: updatedProfile.coins,
+        avatar: updatedProfile.avatar,
+        purchase: {
+          id: purchase.id,
+          itemKey: item.key,
+          title: purchase.title,
+          price: purchase.price,
+          icon: item.icon,
+          createdAt: purchase.createdAt,
+          purchasedCount: existingCount + 1,
+          maxPurchases,
+        },
+      })
       return
     }
 

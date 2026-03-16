@@ -1,6 +1,8 @@
 import { Request, Response } from 'express'
 import * as bcrypt from 'bcryptjs'
 import * as jwt from 'jsonwebtoken'
+import crypto from 'crypto'
+import multiavatar from '@multiavatar/multiavatar'
 import { prisma } from '../config/prisma'
 import { AuthRequest } from '../middleware/auth.middleware'
 
@@ -39,8 +41,21 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     const passwordHash = await bcrypt.hash(password, 12)
 
+    const avatarSeed = crypto.randomUUID()
+    const avatarSvg = multiavatar(avatarSeed)
+    const avatarDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(avatarSvg)}`
+
     const user = await prisma.user.create({
-      data: { email, passwordHash, name },
+      data: {
+        email,
+        passwordHash,
+        name,
+        profile: {
+          create: {
+            avatar: avatarDataUrl,
+          },
+        },
+      },
     })
 
     const tokens = generateTokens({ id: user.id, email: user.email, role: user.role })

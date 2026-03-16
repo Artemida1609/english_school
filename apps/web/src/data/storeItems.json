@@ -58,5 +58,15 @@
     "title": "Турбо режим",
     "description": "Пропускай рекламу та паузи між уроками",
     "price": 120
+  },
+  {
+    "key": "avatar-reroll",
+    "icon": "🙂",
+    "bg": "from-slate-400 to-slate-600",
+    "badge": "Avatar",
+    "badgeColor": "bg-slate-100 text-slate-700",
+    "title": "Перегенерація аватарки",
+    "description": "Змінює твій Multiavatar на новий",
+    "price": 50
   }
 ]

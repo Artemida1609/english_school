@@ -7,7 +7,7 @@ export const getMyAchievements = async (req: AuthRequest, res: Response): Promis
   try {
     const userId = req.user!.id
 
-    const [profile, progress, spentAgg] = await Promise.all([
+    const [profile, progress, spentAgg, avatarRerollCount] = await Promise.all([
       prisma.userProfile.findUnique({ where: { userId } }),
       prisma.userProgress.findMany({
         where: { userId, completed: true },
@@ -16,6 +16,12 @@ export const getMyAchievements = async (req: AuthRequest, res: Response): Promis
       prisma.storePurchase.aggregate({
         where: { userId },
         _sum: { price: true },
+      }),
+      prisma.storePurchase.count({
+        where: {
+          userId,
+          item: { key: 'avatar-reroll' },
+        },
       }),
     ])
 
@@ -40,6 +46,9 @@ export const getMyAchievements = async (req: AuthRequest, res: Response): Promis
 
     // Витратити 100 монет
     if (spent >= 100) unlocked.push('spend-100')
+
+    // 10 разів перегенерувати аватар
+    if (avatarRerollCount >= 10) unlocked.push('avatar-reroll-10')
 
     // Інші досягнення поки залишаємо заблокованими
 

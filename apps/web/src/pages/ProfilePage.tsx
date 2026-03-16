@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 import { BackButton } from "../components/BackButton";
@@ -11,6 +11,7 @@ import {
   SectionTitle,
 } from "../components/Settings";
 import type { RootState } from "../store";
+import { apiFetch } from "../api/client";
 
 export const ProfilePage = () => {
   const { t } = useTranslation();
@@ -25,15 +26,25 @@ export const ProfilePage = () => {
   const [city, setCity] = useState("");
   const [telegram, setTelegram] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
+  const [serverAvatar, setServerAvatar] = useState<string | null>(null);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) setAvatar(URL.createObjectURL(file));
   };
 
+  useEffect(() => {
+    // Load profile avatar from backend (Multiavatar or saved avatar URL)
+    apiFetch<{ profile?: { avatar?: string | null } }>("/api/profile/me")
+      .then((data) => setServerAvatar(data.profile?.avatar ?? null))
+      .catch(() => setServerAvatar(null));
+  }, []);
+
   // Initials для аватара-заглушки
   const initials =
     `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "👤";
+
+  const avatarSrc = avatar ?? serverAvatar;
 
   return (
     <section className="max-w-lg justify-self-center">
@@ -51,9 +62,9 @@ export const ProfilePage = () => {
             className="w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-500
             flex items-center justify-center overflow-hidden border-2 border-emerald-200 dark:border-emerald-700"
           >
-            {avatar ? (
+            {avatarSrc ? (
               <img
-                src={avatar}
+                src={avatarSrc}
                 alt="avatar"
                 className="w-full h-full object-cover"
               />

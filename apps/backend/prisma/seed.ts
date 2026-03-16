@@ -264,6 +264,13 @@ async function main() {
         price: 120,
         icon: '🚀',
       },
+      {
+        key: 'avatar-reroll',
+        title: 'Перегенерація аватарки',
+        description: 'Зміни свій Multiavatar на новий випадковий стиль',
+        price: 50,
+        icon: '🙂',
+      },
     ],
   })
 
