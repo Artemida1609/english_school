@@ -16,16 +16,25 @@ export const HomePage = () => {
   const { purchases } = useSelector((s: RootState) => s.shop);
   const { user } = useSelector((s: RootState) => s.auth);
   const [unlockedKeys, setUnlockedKeys] = useState<string[]>([]);
+  const [achievementProgress, setAchievementProgress] = useState<
+    Record<string, { current: number; target: number }>
+  >({});
   const [avatar, setAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const [achievementsRes, profileRes] = await Promise.all([
-          apiFetch<{ unlocked: string[] }>("/api/achievements/me"),
+          apiFetch<{
+            unlocked: string[];
+            progress?: Record<string, { current: number; target: number }>;
+          }>("/api/achievements/me"),
           apiFetch<{ profile?: { avatar?: string | null } }>("/api/profile/me"),
         ]);
         setUnlockedKeys(achievementsRes.unlocked);
+        if (achievementsRes.progress) {
+          setAchievementProgress(achievementsRes.progress);
+        }
         setAvatar(profileRes.profile?.avatar ?? null);
       } catch {
         // якщо бекенд недоступний, просто залишаємо дефолтні значення
@@ -292,6 +301,11 @@ export const HomePage = () => {
         <div className="grid grid-cols-4 gap-2 md:gap-3">
           {achievementsData.map((a, i) => {
             const unlocked = unlockedKeys.includes(a.key);
+            const prog = achievementProgress[a.key];
+            const hasProgress = !!prog && prog.target > 0;
+            const percent = hasProgress
+              ? Math.min(100, Math.round((prog.current / prog.target) * 100))
+              : 0;
             return (
               <motion.div
                 key={a.name}
@@ -301,14 +315,14 @@ export const HomePage = () => {
                 className={`bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl p-2 md:p-3
                 border border-slate-100 dark:border-slate-700 text-center transition-all duration-200
                 ${unlocked ? "hover:border-emerald-200 dark:hover:border-emerald-700 hover:-translate-y-0.5" : "grayscale"}`}
-              >
-                <div className="flex items-center justify-center mb-1.5">
-                  <AchievementIcon type={a.type} locked={!unlocked} />
-                </div>
-                <p className="text-[9px] md:text-[10px] font-semibold text-slate-500 dark:text-slate-400 leading-tight">
-                  {a.name}
-                </p>
-              </motion.div>
+            >
+              <div className="flex items-center justify-center mb-1.5">
+                <AchievementIcon type={a.type} locked={!unlocked} />
+              </div>
+              <p className="text-[9px] md:text-[10px] font-semibold text-slate-500 dark:text-slate-400 leading-tight">
+                {a.name}
+              </p>
+            </motion.div>
             );
           })}
         </div>

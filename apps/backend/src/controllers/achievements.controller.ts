@@ -52,7 +52,19 @@ export const getMyAchievements = async (req: AuthRequest, res: Response): Promis
 
     // Інші досягнення поки залишаємо заблокованими
 
-    res.json({ unlocked })
+    const progressByKey: Record<
+      string,
+      { current: number; target: number }
+    > = {
+      'first-module': { current: Math.min(completedLessons, 1), target: 1 },
+      'streak-7': { current: Math.min(streak, 7), target: 7 },
+      'quick-start': { current: Math.min(completedLessons, 3), target: 3 },
+      '100-words': { current: Math.min(xp, 100), target: 100 },
+      'spend-100': { current: Math.min(spent, 100), target: 100 },
+      'avatar-reroll-10': { current: Math.min(avatarRerollCount, 10), target: 10 },
+    }
+
+    res.json({ unlocked, progress: progressByKey })
   } catch (error) {
     console.error('GetMyAchievements error:', error)
     res.status(500).json({ message: 'Internal server error' })
