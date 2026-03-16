@@ -12,6 +12,7 @@ export const HomePage = () => {
   const { t } = useTranslation();
   const progress = 100;
   const { purchases } = useSelector((s: RootState) => s.shop);
+  const { user } = useSelector((s: RootState) => s.auth);
 
   return (
     <main className="grid md:grid-cols-[1fr_280px] xl:grid-cols-[1fr_300px] grid-cols-1 gap-4 md:gap-6 p-4 md:p-6">
@@ -312,7 +313,7 @@ export const HomePage = () => {
             />
           </div>
           <h2 className="text-base md:text-lg font-extrabold text-slate-900 dark:text-slate-100">
-            Привіт, Артем 👋
+            Привіт, {user?.name ?? "Гість"} 👋
           </h2>
           <p className="text-xs md:text-sm text-slate-400 dark:text-slate-500 mb-2">
             Продовжуй навчатися!

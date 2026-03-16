@@ -4,19 +4,19 @@ import { LanguageIcon } from "../icons/LanguageIcon";
 import { NotificationIcon } from "../icons/NotificationIcon";
 import { PrivacyIcon } from "../icons/PrivacyIcon";
 import { SecurityIcon } from "../icons/SecurityIcon";
-import { SettingsProfileIcon } from "../icons/SettingsProfileIcon";
+// import { SettingsProfileIcon } from "../icons/SettingsProfileIcon";
 import { SubscriptionIcon } from "../icons/SubscriptionIcon";
 
 
 export const settingsConfig = [
-  {
-    "icon": SettingsProfileIcon,
-    "bg": "bg-emerald-50",
-    "title": "Профіль",
-    "subTitle": "Ім'я, фото, особисті дані",
-    "link": "/settings/profile",
-    "i18nKey": "profile"
-  },
+  // {
+  //   "icon": SettingsProfileIcon,
+  //   "bg": "bg-emerald-50",
+  //   "title": "Профіль",
+  //   "subTitle": "Ім'я, фото, особисті дані",
+  //   "link": "/settings/profile",
+  //   "i18nKey": "profile"
+  // },
   {
     "icon": NotificationIcon,
     "bg": "bg-violet-50",

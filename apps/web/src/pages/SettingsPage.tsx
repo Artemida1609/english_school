@@ -1,23 +1,29 @@
 import { motion } from "framer-motion";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { settingsConfig } from "../data/settingsData";
 import { useThemeStore } from "../store/themeStore";
-
-// settingsData.json більше не містить хардкодних title/subTitle —
-// вони беруться з перекладів за ключем item.i18nKey
-// Якщо хочеш залишити JSON як є — просто видали useTranslation і залиш {item.title}
+import { useDispatch } from "react-redux";
+import { logout } from "../store/authSlice";
+import type { AppDispatch } from "../store";
 
 const groups = [
-  { labelKey: "settings.groups.account", items: settingsConfig.slice(0, 2) },
-  { labelKey: "settings.groups.learning", items: settingsConfig.slice(2, 4) },
-  { labelKey: "settings.groups.app", items: settingsConfig.slice(4, 6) },
-  { labelKey: "settings.groups.other", items: settingsConfig.slice(6, 8) },
+  { labelKey: "settings.groups.account", items: settingsConfig.slice(0, 1) },
+  { labelKey: "settings.groups.learning", items: settingsConfig.slice(1, 3) },
+  { labelKey: "settings.groups.app", items: settingsConfig.slice(3, 5) },
+  { labelKey: "settings.groups.other", items: settingsConfig.slice(5, 7) },
 ];
 
 export const SettingsPage = () => {
   const { t } = useTranslation();
   const { theme } = useThemeStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate("/login");
+  };
 
   return (
     <section className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
@@ -125,6 +131,7 @@ export const SettingsPage = () => {
 
       {/* Logout */}
       <motion.button
+      onClick={handleLogout}
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}

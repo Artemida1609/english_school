@@ -59,13 +59,15 @@ export const Header = () => {
         <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 mx-1" />
 
         {/* Profile */}
-        <button
-          className="flex items-center justify-center w-9 h-9 rounded-full
+        <NavLink to={"/profile"}>
+          <button
+            className="flex items-center justify-center w-9 h-9 rounded-full
           hover:bg-gray-100 dark:hover:bg-slate-800
           transition-colors duration-150 cursor-pointer"
-        >
-          <ProfileIcon />
-        </button>
+          >
+            <ProfileIcon />
+          </button>
+        </NavLink>
       </div>
     </header>
   );

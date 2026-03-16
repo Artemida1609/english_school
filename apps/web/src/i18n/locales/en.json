@@ -110,9 +110,11 @@
       "email": "Email",
       "emailPlaceholder": "john@example.com",
       "city": "City / Country",
-      "cityPlaceholder": "London, UK",
+      "cityPlaceholder": "Kyiv, Ukraine",
       "telegram": "Telegram",
-      "telegramPlaceholder": "@username"
+      "telegramPlaceholder": "@username",
+      "phone": "Phone",
+      "phonePlaceholder": "+380 XX XXX XX XX"
     },
 
     "notifications": {

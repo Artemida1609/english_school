@@ -9,7 +9,6 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { StorePage } from "./pages/StorePage";
 import { ModuleLayout } from "./layouts/ModuleLayout";
 import {
-  ProfileSettings,
   NotificationSettings,
   LanguageSettings,
   GoalSettings,
@@ -24,6 +23,7 @@ import { useEffect } from "react";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { AuthGuard } from "./components/AuthGuard";
+import { ProfilePage } from "./pages/ProfilePage";
 
 export const App = () => {
   const { theme, setTheme } = useThemeStore();
@@ -57,9 +57,9 @@ export const App = () => {
             <Route path="/" element={<HomePage />} />
             <Route path="/modules" element={<ModulesPage />} />
             <Route path="/courses/:courseId" element={<CourseDetailPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/chats" element={<ChatsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/settings/profile" element={<ProfileSettings />} />
             <Route
               path="/settings/notifications"
               element={<NotificationSettings />}

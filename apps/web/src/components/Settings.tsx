@@ -4,11 +4,11 @@ import { useThemeStore } from "../store/themeStore";
 import { useTranslation } from "react-i18next";
 import { useLanguageStore } from "../store/languageStore";
 import { LANGUAGES } from "../i18n";
-import { motion } from "framer-motion";
+// import { motion } from "framer-motion";
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 
-const inputCls = `w-full px-4 py-3 rounded-xl
+export const inputCls = `w-full px-4 py-3 rounded-xl
   border border-slate-200 dark:border-slate-700
   bg-white dark:bg-slate-900
   text-slate-800 dark:text-slate-200
@@ -16,9 +16,9 @@ const inputCls = `w-full px-4 py-3 rounded-xl
   focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400
   transition-all duration-200`;
 
-const labelCls = `block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5`;
+export const labelCls = `block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5`;
 
-const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+export const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   <h3
     className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 mt-6 first:mt-0
     flex items-center gap-2 after:flex-1 after:h-px after:bg-gradient-to-r
@@ -28,7 +28,7 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   </h3>
 );
 
-const SaveButton = ({
+export const SaveButton = ({
   onClick,
   label,
 }: {
@@ -49,7 +49,7 @@ const SaveButton = ({
   );
 };
 
-const EyeIcon = ({ show }: { show: boolean }) => (
+export const EyeIcon = ({ show }: { show: boolean }) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
     {show ? (
       <>
@@ -88,231 +88,7 @@ const EyeIcon = ({ show }: { show: boolean }) => (
   </svg>
 );
 
-const cardCls = `bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5`;
-
-// ─── Profile ──────────────────────────────────────────────────────────────────
-
-export const ProfileSettings = () => {
-  const { t } = useTranslation();
-  const [avatar, setAvatar] = useState<string | null>(null);
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) setAvatar(URL.createObjectURL(file));
-  };
-
-  return (
-    <section className="max-w-lg justify-self-center">
-      <BackButton title={t("settings.profile.title")} />
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        viewport={{ once: true }}
-        className={`flex items-center gap-5 mb-6 ${cardCls}`}
-      >
-        <div className="relative flex-shrink-0">
-          <div
-            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-100 to-emerald-100
-            flex items-center justify-center overflow-hidden border-2 border-emerald-200 dark:border-emerald-700"
-          >
-            {avatar ? (
-              <img
-                src={avatar}
-                alt="avatar"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                <circle
-                  cx="12"
-                  cy="8"
-                  r="4"
-                  stroke="#10b981"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M4 20c0-4 3.6-7 8-7s8 3 8 7"
-                  stroke="#10b981"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-            )}
-          </div>
-          <label
-            className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-emerald-500 rounded-lg
-            flex items-center justify-center cursor-pointer hover:bg-emerald-600 transition-colors shadow-md"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <polyline
-                points="17 8 12 3 7 8"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <line
-                x1="12"
-                y1="3"
-                x2="12"
-                y2="15"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
-          </label>
-        </div>
-        <div>
-          <p className="font-extrabold text-slate-800 dark:text-slate-100 text-base">
-            {t("settings.profile.photoTitle")}
-          </p>
-          <p className="text-sm text-slate-400 dark:text-slate-500 mt-0.5">
-            {t("settings.profile.photoHint")}
-          </p>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        viewport={{ once: true }}
-        className={`${cardCls} space-y-4`}
-      >
-        <SectionTitle>{t("settings.profile.personalData")}</SectionTitle>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>
-              {t("settings.profile.firstName")}
-            </label>
-            <input
-              className={inputCls}
-              type="text"
-              placeholder={t("settings.profile.firstNamePlaceholder")}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>{t("settings.profile.lastName")}</label>
-            <input
-              className={inputCls}
-              type="text"
-              placeholder={t("settings.profile.lastNamePlaceholder")}
-            />
-          </div>
-        </div>
-        <div>
-          <label className={labelCls}>{t("settings.profile.email")}</label>
-          <div className="relative">
-            <input
-              className={inputCls + " pl-10"}
-              type="email"
-              placeholder={t("settings.profile.emailPlaceholder")}
-            />
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path
-                d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
-                stroke="#94a3b8"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-              <polyline
-                points="22,6 12,13 2,6"
-                stroke="#94a3b8"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-        </div>
-        <div>
-          <label className={labelCls}>{t("settings.profile.city")}</label>
-          <div className="relative">
-            <input
-              className={inputCls + " pl-10"}
-              type="text"
-              placeholder={t("settings.profile.cityPlaceholder")}
-            />
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path
-                d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"
-                stroke="#94a3b8"
-                strokeWidth="1.6"
-              />
-              <circle
-                cx="12"
-                cy="10"
-                r="3"
-                stroke="#94a3b8"
-                strokeWidth="1.6"
-              />
-            </svg>
-          </div>
-        </div>
-        <div>
-          <label className={labelCls}>{t("settings.profile.telegram")}</label>
-          <div className="relative">
-            <input
-              className={inputCls + " pl-10"}
-              type="text"
-              placeholder={t("settings.profile.telegramPlaceholder")}
-            />
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path
-                d="M22 2L11 13"
-                stroke="#94a3b8"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M22 2L15 22l-4-9-9-4 20-7z"
-                stroke="#94a3b8"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-        </div>
-      </motion.div>
-      <SaveButton />
-    </section>
-  );
-};
+export const cardCls = `bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5`;
 
 // ─── Notifications ────────────────────────────────────────────────────────────
 
