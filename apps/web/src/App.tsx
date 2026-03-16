@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "./layouts/MainLayout";
 import { HomePage } from "./pages/HomePage";
-import { ModulesPage } from "./pages/ModulesPage";
 import { ModulePage } from "./pages/ModulePage";
 import { CourseDetailPage } from "./pages/CourseDetailPage";
 import { ChatsPage } from "./pages/ChatsPage";
