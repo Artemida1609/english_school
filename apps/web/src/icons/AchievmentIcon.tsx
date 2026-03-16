@@ -1,4 +1,5 @@
 import { FireIcon } from "./FireIcon";
+import { CoinIcon } from "./CoinIcon";
 
 export const AchievementIcon = ({ type, locked }: { type: string; locked: boolean }) => {
   const color = locked ? "#94a3b8" : undefined
@@ -50,6 +51,9 @@ export const AchievementIcon = ({ type, locked }: { type: string; locked: boolea
       <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" stroke={color ?? "#10b981"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
       <path d="M9 12H4s.55-3.03 2-4h5M12 15v5s3.03-.55 4-2v-5" stroke={color ?? "#10b981"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
+  )
+  if (type === "coin") return (
+    <CoinIcon size={28} className={locked ? "" : ""} />
   )
   return null
 }

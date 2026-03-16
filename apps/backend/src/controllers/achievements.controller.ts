@@ -7,17 +7,22 @@ export const getMyAchievements = async (req: AuthRequest, res: Response): Promis
   try {
     const userId = req.user!.id
 
-    const [profile, progress] = await Promise.all([
+    const [profile, progress, spentAgg] = await Promise.all([
       prisma.userProfile.findUnique({ where: { userId } }),
       prisma.userProgress.findMany({
         where: { userId, completed: true },
         select: { id: true, lessonId: true, completedAt: true },
+      }),
+      prisma.storePurchase.aggregate({
+        where: { userId },
+        _sum: { price: true },
       }),
     ])
 
     const completedLessons = progress.length
     const xp = profile?.xp ?? 0
     const streak = profile?.streak ?? 0
+    const spent = spentAgg._sum.price ?? 0
 
     const unlocked: string[] = []
 
@@ -32,6 +37,9 @@ export const getMyAchievements = async (req: AuthRequest, res: Response): Promis
 
     // 100 слів — тут використовуємо XP >= 100 як наближення
     if (xp >= 100) unlocked.push('100-words')
+
+    // Витратити 100 монет
+    if (spent >= 100) unlocked.push('spend-100')
 
     // Інші досягнення поки залишаємо заблокованими
 

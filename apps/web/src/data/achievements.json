@@ -3,6 +3,7 @@
   { "key": "streak-7", "type": "fire", "name": "7 днів підряд" },
   { "key": "quick-start", "type": "bolt", "name": "Швидкий старт" },
   { "key": "100-words", "type": "book", "name": "100 слів" },
+  { "key": "spend-100", "type": "coin", "name": "Витратити 100 монет" },
   { "key": "certificate", "type": "graduation", "name": "Сертифікат" },
   { "key": "diamond", "type": "diamond", "name": "Діамант" },
   { "key": "star", "type": "star", "name": "Зірка" },
