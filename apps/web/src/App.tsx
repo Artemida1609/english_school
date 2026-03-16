@@ -24,6 +24,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { AuthGuard } from "./components/AuthGuard";
 import { ProfilePage } from "./pages/ProfilePage";
+import { CoursesPage } from "./pages/CoursesPage";
 
 export const App = () => {
   const { theme, setTheme } = useThemeStore();
@@ -55,7 +56,7 @@ export const App = () => {
         <Route element={<AuthGuard />}>
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
-            <Route path="/modules" element={<ModulesPage />} />
+            <Route path="/courses" element={<CoursesPage />} />
             <Route path="/courses/:courseId" element={<CourseDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/chats" element={<ChatsPage />} />
@@ -77,7 +78,7 @@ export const App = () => {
           </Route>
 
           <Route element={<ModuleLayout />}>
-            <Route path="/modules/:id" element={<ModulePage />} />
+          <Route path="/courses/:courseId/modules/:id" element={<ModulePage />} />  
           </Route>
         </Route>
       </Routes>

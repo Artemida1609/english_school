@@ -59,7 +59,6 @@ function renderMarkdownLike(content: string) {
 }
 
 export const ModulePage = () => {
-  const { id: moduleId } = useParams<{ id: string }>();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [module, setModule] = useState<Module | null>(null);
@@ -70,6 +69,8 @@ export const ModulePage = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { id: moduleId, courseId } = useParams<{ id: string; courseId: string }>();
+
 
   useEffect(() => {
     if (!moduleId) return;
@@ -142,7 +143,7 @@ export const ModulePage = () => {
     );
   }
 
-  const courseId = module.course?.id;
+  // const courseId = module.course?.id;
   const displayType = activeLesson ? typeLabels[activeLesson.type] ?? activeLesson.type : "";
   const displayIcon = activeLesson ? typeIcons[activeLesson.type] ?? "📄" : "";
 

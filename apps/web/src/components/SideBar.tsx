@@ -6,7 +6,7 @@ import { SettingsIcon } from "../icons/SettingsIcon"
 import { StoreIcon } from "../icons/StoreIcon"
 
 const navItems = [
-  { name: "Courses",  href: "/modules",  icon: <CoursesIcon /> },
+  { name: "Courses",  href: "/courses",  icon: <CoursesIcon /> },
   { name: "Settings", href: "/settings", icon: <SettingsIcon /> },
   { name: "Chats",    href: "/chats",    icon: <ChatsIcon /> },
   { name: "Store",    href: "/store",    icon: <StoreIcon /> },
