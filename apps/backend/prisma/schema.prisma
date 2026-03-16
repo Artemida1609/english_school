@@ -31,6 +31,7 @@ model User {
   progress     UserProgress[]
   messages     Message[]
   enrollments  Enrollment[]
+  storePurchases StorePurchase[]
 
   @@map("users")
 }
@@ -45,6 +46,7 @@ model UserProfile {
   xp           Int     @default(0)
   streak       Int     @default(0)
   lastActivity DateTime? @map("last_activity")
+  coins        Int     @default(100)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -211,4 +213,34 @@ model Message {
   user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("messages")
+}
+
+// ─── STORE ─────────────────────────────────────────────────────────────────────
+
+model StoreItem {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  title       String
+  description String?
+  price       Int
+  icon        String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  purchases StorePurchase[]
+
+  @@map("store_items")
+}
+
+model StorePurchase {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  itemId    String   @map("item_id")
+  title     String
+  price     Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item StoreItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("store_purchases")
 }

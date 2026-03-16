@@ -45,6 +45,8 @@ async function main() {
 
   // Remove previous seed data (cascade deletes modules, lessons, tests, etc.)
   const seedCourseIds = ['seed-course-1', 'seed-course-2', 'seed-course-3']
+  await prisma.storePurchase.deleteMany()
+  await prisma.storeItem.deleteMany()
   await prisma.enrollment.deleteMany({ where: { courseId: { in: seedCourseIds } } })
   await prisma.course.deleteMany({ where: { id: { in: seedCourseIds } } })
 
@@ -61,6 +63,16 @@ async function main() {
     },
   })
   console.log('✅ User:', user.email)
+
+  // Ensure profile with 1000 coins for test user
+  await prisma.userProfile.upsert({
+    where: { userId: user.id },
+    update: { coins: 1000 },
+    create: {
+      userId: user.id,
+      coins: 1000,
+    },
+  })
 
   // Course 1: English IELTS from zero
   const course1 = await prisma.course.upsert({
@@ -207,6 +219,54 @@ async function main() {
 
   console.log('✅ Course 3:', course3.title)
   console.log('')
+  // Store items
+  await prisma.storeItem.createMany({
+    data: [
+      {
+        key: 'xp-boost-x2',
+        title: 'XP Boost ×2',
+        description: 'Подвій XP за всі завдання на 24 години',
+        price: 50,
+        icon: '⚡',
+      },
+      {
+        key: 'freeze-streak',
+        title: 'Заморозка стріку',
+        description: 'Збережи свій стрік якщо пропустив день',
+        price: 30,
+        icon: '❄️',
+      },
+      {
+        key: 'dark-theme',
+        title: 'Темна тема',
+        description: 'Переключи інтерфейс у темний режим',
+        price: 100,
+        icon: '🎨',
+      },
+      {
+        key: 'gold-profile',
+        title: 'Золотий профіль',
+        description: 'Золота рамка та значок на профілі',
+        price: 200,
+        icon: '🏆',
+      },
+      {
+        key: 'unlimited-hints',
+        title: 'Безліміт підказок',
+        description: 'Необмежені підказки протягом тижня',
+        price: 80,
+        icon: '📖',
+      },
+      {
+        key: 'turbo-mode',
+        title: 'Турбо режим',
+        description: 'Пропускай рекламу та паузи між уроками',
+        price: 120,
+        icon: '🚀',
+      },
+    ],
+  })
+
   console.log('🎉 Seed completed!')
   console.log('📧 Test user: student@test.com / password123')
 }

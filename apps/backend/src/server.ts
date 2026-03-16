@@ -9,6 +9,7 @@ import coursesRoutes from './routes/courses.routes'
 import modulesRoutes from './routes/modules.routes'
 import lessonsRoutes from './routes/lessons.routes'
 import chatRoutes from './routes/chat.routes'
+import storeRoutes from './routes/store.routes'
 import { setupSockets } from './sockets/chat.socket'
 
 const app = express()
@@ -50,6 +51,7 @@ app.use('/api/courses', coursesRoutes)
 app.use('/api/modules', modulesRoutes)
 app.use('/api/lessons', lessonsRoutes)
 app.use('/api/chat', chatRoutes)
+app.use('/api/store', storeRoutes)
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
