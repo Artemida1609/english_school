@@ -293,22 +293,22 @@ export const HomePage = () => {
           {achievementsData.map((a, i) => {
             const unlocked = unlockedKeys.includes(a.key);
             return (
-            <motion.div
-              key={a.name}
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: unlocked ? 1 : 0.4, scale: 1 }}
-              transition={{ duration: 0.3, delay: i * 0.05 }}
-              className={`bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl p-2 md:p-3
+              <motion.div
+                key={a.name}
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: unlocked ? 1 : 0.4, scale: 1 }}
+                transition={{ duration: 0.3, delay: i * 0.05 }}
+                className={`bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl p-2 md:p-3
                 border border-slate-100 dark:border-slate-700 text-center transition-all duration-200
                 ${unlocked ? "hover:border-emerald-200 dark:hover:border-emerald-700 hover:-translate-y-0.5" : "grayscale"}`}
-            >
-              <div className="flex items-center justify-center mb-1.5">
-                <AchievementIcon type={a.type} locked={!unlocked} />
-              </div>
-              <p className="text-[9px] md:text-[10px] font-semibold text-slate-500 dark:text-slate-400 leading-tight">
-                {a.name}
-              </p>
-            </motion.div>
+              >
+                <div className="flex items-center justify-center mb-1.5">
+                  <AchievementIcon type={a.type} locked={!unlocked} />
+                </div>
+                <p className="text-[9px] md:text-[10px] font-semibold text-slate-500 dark:text-slate-400 leading-tight">
+                  {a.name}
+                </p>
+              </motion.div>
             );
           })}
         </div>
@@ -324,24 +324,28 @@ export const HomePage = () => {
           className="bg-white dark:bg-slate-800 rounded-2xl md:rounded-3xl border border-slate-100 dark:border-slate-700 p-4 md:p-6 text-center"
         >
           <div className="relative inline-block mb-3">
-            <div
-              className="w-14 h-14 md:w-[72px] md:h-[72px] rounded-full bg-gradient-to-br
-              from-teal-400 to-emerald-500 flex items-center justify-center mx-auto text-2xl md:text-3xl overflow-hidden"
-            >
-              {avatar ? (
-                <img
-                  src={avatar}
-                  alt="avatar"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                "👤"
-              )}
+            <div className="p-[3px] rounded-full bg-gradient-to-tr from-emerald-400 via-teal-400 to-cyan-400">
+              <div
+                className="w-14 h-14 md:w-[72px] md:h-[72px] rounded-full bg-gradient-to-br
+      from-teal-400 to-emerald-500 flex items-center justify-center text-2xl md:text-3xl overflow-hidden"
+              >
+                {avatar ? (
+                  <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  "👤"
+                )}
+              </div>
             </div>
+
             <div
-              className="absolute bottom-0.5 right-0.5 w-3 h-3 md:w-3.5 md:h-3.5
-              bg-green-400 rounded-full border-2 border-white dark:border-slate-800"
-            />
+              className="absolute -bottom-1.5 left-1/2 -translate-x-1/2
+    bg-gradient-to-r from-emerald-500 to-teal-500
+    text-white text-[9px] font-extrabold tracking-wide
+    px-2.5 py-0.5 rounded-full border-2 border-slate-800
+    whitespace-nowrap shadow-sm"
+            >
+              LVL 4
+            </div>
           </div>
           <h2 className="text-base md:text-lg font-extrabold text-slate-900 dark:text-slate-100">
             Привіт, {user?.name ?? "Гість"} 👋
