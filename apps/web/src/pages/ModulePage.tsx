@@ -20,10 +20,10 @@ const typeIcons: Record<string, string> = {
 };
 
 const typeColor: Record<string, string> = {
-  VIDEO: "bg-violet-50 text-violet-600 border-violet-100",
-  THEORY: "bg-sky-50 text-sky-600 border-sky-100",
-  TASK: "bg-amber-50 text-amber-600 border-amber-100",
-  TEST: "bg-rose-50 text-rose-600 border-rose-100",
+  VIDEO: "bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 border-violet-100 dark:border-violet-800",
+  THEORY: "bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-800",
+  TASK: "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800",
+  TEST: "bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800",
 };
 
 const sidebarVariants = {
@@ -49,12 +49,17 @@ function extractYoutubeId(url: string | undefined): string {
 
 function renderMarkdownLike(content: string) {
   return content.trim().split("\n").map((line, i) => {
-    if (line.startsWith("## ")) return <h2 key={i} className="text-lg font-extrabold text-slate-900 mb-3 mt-0">{line.slice(3)}</h2>;
-    if (line.startsWith("### ")) return <h3 key={i} className="text-sm font-bold text-slate-800 mt-4 mb-2">{line.slice(4)}</h3>;
-    if (line.startsWith("- ")) return <li key={i} className="text-sm text-slate-600 ml-4 mb-1">{line.slice(2)}</li>;
-    if (line.startsWith("*") && line.endsWith("*")) return <p key={i} className="text-xs text-slate-400 italic mt-2">{line.slice(1, -1)}</p>;
-    if (line.trim() === "") return <div key={i} className="h-2" />;
-    return <p key={i} className="text-sm text-slate-600 leading-relaxed">{line}</p>;
+    if (line.startsWith("## "))
+      return <h2 key={i} className="text-lg font-extrabold text-slate-900 dark:text-slate-100 mb-3 mt-0">{line.slice(3)}</h2>;
+    if (line.startsWith("### "))
+      return <h3 key={i} className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-4 mb-2">{line.slice(4)}</h3>;
+    if (line.startsWith("- "))
+      return <li key={i} className="text-sm text-slate-600 dark:text-slate-400 ml-4 mb-1">{line.slice(2)}</li>;
+    if (line.startsWith("*") && line.endsWith("*"))
+      return <p key={i} className="text-xs text-slate-400 dark:text-slate-500 italic mt-2">{line.slice(1, -1)}</p>;
+    if (line.trim() === "")
+      return <div key={i} className="h-2" />;
+    return <p key={i} className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{line}</p>;
   });
 }
 
@@ -71,12 +76,9 @@ export const ModulePage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { id: moduleId, courseId } = useParams<{ id: string; courseId: string }>();
 
-
   useEffect(() => {
     if (!moduleId) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
     coursesApi
       .getModuleById(moduleId)
@@ -126,24 +128,26 @@ export const ModulePage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-slate-500">{t("module.loading") ?? "Завантаження..."}</p>
+      <div className="flex items-center justify-center h-full bg-[#f3fbf9] dark:bg-slate-900">
+        <p className="text-slate-500 dark:text-slate-400">{t("module.loading") ?? "Завантаження..."}</p>
       </div>
     );
   }
 
   if (error || !module) {
     return (
-      <div className="p-6">
-        <p className="text-rose-600">{error ?? "Модуль не знайдено"}</p>
-        <button onClick={() => navigate("/modules")} className="mt-4 text-emerald-600 font-semibold">
+      <div className="p-6 bg-[#f3fbf9] dark:bg-slate-900 min-h-full">
+        <p className="text-rose-600 dark:text-rose-400">{error ?? "Модуль не знайдено"}</p>
+        <button
+          onClick={() => navigate(courseId ? `/courses/${courseId}` : "/courses")}
+          className="mt-4 text-emerald-600 dark:text-emerald-400 font-semibold"
+        >
           ← {t("module.backToModules")}
         </button>
       </div>
     );
   }
 
-  // const courseId = module.course?.id;
   const displayType = activeLesson ? typeLabels[activeLesson.type] ?? activeLesson.type : "";
   const displayIcon = activeLesson ? typeIcons[activeLesson.type] ?? "📄" : "";
 
@@ -162,19 +166,32 @@ export const ModulePage = () => {
         )}
       </AnimatePresence>
 
+      {/* Sidebar */}
       <aside
-        className={`fixed lg:static top-0 left-0 h-full z-40 w-72 bg-white dark:bg-slate-800 border-r border-slate-100 dark:border-slate-700 flex flex-col flex-shrink-0
-        transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+        className={`fixed lg:static top-0 left-0 h-full z-40 w-72
+          bg-white dark:bg-slate-800
+          border-r border-slate-100 dark:border-slate-700
+          flex flex-col flex-shrink-0
+          transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
+        {/* Back button */}
         <motion.button
           initial={{ opacity: 0, x: -12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          onClick={() => (courseId ? navigate(`/courses/${courseId}`) : navigate("/modules"))}
-          className="flex items-center gap-2 px-4 py-3.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-colors duration-150 group border-b border-slate-50 dark:border-slate-700"
+          onClick={() => (courseId ? navigate(`/courses/${courseId}`) : navigate("/courses"))}
+          className="flex items-center gap-2 px-4 py-3.5
+            text-slate-500 dark:text-slate-400
+            hover:text-emerald-600 dark:hover:text-emerald-400
+            hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20
+            transition-colors duration-150 group
+            border-b border-slate-100 dark:border-slate-700"
         >
-          <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-700 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50 flex items-center justify-center transition-colors">
+          <div className="w-6 h-6 rounded-lg
+            bg-slate-100 dark:bg-slate-700
+            group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50
+            flex items-center justify-center transition-colors">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
               <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -182,11 +199,12 @@ export const ModulePage = () => {
           <span className="text-sm font-semibold">{t("module.backToModules")}</span>
         </motion.button>
 
+        {/* Module info */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="p-4 border-b border-slate-50 dark:border-slate-700"
+          className="p-4 border-b border-slate-100 dark:border-slate-700"
         >
           <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-emerald-400 mb-0.5">
             {t("modules.module")}
@@ -195,9 +213,9 @@ export const ModulePage = () => {
             {module.title}
           </h2>
           <div className="mt-3">
-            <div className="flex justify-between text-xs text-slate-400 mb-1.5">
+            <div className="flex justify-between text-xs text-slate-400 dark:text-slate-500 mb-1.5">
               <span>{t("module.progress")}</span>
-              <span className="font-semibold text-emerald-600">
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                 {completedCount} / {lessons.length}
               </span>
             </div>
@@ -212,9 +230,10 @@ export const ModulePage = () => {
           </div>
         </motion.div>
 
+        {/* Lessons list */}
         <div className="flex-1 overflow-y-auto py-2">
           {lessons.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-slate-500">Уроків немає</p>
+            <p className="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">Уроків немає</p>
           ) : (
             lessons.map((lesson, i) => (
               <motion.button
@@ -224,20 +243,28 @@ export const ModulePage = () => {
                 animate="visible"
                 variants={sidebarVariants}
                 onClick={() => selectLesson(lesson)}
-                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-emerald-50/70 dark:hover:bg-emerald-900/20 transition-colors duration-150 text-left group
-                  ${activeLesson?.id === lesson.id ? "bg-emerald-50/70 dark:bg-emerald-900/20 border-r-2 border-emerald-400" : ""}`}
+                className={`w-full flex items-center gap-3 px-4 py-3
+                  hover:bg-emerald-50/70 dark:hover:bg-emerald-900/20
+                  transition-colors duration-150 text-left group
+                  ${activeLesson?.id === lesson.id
+                    ? "bg-emerald-50/70 dark:bg-emerald-900/20 border-r-2 border-emerald-400"
+                    : ""}`}
               >
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0 border transition-all duration-200
-                    ${activeLesson?.id === lesson.id ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200" : "bg-slate-50 dark:bg-slate-700 border-slate-100 dark:border-slate-600"}`}
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0 border transition-all duration-200
+                  ${activeLesson?.id === lesson.id
+                    ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700"
+                    : "bg-slate-50 dark:bg-slate-700 border-slate-100 dark:border-slate-600"}`}
                 >
                   {typeIcons[lesson.type] ?? "📄"}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-slate-400 mb-0.5">{typeLabels[lesson.type] ?? lesson.type}</p>
-                  <p
-                    className={`text-sm font-semibold truncate transition-colors duration-150
-                    ${activeLesson?.id === lesson.id ? "text-emerald-700 dark:text-emerald-400" : "text-slate-700 dark:text-slate-300"}`}
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">
+                    {typeLabels[lesson.type] ?? lesson.type}
+                  </p>
+                  <p className={`text-sm font-semibold truncate transition-colors duration-150
+                    ${activeLesson?.id === lesson.id
+                      ? "text-emerald-700 dark:text-emerald-400"
+                      : "text-slate-700 dark:text-slate-300"}`}
                   >
                     {lesson.title}
                   </p>
@@ -248,12 +275,14 @@ export const ModulePage = () => {
         </div>
       </aside>
 
-      <div className="flex-1 min-w-0 overflow-y-auto">
+      {/* Main content */}
+      <div className="flex-1 min-w-0 overflow-y-auto bg-[#f3fbf9] dark:bg-slate-900">
         <div className="max-w-3xl mx-auto px-4 py-5 sm:px-6">
           {!activeLesson ? (
-            <p className="text-slate-500 py-12 text-center">Оберіть урок</p>
+            <p className="text-slate-500 dark:text-slate-400 py-12 text-center">Оберіть урок</p>
           ) : (
             <>
+              {/* Lesson header */}
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -262,7 +291,12 @@ export const ModulePage = () => {
               >
                 <button
                   onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all flex-shrink-0"
+                  className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl
+                    bg-white dark:bg-slate-800
+                    border border-slate-100 dark:border-slate-700
+                    text-slate-500 dark:text-slate-400
+                    hover:bg-slate-50 dark:hover:bg-slate-700
+                    active:scale-95 transition-all flex-shrink-0"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -275,7 +309,7 @@ export const ModulePage = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.25 }}
                     className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border mb-1
-                      ${typeColor[activeLesson.type] ?? "bg-slate-50 text-slate-600 border-slate-100"}`}
+                      ${typeColor[activeLesson.type] ?? "bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-600"}`}
                   >
                     {displayIcon} {displayType}
                   </motion.div>
@@ -292,17 +326,25 @@ export const ModulePage = () => {
               </motion.div>
 
               <AnimatePresence mode="wait">
+                {/* VIDEO */}
                 {activeLesson.type === "VIDEO" && (
                   <motion.div key="video" variants={tabVariants} initial="initial" animate="animate" exit="exit">
-                    <YoutubePlayer videoId={extractYoutubeId(lessonDetail?.videoUrl ?? activeLesson.videoUrl)} title={activeLesson.title} />
+                    <YoutubePlayer
+                      videoId={extractYoutubeId(lessonDetail?.videoUrl ?? activeLesson.videoUrl)}
+                      title={activeLesson.title}
+                    />
                     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 mt-4">
-                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">{activeLesson.title}</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed mb-3">{t("module.videoDescription")}</p>
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
+                        {activeLesson.title}
+                      </h3>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed mb-3">
+                        {t("module.videoDescription")}
+                      </p>
                       <motion.button
                         whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={goToNextLesson}
-                        className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl hover:shadow-md hover:shadow-emerald-200 transition-shadow"
+                        className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl hover:shadow-md hover:shadow-emerald-200 dark:hover:shadow-emerald-900 transition-shadow"
                       >
                         {t("module.nextTheory")}
                       </motion.button>
@@ -310,33 +352,39 @@ export const ModulePage = () => {
                   </motion.div>
                 )}
 
+                {/* THEORY / TASK */}
                 {(activeLesson.type === "THEORY" || activeLesson.type === "TASK") && !currentTest && (
                   <motion.div key="theory" variants={tabVariants} initial="initial" animate="animate" exit="exit">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5 sm:p-6 mb-4">
-                      <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300">
+                      <div className="prose prose-sm max-w-none">
                         {lessonDetail?.content
                           ? renderMarkdownLike(lessonDetail.content)
                           : activeLesson.content
                           ? renderMarkdownLike(activeLesson.content)
-                          : <p className="text-slate-500">Контент відсутній</p>}
+                          : <p className="text-slate-500 dark:text-slate-400">Контент відсутній</p>}
                       </div>
                     </div>
                     <motion.button
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.97 }}
                       onClick={goToNextLesson}
-                      className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl hover:shadow-md hover:shadow-emerald-200 transition-shadow"
+                      className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl hover:shadow-md hover:shadow-emerald-200 dark:hover:shadow-emerald-900 transition-shadow"
                     >
                       {t("module.nextTask")}
                     </motion.button>
                   </motion.div>
                 )}
 
+                {/* TEST */}
                 {(activeLesson.type === "TEST" || (currentTest && firstQuestion)) && (
                   <motion.div key="test" variants={tabVariants} initial="initial" animate="animate" exit="exit">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5 mb-3">
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t("module.task")}</p>
-                      <p className="text-base font-semibold text-slate-800 dark:text-slate-200 mb-1">{firstQuestion?.questionText ?? "Оберіть правильну відповідь:"}</p>
+                      <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">
+                        {t("module.task")}
+                      </p>
+                      <p className="text-base font-semibold text-slate-800 dark:text-slate-200 mb-1">
+                        {firstQuestion?.questionText ?? "Оберіть правильну відповідь:"}
+                      </p>
                       <div className="grid grid-cols-2 gap-2 mt-4">
                         {answers.map((ans, i) => (
                           <motion.button
@@ -348,13 +396,13 @@ export const ModulePage = () => {
                             className={`py-3 px-4 rounded-xl text-sm font-semibold border transition-all duration-200
                               ${showResult
                                 ? ans.isCorrect
-                                  ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 text-emerald-700"
+                                  ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400"
                                   : i === selectedAnswer && !ans.isCorrect
-                                  ? "bg-rose-50 dark:bg-rose-900/30 border-rose-300 text-rose-600"
-                                  : "bg-slate-50 dark:bg-slate-700 border-slate-100 text-slate-400"
+                                  ? "bg-rose-50 dark:bg-rose-900/30 border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400"
+                                  : "bg-slate-50 dark:bg-slate-700 border-slate-100 dark:border-slate-600 text-slate-400 dark:text-slate-500"
                                 : selectedAnswer === i
-                                ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 text-emerald-700"
-                                : "bg-slate-50 dark:bg-slate-700 border-slate-100 text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20"
+                                ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400"
+                                : "bg-slate-50 dark:bg-slate-700 border-slate-100 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-emerald-200 dark:hover:border-emerald-700 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20"
                               }`}
                           >
                             {ans.answerText}
@@ -370,13 +418,19 @@ export const ModulePage = () => {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -8 }}
                           transition={{ duration: 0.25 }}
-                          className={`rounded-2xl p-4 mb-3 border ${isCorrect ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200" : "bg-rose-50 dark:bg-rose-900/20 border-rose-200"}`}
+                          className={`rounded-2xl p-4 mb-3 border ${
+                            isCorrect
+                              ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+                              : "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800"
+                          }`}
                         >
-                          <p className={`text-sm font-bold mb-0.5 ${isCorrect ? "text-emerald-700" : "text-rose-600"}`}>
+                          <p className={`text-sm font-bold mb-0.5 ${isCorrect ? "text-emerald-700 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                             {isCorrect ? t("module.correct") : t("module.incorrect")}
                           </p>
-                          <p className="text-xs text-slate-500">
-                            {isCorrect ? t("module.earnedXp") : `${t("module.correctAnswer")}: "${answers[correctIndex]?.answerText ?? ""}"`}
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {isCorrect
+                              ? t("module.earnedXp")
+                              : `${t("module.correctAnswer")}: "${answers[correctIndex]?.answerText ?? ""}"`}
                           </p>
                         </motion.div>
                       )}
@@ -394,16 +448,17 @@ export const ModulePage = () => {
                         }
                       }}
                       disabled={!showResult && selectedAnswer === null}
-                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl disabled:opacity-40 hover:shadow-md hover:shadow-emerald-200 transition-all"
+                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl disabled:opacity-40 hover:shadow-md hover:shadow-emerald-200 dark:hover:shadow-emerald-900 transition-all"
                     >
                       {!showResult ? t("module.check") : t("module.nextLesson")}
                     </motion.button>
                   </motion.div>
                 )}
 
+                {/* EMPTY TASK */}
                 {activeLesson.type === "TASK" && !currentTest && !lessonDetail?.content && !activeLesson.content && (
                   <motion.div key="empty" variants={tabVariants} initial="initial" animate="animate" exit="exit">
-                    <p className="text-slate-500 py-8">Завдання без контенту</p>
+                    <p className="text-slate-500 dark:text-slate-400 py-8">Завдання без контенту</p>
                     <motion.button
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.97 }}

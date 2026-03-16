@@ -57,39 +57,39 @@ export const StreakCard = () => {
         {/* Stats row */}
         <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-700">
           {/* Денний */}
-          <div className="pr-3 md:pr-4">
-            <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1">
+          <div className="pr-2 md:pr-4">
+            <p className="text-[8px] md:text-[9px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1">
               {t("home.daily", { defaultValue: "Денний" })}
             </p>
-            <div className="flex items-center gap-1.5">
-              <span className="text-base md:text-lg">🔥</span>
-              <span className="text-xl md:text-2xl font-extrabold text-orange-500 dark:text-orange-400 leading-none">
+            <div className="flex items-center gap-1 md:gap-1.5">
+              <span className="text-sm md:text-base">🔥</span>
+              <span className="text-lg md:text-2xl font-extrabold text-orange-500 dark:text-orange-400 leading-none">
                 {STREAK_DAYS}
               </span>
             </div>
           </div>
 
           {/* Заморожено */}
-          <div className="px-3 md:px-4">
-            <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1 truncate">
+          <div className="px-2 md:px-3">
+            <p className="text-[8px] md:text-[9px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1">
               {t("home.frozen", { defaultValue: "Заморожено" })}
             </p>
-            <div className="flex items-center gap-1.5">
-              <span className="text-base md:text-lg">🧊</span>
-              <span className="text-xl md:text-2xl font-extrabold text-sky-500 dark:text-sky-400 leading-none">
+            <div className="flex items-center gap-1 md:gap-1.5">
+              <span className="text-sm md:text-base">🧊</span>
+              <span className="text-lg md:text-2xl font-extrabold text-sky-500 dark:text-sky-400 leading-none">
                 {FROZEN_DAYS}
               </span>
             </div>
           </div>
 
           {/* Тижневий */}
-          <div className="pl-3 md:pl-4">
-            <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1 truncate">
+          <div className="pl-2 md:pl-4">
+            <p className="text-[8px] md:text-[9px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1">
               {t("home.weekly", { defaultValue: "Тижневий" })}
             </p>
-            <div className="flex items-center gap-1.5">
-              <span className="text-base md:text-lg">⚡</span>
-              <span className="text-xl md:text-2xl font-extrabold text-yellow-500 dark:text-yellow-400 leading-none">
+            <div className="flex items-center gap-1 md:gap-1.5">
+              <span className="text-sm md:text-base">⚡</span>
+              <span className="text-lg md:text-2xl font-extrabold text-yellow-500 dark:text-yellow-400 leading-none">
                 {WEEKLY_STREAK}
               </span>
             </div>
