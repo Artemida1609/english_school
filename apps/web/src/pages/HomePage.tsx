@@ -382,28 +382,47 @@ export const HomePage = () => {
               {t("home.noPurchases")}
             </p>
           ) : (
-            purchases.map((p) => (
-              <div
-                key={p.name + p.date}
-                className="flex items-center gap-2 md:gap-3 py-2 md:py-2.5
-      border-b border-slate-50 dark:border-slate-700/50 last:border-0"
-              >
+            purchases.map((p) => {
+              const formattedDate = new Date(p.date).toLocaleString("uk", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+
+              return (
                 <div
-                  className="w-8 h-8 md:w-9 md:h-9 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg md:rounded-xl
-        flex items-center justify-center text-sm md:text-base flex-shrink-0"
+                  key={p.name + p.date}
+                  className="flex items-center gap-2 md:gap-3 py-2 md:py-2.5
+      border-b border-slate-50 dark:border-slate-700/50 last:border-0"
                 >
-                  {p.icon}
+                  <div
+                    className="w-8 h-8 md:w-9 md:h-9 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg md:rounded-xl
+        flex items-center justify-center text-sm md:text-base flex-shrink-0"
+                  >
+                    {p.icon}
+                  </div>
+                  <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs md:text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
+                        {p.name}
+                      </p>
+                      <p className="text-[11px] md:text-xs text-slate-400 dark:text-slate-500">
+                        {formattedDate}
+                      </p>
+                    </div>
+                    <button
+                      className="text-[11px] md:text-xs font-bold text-emerald-600 dark:text-emerald-400
+                      px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100
+                      dark:hover:bg-emerald-900/50 transition-colors flex-shrink-0"
+                    >
+                      {t("home.use", { defaultValue: "Використати" })}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs md:text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
-                    {p.name}
-                  </p>
-                  <p className="text-[11px] md:text-xs text-slate-400 dark:text-slate-500">
-                    {p.date}
-                  </p>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

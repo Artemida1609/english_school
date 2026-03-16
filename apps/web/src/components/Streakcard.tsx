@@ -52,7 +52,7 @@ export const StreakCard = () => {
       {/* Header */}
       <div className="px-4 md:px-5 pt-4 md:pt-5 pb-3">
         <p className="text-[11px] font-bold tracking-[0.15em] uppercase text-slate-400 dark:text-slate-500 mb-3">
-          {t("home.currentStreak") ?? "Поточний стрік"}
+          {t("home.currentStreak", { defaultValue: "Поточний стрік" })}
         </p>
 
         {/* Stats row */}
@@ -60,7 +60,7 @@ export const StreakCard = () => {
           {/* Денний */}
           <div className="pr-3 md:pr-4">
             <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1">
-              {t("home.daily") ?? "Денний"}
+              {t("home.daily", { defaultValue: "Денний" })}
             </p>
             <div className="flex items-center gap-1.5">
               <span className="text-base md:text-lg">🔥</span>
@@ -74,7 +74,7 @@ export const StreakCard = () => {
           <div className="px-3 md:px-4">
             <div className="flex items-center gap-1 mb-1">
               <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                {t("home.frozen") ?? "Заморожено"}
+                {t("home.frozen", { defaultValue: "Заморожено" })}
               </p>
               <div className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
                 <span className="text-[7px] text-slate-400 dark:text-slate-500 font-bold">i</span>
@@ -92,7 +92,7 @@ export const StreakCard = () => {
           <div className="pl-3 md:pl-4">
             <div className="flex items-center gap-1 mb-1">
               <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                {t("home.weekly") ?? "Тижневий"}
+                {t("home.weekly", { defaultValue: "Тижневий" })}
               </p>
               <div className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
                 <span className="text-[7px] text-slate-400 dark:text-slate-500 font-bold">i</span>
