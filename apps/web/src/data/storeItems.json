@@ -1,5 +1,6 @@
 [
   {
+    "key": "xp-boost-x2",
     "icon": "⚡",
     "bg": "from-amber-400 to-orange-400",
     "badge": "Популярне",
@@ -9,6 +10,7 @@
     "price": 50
   },
   {
+    "key": "freeze-streak",
     "icon": "❄️",
     "bg": "from-sky-400 to-blue-500",
     "badge": "Корисне",
@@ -18,6 +20,7 @@
     "price": 30
   },
   {
+    "key": "dark-theme",
     "icon": "🎨",
     "bg": "from-violet-400 to-purple-500",
     "badge": "Новинка",
@@ -27,6 +30,7 @@
     "price": 100
   },
   {
+    "key": "gold-profile",
     "icon": "🏆",
     "bg": "from-emerald-400 to-teal-500",
     "badge": "Преміум",
@@ -36,6 +40,7 @@
     "price": 200
   },
   {
+    "key": "unlimited-hints",
     "icon": "📖",
     "bg": "from-rose-400 to-pink-500",
     "badge": "Корисне",
@@ -45,6 +50,7 @@
     "price": 80
   },
   {
+    "key": "turbo-mode",
     "icon": "🚀",
     "bg": "from-indigo-400 to-blue-500",
     "badge": "Топ",

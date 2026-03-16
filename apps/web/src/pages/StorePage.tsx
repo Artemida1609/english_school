@@ -1,19 +1,62 @@
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import storeItems from "../data/storeItems.json";
 import { CoinIcon } from "../icons/CoinIcon";
-import { buyItem } from "../store/shopSlice";
+import { setBalance, addPurchase } from "../store/shopSlice";
 import type { RootState } from "../store";
+import { apiFetch } from "../api/client";
 
 export const StorePage = () => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const balance = useSelector((s: RootState) => s.shop.balance);
 
-  const handleBuy = (item: { icon: string; title: string; price: number }) => {
+  useEffect(() => {
+    apiFetch<{ coins: number; purchases: { icon?: string; title: string; createdAt: string }[] }>(
+      "/api/store/me"
+    )
+      .then((data) => {
+        dispatch(setBalance(data.coins));
+        // опційно можна заповнити історію покупок
+        data.purchases.forEach((p) =>
+          dispatch(
+            addPurchase({
+              icon: p.icon ?? "🛒",
+              title: p.title,
+              createdAt: p.createdAt,
+            })
+          )
+        );
+      })
+      .catch(() => {
+        // тихо ігноруємо помилку, Store просто покаже 0 монет
+      });
+  }, [dispatch]);
+
+  const handleBuy = async (item: { key: string; icon: string; title: string; price: number }) => {
     if (balance < item.price) return;
-    dispatch(buyItem(item));
+    try {
+      const res = await apiFetch<{
+        coins: number;
+        purchase: { title: string; icon?: string; createdAt: string };
+      }>("/api/store/buy", {
+        method: "POST",
+        body: JSON.stringify({ key: item.key }),
+      });
+
+      dispatch(setBalance(res.coins));
+      dispatch(
+        addPurchase({
+          icon: res.purchase.icon ?? item.icon,
+          title: res.purchase.title,
+          createdAt: res.purchase.createdAt,
+        })
+      );
+    } catch {
+      // можна додати тости/повідомлення пізніше
+    }
   };
 
   return (
@@ -95,6 +138,7 @@ export const StorePage = () => {
                 <button
                   onClick={() =>
                     handleBuy({
+                      key: item.key,
                       icon: item.icon,
                       title: item.title,
                       price: item.price,

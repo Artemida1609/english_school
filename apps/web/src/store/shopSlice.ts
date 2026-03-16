@@ -13,7 +13,7 @@ interface ShopState {
 }
 
 const initialState: ShopState = {
-  balance: 350,
+  balance: 0,
   purchases: [],
 };
 
@@ -21,18 +21,25 @@ export const shopSlice = createSlice({
   name: "shop",
   initialState,
   reducers: {
-    buyItem: (state, action: PayloadAction<{ icon: string; title: string; price: number }>) => {
-      const { icon, title, price } = action.payload;
-      if (state.balance < price) return;
-      state.balance -= price;
+    setBalance: (state, action: PayloadAction<number>) => {
+      state.balance = action.payload;
+    },
+    addPurchase: (
+      state,
+      action: PayloadAction<{ icon: string; title: string; createdAt?: string }>
+    ) => {
+      const { icon, title, createdAt } = action.payload;
+      const date =
+        createdAt ??
+        new Date().toLocaleDateString("uk", { day: "numeric", month: "long" });
       state.purchases.unshift({
         icon,
         name: title,
-        date: new Date().toLocaleDateString("uk", { day: "numeric", month: "long" }),
+        date,
       });
     },
   },
 });
 
-export const { buyItem } = shopSlice.actions;
+export const { setBalance, addPurchase } = shopSlice.actions;
 export default shopSlice.reducer;
