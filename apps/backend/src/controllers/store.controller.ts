@@ -2,6 +2,11 @@ import { Response } from 'express'
 import { prisma } from '../config/prisma'
 import { AuthRequest } from '../middleware/auth.middleware'
 
+const getMaxPurchases = (key: string): number => {
+  if (key === 'dark-theme' || key === 'gold-profile') return 1
+  return 5
+}
+
 // GET /api/store/me
 export const getMyStore = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -13,29 +18,38 @@ export const getMyStore = async (req: AuthRequest, res: Response): Promise<void>
       create: { userId },
     })
 
-    const purchases = await prisma.storePurchase.findMany({
-      where: { userId },
-      include: {
-        item: {
-          select: {
-            key: true,
-            icon: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
+    const [items, purchasesCount] = await Promise.all([
+      prisma.storeItem.findMany(),
+      prisma.storePurchase.groupBy({
+        where: { userId },
+        by: ['itemId'],
+        _count: { _all: true },
+      }),
+    ])
+
+    const countByItemId = new Map<string, number>(
+      purchasesCount.map((p) => [p.itemId, p._count._all] as [string, number]),
+    )
+
+    const itemsWithState = items.map((item) => {
+      const purchasedCount = countByItemId.get(item.id) ?? 0
+      const maxPurchases = getMaxPurchases(item.key)
+
+      return {
+        id: item.id,
+        key: item.key,
+        title: item.title,
+        description: item.description,
+        price: item.price,
+        icon: item.icon,
+        maxPurchases,
+        purchasedCount,
+      }
     })
 
     res.json({
       coins: profile.coins,
-      purchases: purchases.map((p) => ({
-        id: p.id,
-        itemKey: p.item.key,
-        title: p.title,
-        price: p.price,
-        icon: p.item.icon,
-        createdAt: p.createdAt,
-      })),
+      items: itemsWithState,
     })
   } catch (error) {
     console.error('GetMyStore error:', error)
@@ -57,6 +71,16 @@ export const buyItem = async (req: AuthRequest, res: Response): Promise<void> =>
     const item = await prisma.storeItem.findUnique({ where: { key } })
     if (!item) {
       res.status(404).json({ message: 'Item not found' })
+      return
+    }
+
+    const existingCount = await prisma.storePurchase.count({
+      where: { userId, itemId: item.id },
+    })
+    const maxPurchases = getMaxPurchases(item.key)
+
+    if (existingCount >= maxPurchases) {
+      res.status(400).json({ message: 'Purchase limit reached for this item' })
       return
     }
 
@@ -95,6 +119,8 @@ export const buyItem = async (req: AuthRequest, res: Response): Promise<void> =>
         price: purchase.price,
         icon: item.icon,
         createdAt: purchase.createdAt,
+        purchasedCount: existingCount + 1,
+        maxPurchases,
       },
     })
   } catch (error) {
