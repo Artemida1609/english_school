@@ -45,6 +45,81 @@ const CheckIcon = () => (
   </svg>
 );
 
+// ─── Fireworks Canvas ──────────────────────────────────────────
+function FireworksCanvas({ onDone }: { onDone: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    type Particle = { x: number; y: number; vx: number; vy: number; alpha: number; color: string; radius: number };
+    const particles: Particle[] = [];
+    const colors = ["#10b981","#14b8a6","#f59e0b","#8b5cf6","#ec4899","#3b82f6","#f97316"];
+    function burst(x: number, y: number) {
+      for (let i = 0; i < 60; i++) {
+        const angle = (Math.PI * 2 * i) / 60 + Math.random() * 0.3;
+        const speed = 2 + Math.random() * 6;
+        particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, alpha: 1, color: colors[Math.floor(Math.random() * colors.length)], radius: 2 + Math.random() * 3 });
+      }
+    }
+    const w = canvas.width; const h = canvas.height;
+    burst(w * 0.3, h * 0.3);
+    setTimeout(() => burst(w * 0.7, h * 0.25), 200);
+    setTimeout(() => burst(w * 0.5, h * 0.4), 400);
+    setTimeout(() => burst(w * 0.2, h * 0.5), 600);
+    setTimeout(() => burst(w * 0.8, h * 0.45), 700);
+    setTimeout(() => burst(w * 0.5, h * 0.2), 900);
+    let animId: number;
+    function animate() {
+      ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.vx *= 0.99; p.alpha -= 0.015;
+        if (p.alpha <= 0) { particles.splice(i, 1); continue; }
+        ctx!.save(); ctx!.globalAlpha = p.alpha; ctx!.fillStyle = p.color;
+        ctx!.beginPath(); ctx!.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx!.fill(); ctx!.restore();
+      }
+      if (particles.length > 0) animId = requestAnimationFrame(animate);
+    }
+    animId = requestAnimationFrame(animate);
+    const timer = setTimeout(onDone, 3500);
+    return () => { cancelAnimationFrame(animId); clearTimeout(timer); };
+  }, [onDone]);
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[100]" style={{ width: "100vw", height: "100vh" }} />;
+}
+
+// ─── Completion Modal ──────────────────────────────────────────
+function CompletionModal({ onClose }: { onClose: () => void }) {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99] flex items-center justify-center px-6" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <motion.div
+        initial={{ scale: 0.7, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 22 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative z-10 bg-white dark:bg-[#06121D] rounded-[32px] p-8 max-w-sm w-full text-center border border-emerald-200 dark:border-emerald-500/30 shadow-[0_30px_80px_rgba(16,185,129,0.3)]"
+      >
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-32 h-32 bg-emerald-400/30 blur-[60px] rounded-full pointer-events-none" />
+        <motion.div animate={{ rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.2, 1] }} transition={{ duration: 0.6, delay: 0.3 }} className="text-6xl mb-4">🏆</motion.div>
+        <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-2xl font-black text-slate-900 dark:text-white mb-2">Вітаємо! 🎉</motion.h2>
+        <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="text-slate-600 dark:text-slate-400 font-medium mb-2">Ви успішно завершили модуль!</motion.p>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="text-sm text-emerald-600 dark:text-emerald-400 font-black mb-6 uppercase tracking-wider">+15 XP зараховано ✨</motion.p>
+        <div className="flex justify-center gap-2 mb-6">
+          {[0, 1, 2].map((i) => (
+            <motion.span key={i} initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.4 + i * 0.15, type: "spring", stiffness: 300 }} className="text-3xl">⭐</motion.span>
+          ))}
+        </div>
+        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={onClose} className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-sm uppercase tracking-widest rounded-2xl shadow-[0_0_24px_rgba(16,185,129,0.4)] border border-emerald-400/50">
+          Продовжити 🚀
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export const ModulePage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -63,6 +138,11 @@ export const ModulePage = () => {
   const videoMarkedRef = useRef(false);
   const theoryMarkedRef = useRef(false);
   const exercisesMarkedRef = useRef(false);
+
+  // ─── Celebration state ─────────────────────────────────────
+  const [showFireworks, setShowFireworks] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const celebratedRef = useRef(false);
 
   const tabParam = searchParams.get("tab") as TabId | null;
   const returnStage = searchParams.get("returnStage");
@@ -141,6 +221,8 @@ export const ModulePage = () => {
         if (data.lessons.find(l => l.type === "VIDEO" && l.progress?.completed)) videoMarkedRef.current = true;
         if (data.lessons.find(l => l.type === "THEORY" && l.progress?.completed)) theoryMarkedRef.current = true;
         if (data.lessons.find(l => (l.type === "TASK" || l.type === "TEST") && l.progress?.completed)) exercisesMarkedRef.current = true;
+        // Don't celebrate if module was already completed before
+        if (data.percentage === 100) celebratedRef.current = true;
       })
       .catch(() => {});
   }, [moduleId]);
@@ -206,6 +288,17 @@ export const ModulePage = () => {
   const completedCount = lessonItems.filter(({ lesson }) => lesson && completedLessons.has(lesson.id)).length;
   const totalCount = lessonItems.filter(({ lesson }) => !!lesson).length;
   const progressPct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+  // ─── Trigger celebration when all lessons done ─────────────
+  useEffect(() => {
+    if (totalCount > 0 && completedCount === totalCount && !celebratedRef.current) {
+      celebratedRef.current = true;
+      setTimeout(() => {
+        setShowFireworks(true);
+        setShowModal(true);
+      }, 600);
+    }
+  }, [completedCount, totalCount]);
 
   const backHref = returnStage ? `/course?stage=${returnStage}` : "/course";
 
@@ -484,6 +577,10 @@ export const ModulePage = () => {
   );
 
   return (
+    <>
+      {showFireworks && <FireworksCanvas onDone={() => setShowFireworks(false)} />}
+      <AnimatePresence>{showModal && <CompletionModal onClose={() => setShowModal(false)} />}</AnimatePresence>
+
     <div className="flex flex-col md:flex-row h-full min-h-full bg-slate-50 dark:bg-[#030812] overflow-hidden relative text-slate-900 dark:text-white md:rounded-[36px] border border-slate-200/50 dark:border-white/5 shadow-2xl transition-colors duration-500">
       <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-300/30 dark:bg-emerald-600/20 blur-[130px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-300/30 dark:bg-teal-600/20 blur-[130px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
@@ -598,5 +695,6 @@ export const ModulePage = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
