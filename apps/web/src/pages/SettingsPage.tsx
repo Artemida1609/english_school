@@ -103,8 +103,8 @@ export const SettingsPage = () => {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
               viewport={{ once: true, amount: 0 }}
-              className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl
-                border border-slate-100 dark:border-slate-700 overflow-hidden"
+              className="bg-white/80 dark:bg-[#06121D]/80 backdrop-blur-2xl rounded-2xl sm:rounded-[32px]
+                border border-slate-200 dark:border-white/5 overflow-hidden shadow-xl"
             >
               {group.items.map((item, i) => {
                 const dynamicSub = item.i18nKey
@@ -114,37 +114,37 @@ export const SettingsPage = () => {
                 return (
                   <NavLink to={item.link ?? "#"} key={i}>
                     <div
-                      className="flex items-center gap-2.5 sm:gap-4
-                      px-3 sm:px-4 py-3 sm:py-3.5
-                      border-b border-slate-50 dark:border-slate-700/50 last:border-0
-                      hover:bg-slate-50/70 dark:hover:bg-slate-700/50 transition-colors duration-150"
+                      className="flex items-center gap-3 sm:gap-5
+                      px-4 sm:px-6 py-4 sm:py-5
+                      border-b border-slate-200/50 dark:border-white/5 last:border-0
+                      hover:bg-emerald-50/50 dark:hover:bg-white/5 transition-colors duration-300 group"
                     >
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
-                        <item.icon className="w-[80%] h-[80%] text-slate-600 dark:text-slate-300" />
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-white group-hover:bg-emerald-100 dark:group-hover:bg-emerald-500/20 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-all border border-slate-200 dark:border-white/5 group-hover:border-emerald-200 dark:group-hover:border-emerald-500/30">
+                        <item.icon className="w-[60%] h-[60%]" />
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
+                        <p className="text-base font-bold text-slate-800 dark:text-slate-100 truncate group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
                           {item.i18nKey
                             ? t(`settings.${item.i18nKey}.title`)
                             : item.title}
                         </p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                        <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-0.5 truncate uppercase tracking-wider">
                           {dynamicSub ?? item.subTitle}
                         </p>
                       </div>
 
                       <div
-                        className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg
-                        flex items-center justify-center
-                        text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30
-                        border border-emerald-100 dark:border-emerald-800"
+                        className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-xl
+                        flex items-center justify-center transition-all
+                        text-slate-400 bg-slate-100 dark:bg-white/5 dark:text-white/30
+                        border border-slate-200 dark:border-white/10 group-hover:bg-emerald-500 group-hover:border-emerald-400 group-hover:text-white group-hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]"
                       >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                           <path
                             d="M9 18l6-6-6-6"
                             stroke="currentColor"
-                            strokeWidth="2.2"
+                            strokeWidth="2.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           />

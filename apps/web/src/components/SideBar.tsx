@@ -3,25 +3,25 @@ import { NavLink } from "react-router-dom"
 import { ChatsIcon } from "../icons/ChatsIcon"
 import { CoursesIcon } from "../icons/CoursesIcon"
 import { SettingsIcon } from "../icons/SettingsIcon"
-import { StoreIcon } from "../icons/StoreIcon"
+// import { StoreIcon } from "../icons/StoreIcon"
 
 const navItems = [
-  { name: "Courses",  href: "/courses",  icon: <CoursesIcon /> },
+  { name: "Course",  href: "/course",  icon: <CoursesIcon /> },
   { name: "Settings", href: "/settings", icon: <SettingsIcon /> },
   { name: "Chats",    href: "/chats",    icon: <ChatsIcon /> },
-  { name: "Store",    href: "/store",    icon: <StoreIcon /> },
+  // { name: "Store",    href: "/store",    icon: <StoreIcon /> },
 ]
 
 export const SideBar = () => {
   return (
     <aside className="
       fixed z-40
-      bg-white dark:bg-slate-900
-      border-gray-100 dark:border-slate-800
+      bg-slate-50 dark:bg-[#030812]
+      border-slate-200 dark:border-white/5
       bottom-0 left-0 right-0 h-16 border-t flex flex-row
       md:bottom-auto md:top-16 md:left-0 md:right-auto
       md:h-[calc(100vh-4rem)] md:w-16 md:border-r md:border-t-0 md:flex-col
-      transition-colors duration-300
+      transition-colors duration-500
     ">
       {navItems.map((item, index) => (
         <NavLink

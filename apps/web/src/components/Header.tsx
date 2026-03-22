@@ -11,8 +11,8 @@ export const Header = () => {
   return (
     <header
       className="fixed z-50 w-full h-16 flex items-center
-      bg-white dark:bg-slate-900
-      transition-colors duration-300"
+      bg-slate-50 dark:bg-[#030812]
+      transition-colors duration-500"
     >
       {/* Лого — ширина рівна сайдбару, без border-b */}
       <NavLink
@@ -27,7 +27,7 @@ export const Header = () => {
       {/* Права частина — з border-b, починається після сайдбара */}
       <div
         className="flex flex-1 items-center justify-end px-6 h-full
-        border-b border-gray-100 dark:border-slate-800"
+        border-b border-slate-200 dark:border-white/5 transition-colors duration-500"
       >
         <div className="flex items-center gap-2">
           {/* Streak */}

@@ -9,21 +9,21 @@ import { useSettingsStore } from "../store/settingsStore";
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 
-export const inputCls = `w-full px-4 py-3 rounded-xl
-  border border-slate-200 dark:border-slate-700
-  bg-white dark:bg-slate-900
-  text-slate-800 dark:text-slate-200
-  text-sm font-medium placeholder:text-slate-400 dark:placeholder:text-slate-600
-  focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400
-  transition-all duration-200`;
+export const inputCls = `w-full px-5 py-4 rounded-2xl
+  border border-slate-200 dark:border-white/10
+  bg-transparent dark:bg-white/5
+  text-slate-900 dark:text-white
+  text-sm font-bold placeholder:text-slate-400 dark:placeholder:text-white/30
+  focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400
+  transition-all duration-300`;
 
-export const labelCls = `block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5`;
+export const labelCls = `block text-[11px] font-black text-slate-400 dark:text-white/50 uppercase tracking-[0.1em] mb-2 drop-shadow-sm`;
 
 export const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   <h3
-    className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 mt-6 first:mt-0
-    flex items-center gap-2 after:flex-1 after:h-px after:bg-gradient-to-r
-    after:from-slate-200 dark:after:from-slate-700 after:to-transparent"
+    className="text-[11px] font-black text-slate-800 dark:text-emerald-400 uppercase tracking-[0.1em] mb-4 mt-8 first:mt-0
+    flex items-center gap-3 after:flex-1 after:h-px after:bg-gradient-to-r
+    after:from-slate-200 dark:after:from-emerald-500/20 after:to-transparent drop-shadow-sm"
   >
     {children}
   </h3>
@@ -40,10 +40,9 @@ export const SaveButton = ({
   return (
     <button
       onClick={onClick}
-      className="mt-6 w-full h-12 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600
-        text-white font-bold text-sm tracking-wide
-        hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5
-        active:translate-y-0 transition-all duration-200"
+      className="mt-8 w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500
+        text-white font-black text-[13px] tracking-widest uppercase
+        hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all duration-300 border border-emerald-400/50"
     >
       {label ?? t("settings.saveChanges")}
     </button>
@@ -51,19 +50,19 @@ export const SaveButton = ({
 };
 
 export const EyeIcon = ({ show }: { show: boolean }) => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="dark:text-white/50 text-slate-400 hover:text-emerald-500 transition-colors">
     {show ? (
       <>
         <path
           d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"
-          stroke="#94a3b8"
-          strokeWidth="1.6"
+          stroke="currentColor"
+          strokeWidth="2"
           strokeLinecap="round"
         />
         <path
           d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"
-          stroke="#94a3b8"
-          strokeWidth="1.6"
+          stroke="currentColor"
+          strokeWidth="2"
           strokeLinecap="round"
         />
         <line
@@ -71,8 +70,8 @@ export const EyeIcon = ({ show }: { show: boolean }) => (
           y1="1"
           x2="23"
           y2="23"
-          stroke="#94a3b8"
-          strokeWidth="1.6"
+          stroke="currentColor"
+          strokeWidth="2"
           strokeLinecap="round"
         />
       </>
@@ -80,16 +79,16 @@ export const EyeIcon = ({ show }: { show: boolean }) => (
       <>
         <path
           d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
-          stroke="#94a3b8"
-          strokeWidth="1.6"
+          stroke="currentColor"
+          strokeWidth="2"
         />
-        <circle cx="12" cy="12" r="3" stroke="#94a3b8" strokeWidth="1.6" />
+        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
       </>
     )}
   </svg>
 );
 
-export const cardCls = `bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5`;
+export const cardCls = `bg-white/80 dark:bg-[#06121D]/80 backdrop-blur-2xl rounded-[32px] border border-slate-200 dark:border-white/5 p-6 sm:p-8 shadow-xl relative overflow-hidden`;
 
 // ─── Notifications ────────────────────────────────────────────────────────────
 

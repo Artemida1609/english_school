@@ -13,6 +13,7 @@ import profileRoutes from './routes/profile.routes'
 import achievementsRoutes from './routes/achievements.routes'
 import storeRoutes from './routes/store.routes'
 import { setupSockets } from './sockets/chat.socket'
+import progressRoutes from './routes/progress.routes'
 
 const app = express()
 const httpServer = createServer(app)
@@ -56,6 +57,7 @@ app.use('/api/chat', chatRoutes)
 app.use('/api/profile', profileRoutes)
 app.use('/api/achievements', achievementsRoutes)
 app.use('/api/store', storeRoutes)
+app.use('/api/progress', progressRoutes)
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })

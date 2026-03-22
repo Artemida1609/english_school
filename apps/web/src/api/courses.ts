@@ -14,6 +14,7 @@ export interface Module {
   title: string;
   description?: string;
   orderIndex: number;
+  stage?: number;
   lessons?: Lesson[];
   _count?: { lessons: number };
   course?: { id: string; title: string };
@@ -44,6 +45,20 @@ export interface LessonDetail extends Lesson {
   }[];
 }
 
+export interface LessonProgress {
+  lessonId: string;
+  completed: boolean;
+  score?: number | null;
+  completedAt?: string | null;
+}
+
+export interface ModuleProgressResponse {
+  lessons: (Lesson & { progress: LessonProgress | null })[];
+  completedCount: number;
+  totalCount: number;
+  percentage: number;
+}
+
 export const coursesApi = {
   getCourses: (params?: { level?: string; search?: string }) => {
     const q = new URLSearchParams(params as Record<string, string>).toString();
@@ -52,4 +67,12 @@ export const coursesApi = {
   getCourseById: (id: string) => apiFetch<Course>(`/api/courses/${id}`),
   getModuleById: (id: string) => apiFetch<Module>(`/api/modules/${id}`),
   getLessonById: (id: string) => apiFetch<LessonDetail>(`/api/lessons/${id}`),
+
+  // Progress
+  getModuleProgress: (moduleId: string) =>
+    apiFetch<ModuleProgressResponse>(`/api/progress/module/${moduleId}`),
+  saveProgress: (data: { lessonId: string; completed: boolean; score?: number }) =>
+    apiFetch<LessonProgress>(`/api/progress`, { method: "POST", body: JSON.stringify(data) }),
+  getMyProgress: () =>
+    apiFetch<{ progress: LessonProgress[]; stats: object }>(`/api/progress/me`),
 };

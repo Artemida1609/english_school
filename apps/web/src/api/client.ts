@@ -5,21 +5,89 @@ function getAuthHeader(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+function subscribeTokenRefresh(cb: (token: string) => void) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshed(token: string) {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+}
+
 export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${url}`, {
-    ...options,
-    headers: {
+  const executeRequest = async (overrideToken?: string) => {
+    const headers = {
       "Content-Type": "application/json",
       ...getAuthHeader(),
       ...options?.headers,
-    },
-  });
+    } as Record<string, string>;
+
+    if (overrideToken) {
+      headers["Authorization"] = `Bearer ${overrideToken}`;
+    }
+
+    return fetch(`${API_URL}${url}`, {
+      ...options,
+      headers,
+    });
+  };
+
+  let res = await executeRequest();
 
   if (res.status === 401) {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
-    window.location.href = "/login";
-    throw new Error("Unauthorized");
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (!refreshToken) {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+      throw new Error("Unauthorized");
+    }
+
+    if (!isRefreshing) {
+      isRefreshing = true;
+      try {
+        const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+        });
+
+        if (!refreshRes.ok) {
+          throw new Error("Refresh failed");
+        }
+
+        const data = await refreshRes.json();
+        const newToken = data.accessToken;
+        
+        localStorage.setItem("accessToken", newToken);
+        if (data.refreshToken) {
+          localStorage.setItem("refreshToken", data.refreshToken);
+        }
+
+        isRefreshing = false;
+        onRefreshed(newToken);
+        
+        // Retry the failed request
+        res = await executeRequest(newToken);
+      } catch (err) {
+        isRefreshing = false;
+        refreshSubscribers = [];
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+        throw new Error("Session expired. Please log in again.");
+      }
+    } else {
+      // Wait for the token refresh to complete
+      const newToken = await new Promise<string>((resolve) => {
+        subscribeTokenRefresh(resolve);
+      });
+      res = await executeRequest(newToken);
+    }
   }
 
   if (!res.ok) {

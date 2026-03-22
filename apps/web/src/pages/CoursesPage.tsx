@@ -62,120 +62,130 @@ export const CoursesPage = () => {
   }
 
   return (
-    <section className="px-2">
-      {/* Header */}
-      <div className="mb-10 px-1 text-center">
-        <motion.p
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-xs font-bold tracking-[0.2em] uppercase text-emerald-400 mb-3"
-        >
-          Навчання
-        </motion.p>
+    <div className="min-h-full bg-slate-50 dark:bg-[#030812] overflow-hidden relative text-slate-900 dark:text-white md:rounded-[36px] border border-slate-200/50 dark:border-white/5 shadow-2xl transition-colors duration-500">
+      {/* Background Orbs */}
+      <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-emerald-300/30 dark:bg-emerald-600/20 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none transition-colors duration-500" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[50%] bg-teal-300/20 dark:bg-teal-600/10 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none transition-colors duration-500" />
 
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-4xl font-extrabold text-gray-900 dark:text-slate-100 tracking-tight leading-tight mb-3"
-        >
-          Оберіть{" "}
-          <span className="relative inline-block">
-            <span className="text-emerald-500">курс</span>
-            <span className="absolute -bottom-1 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-400 to-teal-300 rounded-full" />
-          </span>
-        </motion.h2>
+      <section className="relative z-10 p-6 md:p-10 h-full overflow-y-auto custom-scrollbar">
+        {/* Header */}
+        <div className="mb-12 px-1 text-center">
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-xs font-black tracking-[0.2em] uppercase text-emerald-500 dark:text-emerald-400 mb-3 drop-shadow-sm"
+          >
+            Навчання
+          </motion.p>
 
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-gray-400 dark:text-slate-500 text-base font-medium max-w-sm mx-auto"
-        >
-          Від основ до впевненого рівня —{" "}
-          <span className="text-gray-600 dark:text-slate-300 font-semibold">крок за кроком</span>
-        </motion.p>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight mb-4 drop-shadow-sm"
+          >
+            Оберіть{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-400 dark:to-teal-300">
+              курс
+            </span>
+          </motion.h2>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="inline-flex items-center gap-2 mt-4 px-4 py-1.5
-      bg-emerald-50 dark:bg-emerald-900/30
-      border border-emerald-100 dark:border-emerald-800
-      rounded-full"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-wide">
-            {courses.length} {courses.length === 1 ? "курс" : courses.length < 5 ? "курси" : "курсів"} доступно
-          </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
-        </motion.div>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-slate-600 dark:text-slate-400 text-lg font-medium max-w-sm mx-auto"
+          >
+            Від основ до впевненого рівня —{" "}
+            <span className="text-emerald-600 dark:text-emerald-300 font-bold">крок за кроком</span>
+          </motion.p>
 
-        <div className="mt-6 h-px bg-gradient-to-r from-transparent via-emerald-100 dark:via-emerald-900 to-transparent" />
-      </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="inline-flex items-center gap-2.5 mt-6 px-5 py-2
+        bg-white/80 dark:bg-[#06121D]/80 backdrop-blur-md
+        border border-emerald-200/50 dark:border-white/10 shadow-[0_10px_30px_rgba(16,185,129,0.1)] dark:shadow-none
+        rounded-full"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
+            <span className="text-xs font-black text-slate-800 dark:text-white tracking-widest uppercase">
+              {courses.length} {courses.length === 1 ? "курс" : courses.length < 5 ? "курси" : "курсів"} доступно
+            </span>
+          </motion.div>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {courses.length === 0 ? (
-          <div className="col-span-full py-20 text-center text-slate-500 dark:text-slate-400">
-            Курси ще не створені. Зайдіть пізніше.
-          </div>
-        ) : (
-          courses.map((course, index) => {
-            const diff = difficultyConfig[course.level] ?? difficultyConfig.BEGINNER;
-            const moduleCount = course._count?.modules ?? course.modules?.length ?? 0;
-            return (
-              // ← новий шлях /courses/:courseId
-              <NavLink to={`/courses/${course.id}`} key={course.id}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                  viewport={{ once: true, amount: 0.1 }}
-                  className="group flex flex-col bg-white dark:bg-slate-800
-                    border border-gray-100 dark:border-slate-700
-                    rounded-2xl overflow-hidden shadow-sm
-                    hover:shadow-xl dark:hover:shadow-slate-900/50
-                    hover:-translate-y-1 transition-all duration-300 cursor-pointer"
-                >
-                  <div className="relative overflow-hidden h-48">
-                    <img
-                      src={course.thumbnail ?? DEFAULT_IMG}
-                      alt={course.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-3 left-3 bg-white/90 dark:bg-slate-800/90
-                      backdrop-blur-sm text-xs font-bold text-gray-500 dark:text-slate-400
-                      px-2 py-1 rounded-full">
-                      КУРС {index + 1}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {courses.length === 0 ? (
+            <div className="col-span-full py-20 text-center text-slate-500 dark:text-slate-400/50 font-bold">
+              Курси ще не створені. Зайдіть пізніше.
+            </div>
+          ) : (
+            courses.map((course, index) => {
+              const diff = difficultyConfig[course.level] ?? difficultyConfig.BEGINNER;
+              const moduleCount = course._count?.modules ?? course.modules?.length ?? 0;
+              return (
+                <NavLink to={`/courses/${course.id}`} key={course.id}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1, ease: "easeOut" }}
+                    viewport={{ once: true, amount: 0.1 }}
+                    className="group flex flex-col bg-white/60 dark:bg-[#06121D]/60 backdrop-blur-xl
+                      border border-slate-200 dark:border-white/5
+                      rounded-[24px] overflow-hidden shadow-md cursor-pointer
+                      hover:border-emerald-400/50 dark:hover:border-emerald-500/40
+                      hover:shadow-xl dark:shadow-none dark:hover:shadow-[0_10px_30px_rgba(16,185,129,0.15)]
+                      hover:-translate-y-1.5 transition-all duration-500 relative"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+                    <div className="relative overflow-hidden h-44 rounded-t-[24px]">
+                      <img
+                        src={course.thumbnail ?? DEFAULT_IMG}
+                        alt={course.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/20" />
+                      <div className="absolute top-4 left-4 bg-white/90 dark:bg-[#06121D]/90
+                        backdrop-blur-md text-[10px] font-black text-slate-700 dark:text-emerald-300
+                        px-3 py-1.5 rounded-full shadow-sm uppercase tracking-widest">
+                        КУРС {index + 1}
+                      </div>
+                      <div className={`absolute top-4 right-4 text-[11px] font-black
+                        px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-md shadow-sm uppercase tracking-wider ${diff.color}`}>
+                        {diff.label}
+                      </div>
                     </div>
-                    <div className={`absolute top-3 right-3 text-xs font-semibold
-                      px-2.5 py-1 rounded-full border backdrop-blur-sm bg-white/90 dark:bg-slate-800/90 ${diff.color}`}>
-                      {diff.label}
-                    </div>
-                  </div>
 
-                  <div className="flex flex-col flex-1 p-5">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100 mb-1.5
-                      group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-200">
-                      {course.title}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed flex-1 line-clamp-2">
-                      {course.description}
-                    </p>
-                    <div className="border-t border-gray-100 dark:border-slate-700 mt-4 pt-4">
-                      <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
-                        {moduleCount} модулів
-                      </span>
+                    <div className="flex flex-col flex-1 p-6 relative z-10">
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2
+                        group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors duration-300 leading-tight">
+                        {course.title}
+                      </h3>
+                      <p className="text-sm text-slate-500 dark:text-white/50 leading-relaxed flex-1 line-clamp-2">
+                        {course.description}
+                      </p>
+                      <div className="border-t border-slate-200 dark:border-white/10 mt-5 pt-5 flex items-center justify-between">
+                        <span className="text-[11px] font-black text-slate-400 dark:text-white/40 uppercase tracking-widest">
+                          {moduleCount} модулів
+                        </span>
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-emerald-100 dark:group-hover:bg-emerald-500/20 transition-colors">
+                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-emerald-600 dark:text-emerald-400 translate-x-[1px]">
+                             <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                           </svg>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              </NavLink>
-            );
-          })
-        )}
-      </div>
-    </section>
+                  </motion.div>
+                </NavLink>
+              );
+            })
+          )}
+        </div>
+      </section>
+    </div>
   );
 };

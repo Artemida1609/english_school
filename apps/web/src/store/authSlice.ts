@@ -1,10 +1,5 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
-
-// const API_URL = import.meta.env.DEV 
-//   ? ""  // ← локально: відносний URL, проксіюється через vite
-//   : (import.meta.env.VITE_API_URL ?? "https://english-school-1izu.onrender.com");
-
-const API_URL = "";
+import { apiFetch } from "../api/client";
 
 interface User {
   id: string;
@@ -40,31 +35,23 @@ export const login = createAsyncThunk(
   "auth/login",
   async (data: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
+      const json = await apiFetch<{
+        accessToken: string;
+        refreshToken: string;
+        user: User;
+      }>("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error((data as { message?: string }).message ?? "Login failed");
-      }
-      const json = await res.json();
 
       let avatar: string | null = null;
       try {
-        const profileRes = await fetch(`${API_URL}/api/profile/me`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${json.accessToken}`,
-          },
+        const profileJson = await apiFetch<{ profile?: { avatar?: string | null } }>("/api/profile/me", {
+          headers: { Authorization: `Bearer ${json.accessToken}` }
         });
-        if (profileRes.ok) {
-          const profileJson = await profileRes.json();
-          avatar = (profileJson as { profile?: { avatar?: string | null } }).profile?.avatar ?? null;
-        }
+        avatar = profileJson.profile?.avatar ?? null;
       } catch {
-        // ігноруємо помилку профілю – логін все одно успішний
+        // ігноруємо помилку профілю
       }
 
       return { user: json.user, token: json.accessToken, refreshToken: json.refreshToken, avatar } as AuthPayload;
@@ -81,35 +68,27 @@ export const register = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/register`, {
+      const json = await apiFetch<{
+        accessToken: string;
+        refreshToken: string;
+        user: User;
+      }>("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: data.email,
           password: data.password,
-          name: `${data.firstName} ${data.lastName}`, // бекенд ожидает name
+          name: `${data.firstName} ${data.lastName}`,
         }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error((data as { message?: string }).message ?? "Register failed");
-      }
-      const json = await res.json();
 
       let avatar: string | null = null;
       try {
-        const profileRes = await fetch(`${API_URL}/api/profile/me`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${json.accessToken}`,
-          },
+        const profileJson = await apiFetch<{ profile?: { avatar?: string | null } }>("/api/profile/me", {
+          headers: { Authorization: `Bearer ${json.accessToken}` }
         });
-        if (profileRes.ok) {
-          const profileJson = await profileRes.json();
-          avatar = (profileJson as { profile?: { avatar?: string | null } }).profile?.avatar ?? null;
-        }
+        avatar = profileJson.profile?.avatar ?? null;
       } catch {
-        // ігноруємо помилку профілю – реєстрація все одно успішна
+        // ігноруємо помилку профілю
       }
 
       return { user: json.user, token: json.accessToken, refreshToken: json.refreshToken, avatar } as AuthPayload;

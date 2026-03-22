@@ -8,14 +8,6 @@
     "iconType": "clipboard"
   },
   {
-    "label": "Слів вивчено",
-    "value": "123",
-    "sub": "+12 сьогодні",
-    "bg": "bg-yellow-50",
-    "iconColor": "#f59e0b",
-    "iconType": "chat"
-  },
-  {
     "label": "Тем вивчено",
     "value": "8",
     "sub": "з 12 модулів",

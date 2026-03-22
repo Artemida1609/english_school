@@ -1,80 +1,102 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { YoutubePlayer } from "../components/YoutubePlayer";
 import { coursesApi, type Lesson, type LessonDetail, type Module } from "../api/courses";
 
-const typeLabels: Record<string, string> = {
-  VIDEO: "Відео",
-  THEORY: "Теорія",
-  TASK: "Завдання",
-  TEST: "Тест",
-};
+type TabId = "video" | "exercises" | "theory";
 
-const typeIcons: Record<string, string> = {
-  VIDEO: "🎬",
-  THEORY: "📖",
-  TASK: "✏️",
-  TEST: "📝",
-};
-
-const typeColor: Record<string, string> = {
-  VIDEO: "bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 border-violet-100 dark:border-violet-800",
-  THEORY: "bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-800",
-  TASK: "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800",
-  TEST: "bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800",
-};
-
-const sidebarVariants = {
-  hidden: { x: -20, opacity: 0 },
-  visible: (i: number) => ({
-    x: 0,
-    opacity: 1,
-    transition: { delay: i * 0.06, duration: 0.35, ease: "easeOut" as const },
-  }),
-};
+const TABS: { id: TabId; label: string; icon: string }[] = [
+  { id: "video", label: "Відео", icon: "▶" },
+  { id: "exercises", label: "Вправи", icon: "✏️" },
+  { id: "theory", label: "Теорія", icon: "📖" },
+];
 
 const tabVariants = {
-  initial: { opacity: 0, y: 16, scale: 0.98 },
-  animate: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.3, ease: "easeOut" as const } },
-  exit: { opacity: 0, y: -8, scale: 0.98, transition: { duration: 0.2 } },
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
+  exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
 };
 
-function extractYoutubeId(url: string | undefined): string {
-  if (!url) return "dQw4w9WgXcQ";
-  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  return match ? match[1] : url;
+function extractDriveId(url: string | undefined): string | null {
+  if (!url) return null;
+  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
 }
 
 function renderMarkdownLike(content: string) {
   return content.trim().split("\n").map((line, i) => {
     if (line.startsWith("## "))
-      return <h2 key={i} className="text-lg font-extrabold text-slate-900 dark:text-slate-100 mb-3 mt-0">{line.slice(3)}</h2>;
+      return <h2 key={i} className="text-xl font-black text-slate-900 dark:text-white mb-4 mt-2 drop-shadow-sm">{line.slice(3)}</h2>;
     if (line.startsWith("### "))
-      return <h3 key={i} className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-4 mb-2">{line.slice(4)}</h3>;
+      return <h3 key={i} className="text-base font-bold text-slate-800 dark:text-slate-100 mt-5 mb-2">{line.slice(4)}</h3>;
     if (line.startsWith("- "))
-      return <li key={i} className="text-sm text-slate-600 dark:text-slate-400 ml-4 mb-1">{line.slice(2)}</li>;
+      return <li key={i} className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-5 mb-1.5 marker:text-emerald-500 list-disc">{line.slice(2)}</li>;
     if (line.startsWith("*") && line.endsWith("*"))
-      return <p key={i} className="text-xs text-slate-400 dark:text-slate-500 italic mt-2">{line.slice(1, -1)}</p>;
-    if (line.trim() === "")
-      return <div key={i} className="h-2" />;
-    return <p key={i} className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{line}</p>;
+      return <p key={i} className="text-xs text-slate-500 dark:text-slate-500 italic mt-3 mb-1">{line.slice(1, -1)}</p>;
+    if (line.trim() === "") return <div key={i} className="h-3" />;
+    return <p key={i} className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed drop-shadow-sm">{line}</p>;
   });
 }
+
+const CheckIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 export const ModulePage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [module, setModule] = useState<Module | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
-  const [lessonDetail, setLessonDetail] = useState<LessonDetail | null>(null);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [showResult, setShowResult] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { id: moduleId, courseId } = useParams<{ id: string; courseId: string }>();
+
+  const [detailVideo, setDetailVideo] = useState<LessonDetail | null>(null);
+  const [detailTheory, setDetailTheory] = useState<LessonDetail | null>(null);
+  const [detailTask, setDetailTask] = useState<LessonDetail | null>(null);
+  const [detailTest, setDetailTest] = useState<LessonDetail | null>(null);
+
+  // ─── Progress state ────────────────────────────────────────
+  const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
+  const videoMarkedRef = useRef(false);
+  const theoryMarkedRef = useRef(false);
+  const exercisesMarkedRef = useRef(false);
+
+  const tabParam = searchParams.get("tab") as TabId | null;
+  const returnStage = searchParams.get("returnStage");
+
+  const [activeTab, setActiveTab] = useState<TabId>(
+    tabParam && TABS.some((x) => x.id === tabParam) ? tabParam : "video",
+  );
+
+  useEffect(() => {
+    const t = searchParams.get("tab") as TabId | null;
+    if (t && TABS.some((x) => x.id === t)) setActiveTab(t);
+  }, [searchParams]);
+
+  const setTab = useCallback(
+    (tab: TabId) => {
+      setActiveTab(tab);
+      const next = new URLSearchParams(searchParams);
+      next.set("tab", tab);
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
+
+  const { id: moduleId } = useParams<{ id: string }>();
+
+  const sortedLessons = useMemo(() => {
+    if (!module?.lessons) return [];
+    return [...module.lessons].sort((a, b) => a.orderIndex - b.orderIndex);
+  }, [module]);
+
+  const videoLesson = useMemo(() => sortedLessons.find((l) => l.type === "VIDEO"), [sortedLessons]);
+  const theoryLesson = useMemo(() => sortedLessons.find((l) => l.type === "THEORY"), [sortedLessons]);
+  const taskLesson = useMemo(() => sortedLessons.find((l) => l.type === "TASK"), [sortedLessons]);
+  const testLesson = useMemo(() => sortedLessons.find((l) => l.type === "TEST"), [sortedLessons]);
 
   useEffect(() => {
     if (!moduleId) return;
@@ -82,396 +104,497 @@ export const ModulePage = () => {
     setError(null);
     coursesApi
       .getModuleById(moduleId)
-      .then((m) => {
-        setModule(m);
-        const lessons = [...(m.lessons ?? [])].sort((a, b) => a.orderIndex - b.orderIndex);
-        setActiveLesson(lessons.length > 0 ? lessons[0] : null);
-      })
+      .then(setModule)
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
       .finally(() => setLoading(false));
   }, [moduleId]);
 
   useEffect(() => {
-    if (!activeLesson?.id) return;
-    coursesApi
-      .getLessonById(activeLesson.id)
-      .then(setLessonDetail)
-      .catch(() => setLessonDetail(null));
-  }, [activeLesson?.id]);
+    if (!module) return;
+    const ls = [...(module.lessons ?? [])].sort((a, b) => a.orderIndex - b.orderIndex);
+    const v = ls.find((l) => l.type === "VIDEO");
+    const th = ls.find((l) => l.type === "THEORY");
+    const ta = ls.find((l) => l.type === "TASK");
+    const te = ls.find((l) => l.type === "TEST");
 
-  const lessons = module ? [...(module.lessons ?? [])].sort((a, b) => a.orderIndex - b.orderIndex) : [];
-  const completedCount = 0;
-  const currentTest = lessonDetail?.tests?.[0];
+    const load = async (lesson: Lesson | undefined, setter: (d: LessonDetail | null) => void) => {
+      if (!lesson?.id) { setter(null); return; }
+      try { setter(await coursesApi.getLessonById(lesson.id)); }
+      catch { setter(null); }
+    };
+
+    void load(v, setDetailVideo);
+    void load(th, setDetailTheory);
+    void load(ta, setDetailTask);
+    void load(te, setDetailTest);
+  }, [module]);
+
+  // ─── Load existing progress from server ───────────────────
+  useEffect(() => {
+    if (!moduleId) return;
+    coursesApi.getModuleProgress(moduleId)
+      .then((data) => {
+        const completed = new Set(
+          data.lessons.filter((l) => l.progress?.completed).map((l) => l.id)
+        );
+        setCompletedLessons(completed);
+        if (data.lessons.find(l => l.type === "VIDEO" && l.progress?.completed)) videoMarkedRef.current = true;
+        if (data.lessons.find(l => l.type === "THEORY" && l.progress?.completed)) theoryMarkedRef.current = true;
+        if (data.lessons.find(l => (l.type === "TASK" || l.type === "TEST") && l.progress?.completed)) exercisesMarkedRef.current = true;
+      })
+      .catch(() => {});
+  }, [moduleId]);
+
+  // ─── Save progress helper ──────────────────────────────────
+  const markComplete = useCallback(async (lessonId: string | undefined) => {
+    if (!lessonId || completedLessons.has(lessonId)) return;
+    try {
+      await coursesApi.saveProgress({ lessonId, completed: true });
+      setCompletedLessons((prev) => new Set([...prev, lessonId]));
+    } catch {}
+  }, [completedLessons]);
+
+  // ─── Auto-mark video after 3s on tab ──────────────────────
+  useEffect(() => {
+    if (activeTab !== "video" || videoMarkedRef.current || !videoLesson?.id) return;
+    const timer = setTimeout(() => {
+      videoMarkedRef.current = true;
+      void markComplete(videoLesson.id);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [activeTab, videoLesson, markComplete]);
+
+  // ─── Auto-mark theory after 2s on tab ─────────────────────
+  useEffect(() => {
+    if (activeTab !== "theory" || theoryMarkedRef.current || !theoryLesson?.id) return;
+    const timer = setTimeout(() => {
+      theoryMarkedRef.current = true;
+      void markComplete(theoryLesson.id);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [activeTab, theoryLesson, markComplete]);
+
+  // ─── Test state ────────────────────────────────────────────
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [showResult, setShowResult] = useState(false);
+
+  const currentTest = detailTest?.tests?.[0];
   const questions = currentTest?.questions ?? [];
   const firstQuestion = questions[0];
   const answers = firstQuestion?.answers ?? [];
   const correctIndex = answers.findIndex((a) => a.isCorrect);
   const isCorrect = selectedAnswer !== null && correctIndex >= 0 && selectedAnswer === correctIndex;
 
-  const selectLesson = (lesson: Lesson) => {
-    setActiveLesson(lesson);
-    setSidebarOpen(false);
-    setShowResult(false);
-    setSelectedAnswer(null);
-  };
-
-  const goToNextLesson = () => {
-    const idx = lessons.findIndex((l) => l.id === activeLesson?.id);
-    if (idx >= 0 && idx < lessons.length - 1) {
-      selectLesson(lessons[idx + 1]);
+  const handleCheck = async () => {
+    if (selectedAnswer === null) return;
+    setShowResult(true);
+    if (taskLesson?.id) await markComplete(taskLesson.id);
+    if (isCorrect && testLesson?.id) {
+      exercisesMarkedRef.current = true;
+      await markComplete(testLesson.id);
     }
   };
 
-  const handleCheck = () => {
-    if (selectedAnswer !== null) setShowResult(true);
+  // ─── Progress derived values ───────────────────────────────
+  const lessonItems = useMemo(() => [
+    { lesson: videoLesson, type: "VIDEO", label: "Відео", tab: "video" as TabId },
+    { lesson: theoryLesson, type: "THEORY", label: "Теорія", tab: "theory" as TabId },
+    { lesson: taskLesson, type: "TASK", label: "Вправи", tab: "exercises" as TabId },
+    { lesson: testLesson, type: "TEST", label: "Тест", tab: "exercises" as TabId },
+  ], [videoLesson, theoryLesson, taskLesson, testLesson]);
+
+  const completedCount = lessonItems.filter(({ lesson }) => lesson && completedLessons.has(lesson.id)).length;
+  const totalCount = lessonItems.filter(({ lesson }) => !!lesson).length;
+  const progressPct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+  const backHref = returnStage ? `/course?stage=${returnStage}` : "/course";
+
+  // ─── Sidebar lesson item ───────────────────────────────────
+  const SidebarItem = ({
+    lesson, type, label, icon, tab,
+  }: { lesson: Lesson | undefined; type: string; label: string; icon: string; tab: TabId }) => {
+    if (!lesson) return null;
+    const highlight = type === "VIDEO" ? activeTab === "video"
+      : type === "THEORY" ? activeTab === "theory"
+      : activeTab === "exercises";
+    const done = completedLessons.has(lesson.id);
+
+    return (
+      <button
+        onClick={() => setTab(tab)}
+        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-1.5 text-left transition-all duration-200 group ${
+          highlight
+            ? "bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-400/30 dark:border-emerald-500/30"
+            : "hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent"
+        }`}
+      >
+        <div className={`w-1 h-8 rounded-full transition-all duration-200 ${highlight ? "bg-emerald-500" : "bg-transparent group-hover:bg-slate-300 dark:group-hover:bg-white/20"}`} />
+        <motion.div
+          animate={done ? { scale: [1, 1.2, 1] } : {}}
+          transition={{ duration: 0.4 }}
+          className={`w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 border transition-all duration-300 ${
+            done
+              ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+              : "bg-slate-100 dark:bg-white/5 border-slate-200/80 dark:border-white/10"
+          }`}
+        >
+          {done ? <CheckIcon /> : icon}
+        </motion.div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-[10px] font-black uppercase tracking-wider mb-0.5 ${highlight ? "text-emerald-500 dark:text-emerald-400" : "text-slate-400 dark:text-white/35"}`}>
+            {label}
+          </p>
+          <p className={`text-sm font-bold truncate ${highlight ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-white/60"}`}>
+            {lesson.title}
+          </p>
+        </div>
+        {done && <span className="text-[10px] font-black text-emerald-500 dark:text-emerald-400 shrink-0">✓</span>}
+      </button>
+    );
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#f3fbf9] dark:bg-slate-900">
-        <p className="text-slate-500 dark:text-slate-400">{t("module.loading") ?? "Завантаження..."}</p>
+      <div className="flex items-center justify-center h-full min-h-screen bg-slate-50 dark:bg-[#030812]">
+        <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (error || !module) {
     return (
-      <div className="p-6 bg-[#f3fbf9] dark:bg-slate-900 min-h-full">
-        <p className="text-rose-600 dark:text-rose-400">{error ?? "Модуль не знайдено"}</p>
-        <button
-          onClick={() => navigate(courseId ? `/courses/${courseId}` : "/courses")}
-          className="mt-4 text-emerald-600 dark:text-emerald-400 font-semibold"
-        >
-          ← {t("module.backToModules")}
-        </button>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-[#030812] px-6">
+        <div className="bg-white/80 dark:bg-[#06121D]/80 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-[24px] p-8 max-w-sm text-center shadow-xl">
+          <p className="text-xl font-bold text-rose-600 dark:text-rose-400 mb-4">{error ?? "Модуль не знайдено"}</p>
+          <button onClick={() => navigate(backHref)} className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:scale-105 transition-transform">
+            ← Повернутися
+          </button>
+        </div>
       </div>
     );
   }
 
-  const displayType = activeLesson ? typeLabels[activeLesson.type] ?? activeLesson.type : "";
-  const displayIcon = activeLesson ? typeIcons[activeLesson.type] ?? "📄" : "";
-
-  return (
-    <div className="flex h-full">
-      <AnimatePresence>
-        {sidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/30 z-30 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed lg:static top-0 left-0 h-full z-40 w-72
-          bg-white dark:bg-slate-800
-          border-r border-slate-100 dark:border-slate-700
-          flex flex-col flex-shrink-0
-          transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
-      >
-        {/* Back button */}
-        <motion.button
-          initial={{ opacity: 0, x: -12 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          onClick={() => (courseId ? navigate(`/courses/${courseId}`) : navigate("/courses"))}
-          className="flex items-center gap-2 px-4 py-3.5
-            text-slate-500 dark:text-slate-400
-            hover:text-emerald-600 dark:hover:text-emerald-400
-            hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20
-            transition-colors duration-150 group
-            border-b border-slate-100 dark:border-slate-700"
-        >
-          <div className="w-6 h-6 rounded-lg
-            bg-slate-100 dark:bg-slate-700
-            group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50
-            flex items-center justify-center transition-colors">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-              <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <span className="text-sm font-semibold">{t("module.backToModules")}</span>
-        </motion.button>
-
-        {/* Module info */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="p-4 border-b border-slate-100 dark:border-slate-700"
-        >
-          <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-emerald-400 mb-0.5">
-            {t("modules.module")}
-          </p>
-          <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-tight">
-            {module.title}
-          </h2>
-          <div className="mt-3">
-            <div className="flex justify-between text-xs text-slate-400 dark:text-slate-500 mb-1.5">
-              <span>{t("module.progress")}</span>
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                {completedCount} / {lessons.length}
-              </span>
-            </div>
-            <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: lessons.length ? `${(completedCount / lessons.length) * 100}%` : "0%" }}
-                transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
-              />
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Lessons list */}
-        <div className="flex-1 overflow-y-auto py-2">
-          {lessons.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">Уроків немає</p>
-          ) : (
-            lessons.map((lesson, i) => (
-              <motion.button
-                key={lesson.id}
-                custom={i}
-                initial="hidden"
-                animate="visible"
-                variants={sidebarVariants}
-                onClick={() => selectLesson(lesson)}
-                className={`w-full flex items-center gap-3 px-4 py-3
-                  hover:bg-emerald-50/70 dark:hover:bg-emerald-900/20
-                  transition-colors duration-150 text-left group
-                  ${activeLesson?.id === lesson.id
-                    ? "bg-emerald-50/70 dark:bg-emerald-900/20 border-r-2 border-emerald-400"
-                    : ""}`}
-              >
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0 border transition-all duration-200
-                  ${activeLesson?.id === lesson.id
-                    ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700"
-                    : "bg-slate-50 dark:bg-slate-700 border-slate-100 dark:border-slate-600"}`}
-                >
-                  {typeIcons[lesson.type] ?? "📄"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">
-                    {typeLabels[lesson.type] ?? lesson.type}
-                  </p>
-                  <p className={`text-sm font-semibold truncate transition-colors duration-150
-                    ${activeLesson?.id === lesson.id
-                      ? "text-emerald-700 dark:text-emerald-400"
-                      : "text-slate-700 dark:text-slate-300"}`}
-                  >
-                    {lesson.title}
-                  </p>
-                </div>
-              </motion.button>
-            ))
-          )}
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <div className="flex-1 min-w-0 overflow-y-auto bg-[#f3fbf9] dark:bg-slate-900">
-        <div className="max-w-3xl mx-auto px-4 py-5 sm:px-6">
-          {!activeLesson ? (
-            <p className="text-slate-500 dark:text-slate-400 py-12 text-center">Оберіть урок</p>
-          ) : (
+  const tabContent = (
+    <AnimatePresence mode="wait">
+      {activeTab === "video" && (
+        <motion.div key="video" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-6">
+          {videoLesson ? (
             <>
-              {/* Lesson header */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="flex items-center gap-3 mb-5"
-              >
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl
-                    bg-white dark:bg-slate-800
-                    border border-slate-100 dark:border-slate-700
-                    text-slate-500 dark:text-slate-400
-                    hover:bg-slate-50 dark:hover:bg-slate-700
-                    active:scale-95 transition-all flex-shrink-0"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                </button>
-                <div className="flex-1 min-w-0">
-                  <motion.div
-                    key={activeLesson.id + "badge"}
-                    initial={{ opacity: 0, scale: 0.85 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.25 }}
-                    className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border mb-1
-                      ${typeColor[activeLesson.type] ?? "bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-600"}`}
-                  >
-                    {displayIcon} {displayType}
-                  </motion.div>
-                  <motion.h1
-                    key={activeLesson.id + "title"}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 truncate"
-                  >
-                    {activeLesson.title}
-                  </motion.h1>
-                </div>
-              </motion.div>
-
-              <AnimatePresence mode="wait">
-                {/* VIDEO */}
-                {activeLesson.type === "VIDEO" && (
-                  <motion.div key="video" variants={tabVariants} initial="initial" animate="animate" exit="exit">
-                    <YoutubePlayer
-                      videoId={extractYoutubeId(lessonDetail?.videoUrl ?? activeLesson.videoUrl)}
-                      title={activeLesson.title}
-                    />
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 mt-4">
-                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
-                        {activeLesson.title}
-                      </h3>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed mb-3">
-                        {t("module.videoDescription")}
-                      </p>
-                      <motion.button
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={goToNextLesson}
-                        className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl hover:shadow-md hover:shadow-emerald-200 dark:hover:shadow-emerald-900 transition-shadow"
+              <div className="rounded-[24px] md:rounded-[32px] overflow-hidden border border-slate-200/50 dark:border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-black ring-1 ring-white/10">
+                <iframe
+                  src={`https://drive.google.com/file/d/${extractDriveId(detailVideo?.videoUrl ?? videoLesson?.videoUrl)}/preview?rm=minimal`}
+                  className="w-full aspect-video"
+                  allow="autoplay"
+                  allowFullScreen
+                />
+              </div>
+              <div className="bg-white/80 dark:bg-[#06121D]/80 backdrop-blur-2xl rounded-[24px] md:rounded-[32px] border border-slate-200 dark:border-white/10 p-6 md:p-8 shadow-xl relative overflow-hidden">
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-16 bg-emerald-500/10 blur-[40px] rounded-full pointer-events-none" />
+                <div className="flex items-center justify-between mb-2 relative z-10">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">{videoLesson.title}</h3>
+                  <AnimatePresence>
+                    {completedLessons.has(videoLesson.id) && (
+                      <motion.span
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex items-center gap-1.5 text-[11px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-3 py-1 rounded-full"
                       >
-                        {t("module.nextTheory")}
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                )}
+                        <CheckIcon /> Переглянуто
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-6 font-medium relative z-10">
+                  {t("module.videoDescription", "Перегляньте відео, щоб засвоїти теоретичну частину матеріалу.")}
+                </p>
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => setTab("theory")}
+                  className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-black tracking-widest uppercase rounded-2xl hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-shadow border border-emerald-400/50 relative z-10"
+                >
+                  {t("module.openTheory", "Теорія →")}
+                </motion.button>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-[32px] border border-dashed border-slate-300 dark:border-white/15 p-12 text-center text-slate-500">Відео ще не додано.</div>
+          )}
+        </motion.div>
+      )}
 
-                {/* THEORY / TASK */}
-                {(activeLesson.type === "THEORY" || activeLesson.type === "TASK") && !currentTest && (
-                  <motion.div key="theory" variants={tabVariants} initial="initial" animate="animate" exit="exit">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5 sm:p-6 mb-4">
-                      <div className="prose prose-sm max-w-none">
-                        {lessonDetail?.content
-                          ? renderMarkdownLike(lessonDetail.content)
-                          : activeLesson.content
-                          ? renderMarkdownLike(activeLesson.content)
-                          : <p className="text-slate-500 dark:text-slate-400">Контент відсутній</p>}
-                      </div>
-                    </div>
-                    <motion.button
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={goToNextLesson}
-                      className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl hover:shadow-md hover:shadow-emerald-200 dark:hover:shadow-emerald-900 transition-shadow"
-                    >
-                      {t("module.nextTask")}
-                    </motion.button>
-                  </motion.div>
-                )}
-
-                {/* TEST */}
-                {(activeLesson.type === "TEST" || (currentTest && firstQuestion)) && (
-                  <motion.div key="test" variants={tabVariants} initial="initial" animate="animate" exit="exit">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5 mb-3">
-                      <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">
-                        {t("module.task")}
-                      </p>
-                      <p className="text-base font-semibold text-slate-800 dark:text-slate-200 mb-1">
-                        {firstQuestion?.questionText ?? "Оберіть правильну відповідь:"}
-                      </p>
-                      <div className="grid grid-cols-2 gap-2 mt-4">
-                        {answers.map((ans, i) => (
-                          <motion.button
-                            key={ans.id}
-                            whileHover={!showResult ? { scale: 1.02 } : {}}
-                            whileTap={!showResult ? { scale: 0.97 } : {}}
-                            disabled={showResult}
-                            onClick={() => setSelectedAnswer(i)}
-                            className={`py-3 px-4 rounded-xl text-sm font-semibold border transition-all duration-200
-                              ${showResult
-                                ? ans.isCorrect
-                                  ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400"
-                                  : i === selectedAnswer && !ans.isCorrect
-                                  ? "bg-rose-50 dark:bg-rose-900/30 border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400"
-                                  : "bg-slate-50 dark:bg-slate-700 border-slate-100 dark:border-slate-600 text-slate-400 dark:text-slate-500"
-                                : selectedAnswer === i
-                                ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400"
-                                : "bg-slate-50 dark:bg-slate-700 border-slate-100 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-emerald-200 dark:hover:border-emerald-700 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20"
-                              }`}
-                          >
-                            {ans.answerText}
-                          </motion.button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <AnimatePresence>
-                      {showResult && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          transition={{ duration: 0.25 }}
-                          className={`rounded-2xl p-4 mb-3 border ${
-                            isCorrect
-                              ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
-                              : "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800"
-                          }`}
-                        >
-                          <p className={`text-sm font-bold mb-0.5 ${isCorrect ? "text-emerald-700 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                            {isCorrect ? t("module.correct") : t("module.incorrect")}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {isCorrect
-                              ? t("module.earnedXp")
-                              : `${t("module.correctAnswer")}: "${answers[correctIndex]?.answerText ?? ""}"`}
-                          </p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <motion.button
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => {
-                        if (!showResult) handleCheck();
-                        else {
-                          goToNextLesson();
-                          setShowResult(false);
-                          setSelectedAnswer(null);
-                        }
-                      }}
-                      disabled={!showResult && selectedAnswer === null}
-                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl disabled:opacity-40 hover:shadow-md hover:shadow-emerald-200 dark:hover:shadow-emerald-900 transition-all"
-                    >
-                      {!showResult ? t("module.check") : t("module.nextLesson")}
-                    </motion.button>
-                  </motion.div>
-                )}
-
-                {/* EMPTY TASK */}
-                {activeLesson.type === "TASK" && !currentTest && !lessonDetail?.content && !activeLesson.content && (
-                  <motion.div key="empty" variants={tabVariants} initial="initial" animate="animate" exit="exit">
-                    <p className="text-slate-500 dark:text-slate-400 py-8">Завдання без контенту</p>
-                    <motion.button
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={goToNextLesson}
-                      className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl"
-                    >
-                      {t("module.nextLesson")}
-                    </motion.button>
+      {activeTab === "theory" && (
+        <motion.div key="theory" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-6">
+          {theoryLesson ? (
+            <div className="bg-white/80 dark:bg-[#06121D]/80 backdrop-blur-2xl rounded-[24px] md:rounded-[32px] border border-slate-200 dark:border-white/10 p-6 sm:p-10 shadow-xl overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-sky-400/10 blur-[50px] rounded-full pointer-events-none" />
+              <AnimatePresence>
+                {completedLessons.has(theoryLesson.id) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2 mb-4 text-[11px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-3 py-1.5 rounded-full w-fit relative z-10"
+                  >
+                    <CheckIcon /> Прочитано
                   </motion.div>
                 )}
               </AnimatePresence>
-            </>
+              <div className="prose prose-sm dark:prose-invert max-w-none relative z-10 prose-headings:text-slate-900 dark:prose-headings:text-white prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-strong:text-emerald-600 dark:prose-strong:text-emerald-400">
+                {detailTheory?.content || theoryLesson.content ? (
+                  renderMarkdownLike(detailTheory?.content ?? theoryLesson.content ?? "")
+                ) : (
+                  <div className="py-10 text-center text-slate-500 dark:text-slate-400 font-medium bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-300 dark:border-white/10">
+                    Контент ще не додано
+                  </div>
+                )}
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                onClick={() => setTab("exercises")}
+                className="mt-8 w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-black tracking-widest uppercase rounded-2xl hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-shadow border border-emerald-400/50 relative z-10"
+              >
+                Вправи →
+              </motion.button>
+            </div>
+          ) : (
+            <div className="rounded-[32px] border border-dashed border-slate-300 dark:border-white/15 p-12 text-center">Теорія ще не додана.</div>
           )}
+        </motion.div>
+      )}
+
+      {activeTab === "exercises" && (
+        <motion.div key="exercises" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-8">
+          <section className="relative rounded-[24px] md:rounded-[28px] overflow-hidden border border-amber-200/50 dark:border-amber-500/20 bg-gradient-to-br from-amber-50/90 to-white/90 dark:from-amber-950/30 dark:to-[#06121D]/90 backdrop-blur-xl p-6 sm:p-8 shadow-lg">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl" aria-hidden>✏️</span>
+                <h2 className="text-lg font-black uppercase tracking-widest text-amber-800 dark:text-amber-200">Практика</h2>
+              </div>
+              <AnimatePresence>
+                {taskLesson && completedLessons.has(taskLesson.id) && (
+                  <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-1.5 text-[11px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-3 py-1 rounded-full">
+                    <CheckIcon /> Виконано
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
+            {taskLesson && (detailTask?.content || taskLesson.content) ? (
+              <div className="prose prose-sm dark:prose-invert max-w-none prose-p:text-slate-800 dark:prose-p:text-slate-200">
+                {renderMarkdownLike(detailTask?.content ?? taskLesson.content ?? "")}
+              </div>
+            ) : taskLesson ? (
+              <p className="text-sm text-slate-500 dark:text-white/50">Контент вправи з'явиться незабаром.</p>
+            ) : (
+              <p className="text-sm text-slate-500 dark:text-white/40">Текстових вправ для цього модуля немає.</p>
+            )}
+          </section>
+
+          <section className="relative rounded-[24px] md:rounded-[28px] overflow-hidden border border-violet-200/50 dark:border-violet-500/25 bg-gradient-to-br from-violet-50/80 to-white/90 dark:from-violet-950/25 dark:to-[#06121D]/90 backdrop-blur-xl p-6 md:p-8 shadow-xl">
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl" aria-hidden>📝</span>
+                <h2 className="text-lg font-black uppercase tracking-widest text-violet-800 dark:text-violet-200">Перевір себе</h2>
+              </div>
+              <AnimatePresence>
+                {testLesson && completedLessons.has(testLesson.id) && (
+                  <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-1.5 text-[11px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-3 py-1 rounded-full">
+                    <CheckIcon /> Пройдено
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {testLesson && firstQuestion ? (
+              <>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 mb-6">
+                  <span className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.8)] animate-pulse" />
+                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                    {t("module.task", "Тест")} 1 / {questions.length || 1}
+                  </span>
+                </div>
+                <p className="text-xl md:text-2xl font-black text-slate-800 dark:text-white mb-8 leading-tight drop-shadow-sm">{firstQuestion.questionText}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {answers.map((ans, i) => {
+                    const isSelected = selectedAnswer === i;
+                    const isErr = showResult && isSelected && !ans.isCorrect;
+                    const isSuccess = showResult && ans.isCorrect;
+                    return (
+                      <motion.button
+                        key={ans.id}
+                        whileHover={!showResult ? { scale: 1.02 } : {}}
+                        whileTap={!showResult ? { scale: 0.98 } : {}}
+                        disabled={showResult}
+                        onClick={() => setSelectedAnswer(i)}
+                        className={`relative py-4 px-6 rounded-2xl text-base font-bold transition-all duration-300 shadow-sm border text-left overflow-hidden
+                          ${showResult
+                            ? isSuccess ? "bg-emerald-50 dark:bg-emerald-500/20 border-emerald-400 dark:border-emerald-500/50 text-emerald-800 dark:text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/30"
+                              : isErr ? "bg-rose-50 dark:bg-rose-500/20 border-rose-400 dark:border-rose-500/50 text-rose-800 dark:text-rose-300"
+                              : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 dark:text-white/30"
+                            : isSelected ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-400 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+                              : "bg-white dark:bg-[#06121D]/50 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white/80 hover:border-emerald-300 dark:hover:border-emerald-500/30"}`}
+                      >
+                        {(isSuccess || isErr) && <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${isSuccess ? "bg-emerald-500" : "bg-rose-500"}`} />}
+                        <div className="flex items-center justify-between gap-2">
+                          <span>{ans.answerText}</span>
+                          {showResult && isSuccess && <span className="text-xl">✨</span>}
+                          {showResult && isErr && <span className="text-xl">❌</span>}
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+                <AnimatePresence>
+                  {showResult && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8 }}
+                      transition={{ type: "spring", stiffness: 320, damping: 24 }}
+                      className={`mt-8 rounded-3xl p-6 md:p-8 border shadow-xl backdrop-blur-xl ${isCorrect ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-500/40 shadow-[0_0_40px_rgba(16,185,129,0.35)]" : "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-500/30"}`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 border shadow-inner ${isCorrect ? "bg-emerald-100 dark:bg-emerald-500/25 border-emerald-300" : "bg-rose-100 dark:bg-rose-500/20 border-rose-300"}`}>
+                          {isCorrect ? "🎯" : "💡"}
+                        </motion.div>
+                        <div>
+                          <p className={`text-lg font-black mb-1 ${isCorrect ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}>
+                            {isCorrect ? t("module.correct", "Чудово! Абсолютно вірно.") : t("module.incorrect", "Не зовсім правильно.")}
+                          </p>
+                          <p className="text-sm font-medium text-slate-600 dark:text-white/60">
+                            {isCorrect ? t("module.earnedXp", "Ви успішно засвоїли матеріал і отримуєте +15 XP!") : `${t("module.correctAnswer", "Правильна відповідь")}: "${answers[correctIndex]?.answerText ?? ""}"`}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => { if (!showResult) void handleCheck(); else { setShowResult(false); setSelectedAnswer(null); } }}
+                  disabled={!showResult && selectedAnswer === null}
+                  className="w-full mt-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[14px] font-black uppercase tracking-widest rounded-2xl disabled:opacity-40 hover:shadow-[0_0_24px_rgba(16,185,129,0.5)] transition-all border border-emerald-400/50 disabled:border-transparent"
+                >
+                  {!showResult ? t("module.check", "Перевірити відповідь") : "OK"}
+                </motion.button>
+              </>
+            ) : (
+              <p className="text-sm text-slate-500 dark:text-white/45">Тест для цього модуля ще не налаштовано.</p>
+            )}
+          </section>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  return (
+    <div className="flex flex-col md:flex-row h-full min-h-full bg-slate-50 dark:bg-[#030812] overflow-hidden relative text-slate-900 dark:text-white md:rounded-[36px] border border-slate-200/50 dark:border-white/5 shadow-2xl transition-colors duration-500">
+      <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-300/30 dark:bg-emerald-600/20 blur-[130px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-300/30 dark:bg-teal-600/20 blur-[130px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
+
+      {/* ─── DESKTOP SIDEBAR ──────────────────────────────────── */}
+      <aside className="hidden md:flex flex-col w-72 shrink-0 border-r border-slate-200/60 dark:border-white/5 bg-white/40 dark:bg-[#06121D]/60 backdrop-blur-xl relative z-10">
+        <div className="px-6 pt-6 pb-4 border-b border-slate-200/60 dark:border-white/5">
+          <button onClick={() => navigate(backHref)} className="flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-white/50 hover:text-slate-700 dark:hover:text-white/80 transition-colors mb-4">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Back to modules
+          </button>
+          <p className="text-[10px] font-black tracking-[0.2em] uppercase text-emerald-500 dark:text-emerald-400 mb-1">Модуль</p>
+          <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight">{module.title}</h1>
+          <div className="mt-4">
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-wider">Progress</span>
+              <span className="text-[10px] font-black text-slate-600 dark:text-white/60">{completedCount} / {totalCount}</span>
+            </div>
+            <div className="h-2 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPct}%` }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              />
+            </div>
+            <AnimatePresence>
+              {progressPct === 100 && (
+                <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-[10px] font-black text-emerald-500 mt-1.5 text-center uppercase tracking-wider">
+                  🎉 Модуль завершено!
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
+          <SidebarItem lesson={videoLesson} type="VIDEO" label="Відео" icon="▶" tab="video" />
+          <SidebarItem lesson={theoryLesson} type="THEORY" label="Теорія" icon="📖" tab="theory" />
+          <SidebarItem lesson={taskLesson} type="TASK" label="Вправи" icon="✏️" tab="exercises" />
+          <SidebarItem lesson={testLesson} type="TEST" label="Тест" icon="📝" tab="exercises" />
+        </nav>
+      </aside>
+
+      {/* ─── MAIN CONTENT ─────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative z-10">
+        {/* Mobile header */}
+        <header className="md:hidden flex flex-col gap-4 px-4 pt-6 pb-2 border-b border-slate-200/60 dark:border-white/5 shrink-0">
+          <div className="flex items-start gap-4">
+            <motion.button whileTap={{ scale: 0.96 }} onClick={() => navigate(backHref)} className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-2xl cursor-pointer bg-white/80 dark:bg-[#06121D]/80 backdrop-blur-md border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white shadow-md">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </motion.button>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-black tracking-[0.2em] uppercase text-emerald-500 dark:text-emerald-400 mb-1">Модуль</p>
+              <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{module.title}</h1>
+            </div>
+          </div>
+          {/* Mobile progress */}
+          <div className="px-1">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-wider">Прогрес</span>
+              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">{completedCount} / {totalCount}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPct}%` }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              />
+            </div>
+          </div>
+          {/* Mobile tabs */}
+          <div className="relative flex rounded-2xl p-1 bg-slate-200/60 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 shadow-inner">
+            {TABS.map((tab) => {
+              const active = activeTab === tab.id;
+              const tabDone =
+                tab.id === "video" ? (videoLesson && completedLessons.has(videoLesson.id))
+                : tab.id === "theory" ? (theoryLesson && completedLessons.has(theoryLesson.id))
+                : (taskLesson && completedLessons.has(taskLesson.id)) || (testLesson && completedLessons.has(testLesson.id));
+
+              return (
+                <button key={tab.id} type="button" onClick={() => setTab(tab.id)} className={`relative flex-1 py-3 px-2 text-center text-[11px] font-black uppercase tracking-[0.12em] rounded-xl transition-colors z-10 ${active ? "text-white" : "text-slate-500 dark:text-white/45"}`}>
+                  {active && (
+                    <motion.div layoutId="moduleTabPill" className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.45)] border border-emerald-400/40" transition={{ type: "spring", stiffness: 420, damping: 32 }} />
+                  )}
+                  <span className="relative z-10 flex items-center justify-center gap-1">
+                    {tab.label}
+                    {tabDone && !active && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </header>
+
+        {/* Desktop title */}
+        <div className="hidden md:block px-8 pt-8 pb-2 shrink-0">
+          <p className="text-[10px] font-black tracking-[0.2em] uppercase text-emerald-500 dark:text-emerald-400 mb-1">
+            {TABS.find(t => t.id === activeTab)?.label}
+          </p>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            {activeTab === "video" && (videoLesson?.title ?? "Відео")}
+            {activeTab === "theory" && (theoryLesson?.title ?? "Теорія")}
+            {activeTab === "exercises" && "Практика та Тест"}
+          </h2>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 pb-12">
+            {tabContent}
+          </div>
         </div>
       </div>
     </div>

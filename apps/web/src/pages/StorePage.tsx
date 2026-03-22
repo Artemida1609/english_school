@@ -123,116 +123,131 @@ export const StorePage = () => {
   };
 
   return (
-    <section className="px-3 sm:px-4 py-4 sm:py-6 max-w-4xl mx-auto">
-      <div className="mb-6 sm:mb-8">
-        <motion.p
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="text-[11px] font-bold tracking-[0.18em] uppercase text-emerald-400 mb-1"
-        >
-          {t("store.subtitle")}
-        </motion.p>
-        <div className="flex items-end justify-between gap-3">
-          <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight"
-          >
-            {t("store.title")}
-          </motion.h1>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20
-              border border-amber-100 dark:border-amber-800/40 px-3 py-1.5 rounded-xl flex-shrink-0"
-          >
-            <CoinIcon size={20} className="text-amber-500" />
-            <span className="text-sm font-extrabold text-amber-600 dark:text-amber-400">
-              {balance}
-            </span>
-          </motion.div>
-        </div>
-        <div className="mt-3 h-px bg-gradient-to-r from-emerald-100 dark:from-emerald-900 via-teal-100 dark:via-teal-900 to-transparent" />
-      </div>
+    <div className="min-h-full bg-slate-50 dark:bg-[#030812] overflow-hidden relative text-slate-900 dark:text-white md:rounded-[36px] border border-slate-200/50 dark:border-white/5 shadow-2xl transition-colors duration-500">
+      {/* Background Orbs */}
+      <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-amber-300/20 dark:bg-amber-600/10 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none transition-colors duration-500" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-300/20 dark:bg-teal-600/10 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none transition-colors duration-500" />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        {items.map((item: StoreItemFromApi, i: number) => {
-          const style = styleByKey[item.key] ?? {
-            bg: "from-slate-200 to-slate-300",
-            badge: "",
-            badgeColor: "bg-slate-100 text-slate-500",
-          };
-          const isBought = item.purchasedCount > 0;
-          const reachedLimit = item.purchasedCount >= item.maxPurchases;
-          const cannotAfford = balance < item.price;
-          const disabled = reachedLimit || cannotAfford;
-
-          return (
-          <motion.div
-            key={item.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: i * 0.07, ease: "easeOut" }}
-            className={`bg-white dark:bg-slate-800 rounded-2xl border overflow-hidden
-              transition-all duration-300 cursor-pointer group
-              ${reachedLimit ? "border-slate-200 dark:border-slate-700 opacity-80" : "border-slate-100 dark:border-slate-700 hover:-translate-y-1 hover:shadow-lg hover:shadow-teal-100/50 dark:hover:shadow-teal-900/30 hover:border-emerald-200 dark:hover:border-emerald-700"}`}
+      <section className="relative z-10 p-6 md:p-10 max-w-5xl mx-auto h-full overflow-y-auto custom-scrollbar">
+        <div className="mb-10 sm:mb-12">
+          <motion.p
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="text-[11px] font-black tracking-[0.2em] uppercase text-emerald-500 dark:text-emerald-400 mb-2 drop-shadow-sm"
           >
-            <div
-              className={`bg-gradient-to-br ${style.bg} h-24 sm:h-28 flex items-center justify-center relative`}
+            {t("store.subtitle", "КРАМНИЦЯ")}
+          </motion.p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 sm:gap-4">
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight drop-shadow-sm"
             >
-              <span className="text-4xl sm:text-5xl drop-shadow-sm">
-                {item.icon ?? "🛒"}
+              {t("store.title", "Store")}
+            </motion.h1>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="flex items-center gap-2 bg-white/80 dark:bg-[#06121D]/80 backdrop-blur-md
+                border border-amber-200/50 dark:border-white/10 px-4 py-2.5 rounded-2xl flex-shrink-0 shadow-[0_10px_30px_rgba(245,158,11,0.15)] dark:shadow-none"
+            >
+              <CoinIcon size={24} className="text-amber-500 drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]" />
+              <span className="text-xl font-black text-amber-600 dark:text-amber-400 translate-y-[1px]">
+                {balance}
               </span>
-              <span
-                className={`absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full ${style.badgeColor}`}
+            </motion.div>
+          </div>
+          <div className="mt-8 h-px bg-gradient-to-r from-emerald-200 dark:from-white/10 via-teal-100 dark:via-white/5 to-transparent" />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {items.map((item: StoreItemFromApi, i: number) => {
+            const style = styleByKey[item.key] ?? {
+              bg: "from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-700",
+              badge: "",
+              badgeColor: "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/70",
+            };
+            const isBought = item.purchasedCount > 0;
+            const reachedLimit = item.purchasedCount >= item.maxPurchases;
+            const cannotAfford = balance < item.price;
+            const disabled = reachedLimit || cannotAfford;
+
+            return (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.07, ease: "easeOut" }}
+              className={`bg-white/60 dark:bg-[#06121D]/60 backdrop-blur-xl rounded-[24px] border overflow-hidden
+                transition-all duration-500 cursor-pointer group shadow-md
+                ${reachedLimit 
+                  ? "border-slate-200 dark:border-white/5 opacity-80" 
+                  : "border-slate-200 dark:border-white/5 hover:-translate-y-1.5 hover:shadow-xl dark:shadow-none hover:border-emerald-400/50 dark:hover:border-emerald-500/40"}`}
+            >
+              <div
+                className={`bg-gradient-to-br ${style.bg} h-32 flex items-center justify-center relative shadow-inner`}
               >
-                {style.badge}
-              </span>
-              {isBought && (
-                <span
-                  className="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full
-                  bg-emerald-500 text-white shadow-sm"
-                >
-                  {reachedLimit ? "Максимум" : "Придбано"}
+                <div className="absolute inset-0 bg-white/20 dark:bg-black/20 mix-blend-overlay" />
+                <span className="text-5xl sm:text-6xl drop-shadow-md group-hover:scale-110 transition-transform duration-500 z-10">
+                  {item.icon ?? "🛒"}
                 </span>
-              )}
-            </div>
-            <div className="p-4">
-              <h2
-                className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 mb-1
-                group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-200"
-              >
-                {item.title}
-              </h2>
-              <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed mb-4">
-                {item.description}
-              </p>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1">
-                  <CoinIcon size={18} className="text-amber-500" />
-                  <span className="text-base font-extrabold text-slate-800 dark:text-slate-200">
-                    {item.price}
+                
+                {style.badge && (
+                  <span
+                    className={`absolute top-4 right-4 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full z-10 shadow-sm ${style.badgeColor}`}
+                  >
+                    {style.badge}
                   </span>
-                </div>
-                <button
-                  onClick={() => handleBuy(item.key)}
-                  disabled={disabled}
-                  className={`text-xs font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500
-                  px-3 py-1.5 rounded-lg hover:shadow-md hover:shadow-emerald-200 dark:hover:shadow-emerald-900
-                  active:scale-95 transition-all duration-150
-                  ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                >
-                  {reachedLimit ? "Використано ліміт" : t("store.buy")}
-                </button>
+                )}
+                
+                {isBought && (
+                  <span
+                    className="absolute bottom-3 left-3 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full
+                    bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.5)] z-10"
+                  >
+                    {reachedLimit ? "Максимум" : "Придбано"}
+                  </span>
+                )}
               </div>
-            </div>
-          </motion.div>
-          );
-        })}
-      </div>
-    </section>
+              <div className="p-6 relative z-10">
+                <h2
+                  className="text-lg font-bold text-slate-900 dark:text-white mb-2 leading-tight
+                  group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300"
+                >
+                  {item.title}
+                </h2>
+                <p className="text-sm font-medium text-slate-500 dark:text-white/50 leading-relaxed mb-6 line-clamp-2">
+                  {item.description}
+                </p>
+                <div className="border-t border-slate-200 dark:border-white/10 mt-2 mb-6" />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <CoinIcon size={20} className="text-amber-500 drop-shadow-sm" />
+                    <span className="text-xl font-black text-slate-800 dark:text-white">
+                      {item.price}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleBuy(item.key)}
+                    disabled={disabled}
+                    className={`text-[11px] font-black uppercase tracking-widest text-white 
+                    px-4 py-2.5 rounded-xl transition-all duration-300 border border-transparent
+                    ${disabled 
+                      ? "bg-slate-300 dark:bg-white/10 text-slate-500 dark:text-white/30 cursor-not-allowed" 
+                      : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] border-emerald-400/50 hover:scale-105 active:scale-95"}`}
+                  >
+                    {reachedLimit ? "Використано" : t("store.buy", "Придбати")}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+            );
+          })}
+        </div>
+      </section>
+    </div>
   );
 };

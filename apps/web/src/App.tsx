@@ -5,7 +5,7 @@ import { ModulePage } from "./pages/ModulePage";
 import { CourseDetailPage } from "./pages/CourseDetailPage";
 import { ChatsPage } from "./pages/ChatsPage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { StorePage } from "./pages/StorePage";
+// import { StorePage } from "./pages/StorePage";
 import { ModuleLayout } from "./layouts/ModuleLayout";
 import {
   NotificationSettings,
@@ -23,7 +23,6 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { AuthGuard } from "./components/AuthGuard";
 import { ProfilePage } from "./pages/ProfilePage";
-import { CoursesPage } from "./pages/CoursesPage";
 
 export const App = () => {
   const { theme, setTheme } = useThemeStore();
@@ -55,8 +54,7 @@ export const App = () => {
         <Route element={<AuthGuard />}>
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
-            <Route path="/courses" element={<CoursesPage />} />
-            <Route path="/courses/:courseId" element={<CourseDetailPage />} />
+            <Route path="/course" element={<CourseDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/chats" element={<ChatsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
@@ -73,11 +71,11 @@ export const App = () => {
               path="/settings/subscription"
               element={<SubscriptionSettings />}
             />
-            <Route path="/store" element={<StorePage />} />
+            {/* <Route path="/store" element={<StorePage />} /> */}
           </Route>
 
           <Route element={<ModuleLayout />}>
-          <Route path="/courses/:courseId/modules/:id" element={<ModulePage />} />  
+          <Route path="/course/modules/:id" element={<ModulePage />} />  
           </Route>
         </Route>
       </Routes>

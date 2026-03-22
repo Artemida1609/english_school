@@ -29,10 +29,10 @@ export interface Room {
 
 interface ServerMessage {
   id: string;
-  message: string; // бекенд повертає "message" а не "text"
-  userId: string; // бекенд повертає "user_id" а не "userId"
-  roomId: string;
-  createdAt: string;
+  message: string;
+  user_id: string;
+  room_id: string;
+  created_at: string;
   user?: { id: string; name?: string };
 }
 
@@ -163,19 +163,23 @@ const chatSlice = createSlice({
       })
       .addCase(fetchMessages.fulfilled, (state, action) => {
         state.messagesLoading = false;
-        // перетворюємо ServerMessage → Message
         state.messages[action.payload.roomId] = action.payload.messages.map(
-          (m) => ({
-            id: m.id,
-            text: m.message, // "message" → "text"
-            mine: false, // визначається в компоненті через currentUser
-            time: new Date(m.createdAt).toLocaleTimeString("uk", {
+          (m: any) => {
+            const timeString = new Date(m.created_at || m.createdAt || Date.now()).toLocaleTimeString("uk", {
               hour: "2-digit",
               minute: "2-digit",
-            }),
-            userId: m.user?.id ?? m.userId, // "user_id" → "userId"
-            userName: m.user?.name ?? "Unknown",
-          }),
+            });
+            const actualUserId = m.user?.id || m.user_id || m.userId;
+            
+            return {
+              id: m.id,
+              text: m.message || m.text || "",
+              mine: false, // determined in component via currentUser
+              time: timeString === "Invalid Date" ? "" : timeString,
+              userId: actualUserId,
+              userName: m.user?.name || "Unknown",
+            };
+          }
         );
       })
       .addCase(fetchMessages.rejected, (state, action) => {

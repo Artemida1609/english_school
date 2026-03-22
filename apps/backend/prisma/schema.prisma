@@ -92,6 +92,8 @@ model Module {
   title       String
   description String?
   orderIndex  Int      @default(0) @map("order_index")
+  /// Внутрішній етап курсу (1–5), не плутати з Course.level
+  stage       Int      @default(1)
   createdAt   DateTime @default(now()) @map("created_at")
 
   course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)

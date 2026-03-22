@@ -119,3 +119,43 @@ export const getCourseProgress = async (req: AuthRequest, res: Response): Promis
     res.status(500).json({ message: 'Internal server error' })
   }
 }
+
+// GET /api/progress/module/:moduleId — progress for a specific module
+export const getModuleProgress = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id
+    const moduleId = getParam(req, 'moduleId')
+    if (!moduleId) {
+      res.status(400).json({ message: 'Module ID required' })
+      return
+    }
+
+    const lessons = await prisma.lesson.findMany({
+      where: { moduleId },
+      select: { id: true, title: true, type: true, orderIndex: true },
+    })
+
+    const progress = await prisma.userProgress.findMany({
+      where: {
+        userId,
+        lessonId: { in: lessons.map((l) => l.id) },
+      },
+    })
+
+    const progressMap = new Map(progress.map((p) => [p.lessonId, p]))
+
+    const result = lessons.map((lesson) => ({
+      ...lesson,
+      progress: progressMap.get(lesson.id) || null,
+    }))
+
+    const completedCount = progress.filter((p) => p.completed).length
+    const totalCount = lessons.length
+    const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+
+    res.json({ lessons: result, completedCount, totalCount, percentage })
+  } catch (error) {
+    console.error('GetModuleProgress error:', error)
+    res.status(500).json({ message: 'Internal server error' })
+  }
+}
