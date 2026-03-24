@@ -30,20 +30,56 @@ export const ProfilePage = () => {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [serverAvatar, setServerAvatar] = useState<string | null>(null);
 
+  // Dynamic profile data
+  const [xp, setXp] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [levelProgress, setLevelProgress] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [completedModules, setCompletedModules] = useState(0);
+
+  // FIX: ChangeElement → ChangeEvent
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) setAvatar(URL.createObjectURL(file));
   };
 
   useEffect(() => {
-    // Load profile avatar from backend (Multiavatar or saved avatar URL)
-    apiFetch<{ profile?: { avatar?: string | null } }>("/api/profile/me")
+    // Load profile avatar and stats from backend
+    apiFetch<{
+      profile?: {
+        avatar?: string | null;
+        xp?: number;
+        level?: number;
+        levelProgress?: number;
+        coins?: number;
+      };
+      stats?: {
+        completedModules?: number;
+      };
+    }>("/api/profile/me")
       .then((data) => {
         const av = data.profile?.avatar ?? null;
         setServerAvatar(av);
         dispatch(setAvatarInStore(av));
+        setXp(data.profile?.xp ?? 0);
+        setLevel(data.profile?.level ?? 1);
+        setLevelProgress(data.profile?.levelProgress ?? 0);
+        // FIX: use stats.completedModules (matches backend response shape)
+        setCompletedModules(data.stats?.completedModules ?? 0);
       })
       .catch(() => setServerAvatar(null));
+
+    // Load streak from activity calendar
+    fetch("/api/progress/activity-calendar", {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setStreak(data.currentStreak ?? 0);
+      })
+      .catch(() => {});
   }, [dispatch]);
 
   // Initials для аватара-заглушки
@@ -138,6 +174,63 @@ export const ProfilePage = () => {
         </div>
       </motion.div>
 
+      {/* ── Stats card ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.04, ease: "easeOut" }}
+        className={`${cardCls} space-y-4`}
+      >
+        <SectionTitle>Статистика навчання</SectionTitle>
+
+        {/* Level progress bar */}
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
+            <span>Рівень {level}</span>
+            <span>{levelProgress}%</span>
+          </div>
+          <div className="h-2 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full transition-all duration-700"
+              style={{ width: `${levelProgress}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+              {completedModules}
+            </div>
+            <div className="text-sm text-slate-500 dark:text-slate-400">
+              Завершених модулів
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
+              {xp}
+            </div>
+            <div className="text-sm text-slate-500 dark:text-slate-400">XP</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-black text-blue-600 dark:text-blue-400">
+              {level}
+            </div>
+            <div className="text-sm text-slate-500 dark:text-slate-400">
+              Рівень
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
+              {streak}
+            </div>
+            <div className="text-sm text-slate-500 dark:text-slate-400">
+              Днів поспіль
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
       {/* ── Personal data card ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -222,13 +315,7 @@ export const ProfilePage = () => {
                 stroke="#94a3b8"
                 strokeWidth="1.6"
               />
-              <circle
-                cx="12"
-                cy="10"
-                r="3"
-                stroke="#94a3b8"
-                strokeWidth="1.6"
-              />
+              <circle cx="12" cy="10" r="3" stroke="#94a3b8" strokeWidth="1.6" />
             </svg>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { coursesApi, type Course, type Module } from "../api/courses";
+import { apiFetch } from "../api/client";
 
 const DEFAULT_IMG = "/images/module-img.png";
 const STAGES = [1, 2, 3, 4, 5] as const;
@@ -265,6 +266,7 @@ export const CourseDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stageProgress, setStageProgress] = useState<Record<number, { completed: number; total: number }>>({});
+  const [moduleLocks, setModuleLocks] = useState<Record<string, { unlocked: boolean; completed: boolean; progress: number }>>({});
 
   // Celebration state
   const [showFireworks, setShowFireworks] = useState(false);
@@ -311,13 +313,50 @@ export const CourseDetailPage = () => {
     fetchCourse();
   }, [courseId]);
 
+  useEffect(() => {
+    if (!course?.id) return;
+
+    const loadProfileModules = async () => {
+      try {
+        const profileRes = await apiFetch<{
+          learning?: {
+            unlockedModules?: Array<{
+              id: string;
+              completed: boolean;
+              progress: number;
+              unlocked: boolean;
+            }>;
+          };
+        }>("/api/profile/me?courseId=" + course.id);
+
+        const locks: Record<string, { unlocked: boolean; completed: boolean; progress: number }> = {};
+        profileRes.learning?.unlockedModules?.forEach((mod) => {
+          locks[mod.id] = {
+            unlocked: mod.unlocked ?? true,
+            completed: mod.completed ?? false,
+            progress: mod.progress ?? 0,
+          };
+        });
+        setModuleLocks(locks);
+      } catch {
+        setModuleLocks({});
+      }
+    };
+
+    void loadProfileModules();
+  }, [course?.id]);
+
   const sortedModules = useMemo(() => [...(course?.modules ?? [])].sort((a, b) => a.orderIndex - b.orderIndex), [course]);
   const modulesInStage = useMemo(() => sortedModules.filter((m) => moduleStage(m, sortedModules) === selectedStage), [sortedModules, selectedStage]);
+
+  const [moduleCompletions, setModuleCompletions] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (sortedModules.length === 0) return;
     const loadAll = async () => {
       const results: Record<number, { completed: number; total: number }> = {};
+      const newCompletions: Record<string, boolean> = {};
+
       await Promise.all(sortedModules.map(async (mod) => {
         try {
           const data = await coursesApi.getModuleProgress(mod.id);
@@ -325,12 +364,51 @@ export const CourseDetailPage = () => {
           if (!results[stage]) results[stage] = { completed: 0, total: 0 };
           results[stage].completed += data.completedCount;
           results[stage].total += data.totalCount;
-        } catch {}
+          newCompletions[mod.id] = data.percentage === 100;
+        } catch (error) {
+          console.warn(`Module progress load failed for module ${mod.id}:`, error);
+        }
       }));
       setStageProgress(results);
+      setModuleCompletions(newCompletions);
     };
     void loadAll();
   }, [sortedModules]);
+
+  const stageUnlocked = useMemo(() => {
+    const result: Record<number, boolean> = {};
+    let canOpen = true;
+
+    for (const stage of STAGES) {
+      const modules = sortedModules.filter((m) => moduleStage(m, sortedModules) === stage);
+      if (modules.length === 0) {
+        result[stage] = canOpen;
+        continue;
+      }
+      const allCompleted = modules.every((m) => moduleCompletions[m.id] ?? false);
+      result[stage] = canOpen;
+      canOpen = canOpen && allCompleted;
+    }
+
+    return result;
+  }, [sortedModules, moduleCompletions]);
+
+  const moduleUnlockState = useMemo(() => {
+    const result: Record<string, boolean> = {};
+    let sequentialOpen = true;
+
+    for (const mod of sortedModules) {
+      const stage = moduleStage(mod, sortedModules);
+      const isStageOpen = stageUnlocked[stage] ?? (stage === 1);
+      const unlocked = isStageOpen && sequentialOpen;
+
+      result[mod.id] = unlocked;
+      const completed = moduleCompletions[mod.id] ?? false;
+      sequentialOpen = sequentialOpen && completed;
+    }
+
+    return result;
+  }, [sortedModules, stageUnlocked, moduleCompletions]);
 
   const handleModuleComplete = useCallback(() => {
     setShowFireworks(true);
@@ -439,19 +517,30 @@ export const CourseDetailPage = () => {
                 const sp = stageProgress[stage];
                 const stagePct = sp && sp.total > 0 ? Math.round((sp.completed / sp.total) * 100) : 0;
                 const stageDone = stagePct === 100 && sp && sp.total > 0;
+                const isUnlocked = stageUnlocked[stage] ?? (stage === 1);
 
                 return (
                   <motion.button
                     key={stage}
                     type="button"
-                    onClick={() => setStage(stage)}
+                    onClick={() => {
+                      if (!isUnlocked) return;
+                      setStage(stage);
+                    }}
+                    title={
+                      isUnlocked
+                        ? `Рівень ${stage} доступний`
+                        : `Заблоковано: завершіть попередні рівні перед переходом`
+                    }
                     whileTap={{ scale: 0.95 }}
                     className={`relative flex-shrink-0 snap-center w-[72px] sm:w-[88px] md:w-24 aspect-square rounded-2xl border-2 transition-all duration-300 flex flex-col items-center justify-center gap-0.5 overflow-hidden ${
-                      active
-                        ? "border-emerald-400 dark:border-emerald-500/80 bg-gradient-to-br from-emerald-500/20 to-teal-600/20 shadow-[0_0_24px_rgba(16,185,129,0.35)]"
-                        : stageDone
-                          ? "border-emerald-300/60 dark:border-emerald-600/40 bg-emerald-50/50 dark:bg-emerald-900/20"
-                          : "border-slate-200/80 dark:border-white/10 bg-white/50 dark:bg-white/5"
+                      !isUnlocked
+                        ? "border-slate-200/40 dark:border-white/10 bg-slate-100/70 dark:bg-white/10 opacity-60 cursor-not-allowed"
+                        : active
+                          ? "border-emerald-400 dark:border-emerald-500/80 bg-gradient-to-br from-emerald-500/20 to-teal-600/20 shadow-[0_0_24px_rgba(16,185,129,0.35)]"
+                          : stageDone
+                            ? "border-emerald-300/60 dark:border-emerald-600/40 bg-emerald-50/50 dark:bg-emerald-900/20"
+                            : "border-slate-200/80 dark:border-white/10 bg-white/50 dark:bg-white/5"
                     }`}
                   >
                     {active && (
@@ -516,6 +605,9 @@ export const CourseDetailPage = () => {
               modulesInStage.map((mod, index) => {
                 const lessonCount = mod.lessons?.length ?? mod._count?.lessons ?? 0;
                 const strip = ACCENT_STRIP[index % ACCENT_STRIP.length];
+                const completed = moduleLocks[mod.id]?.completed ?? false;
+                const locked = !moduleUnlockState[mod.id];
+
                 return (
                   <motion.div
                     key={mod.id}
@@ -523,9 +615,17 @@ export const CourseDetailPage = () => {
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: index * 0.05 }}
                     viewport={{ once: true, amount: 0.1 }}
-                    whileHover={{ y: -4 }}
-                    onClick={() => navigate({ pathname: `/course/modules/${mod.id}`, search: `?tab=video&returnStage=${selectedStage}` })}
-                    className="group flex flex-col bg-white/70 dark:bg-[#06121D]/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-[20px] sm:rounded-[24px] overflow-hidden cursor-pointer hover:border-emerald-400/50 dark:hover:border-emerald-500/40 shadow-md hover:shadow-xl dark:shadow-none dark:hover:shadow-[0_16px_40px_rgba(16,185,129,0.15)] transition-all duration-400 relative"
+                    whileHover={{ y: locked ? 0 : -4 }}
+                    onClick={() => {
+                      if (locked) return;
+                      navigate({ pathname: `/course/modules/${mod.id}`, search: `?tab=video&returnStage=${selectedStage}` });
+                    }}
+                    title={
+                      locked
+                        ? "Цей модуль заблоковано; завершіть попередній модуль, щоб розблокувати"
+                        : "Перейти до модуля"
+                    }
+                    className={`group flex flex-col bg-white/70 dark:bg-[#06121D]/60 backdrop-blur-xl border ${locked ? "border-slate-200 dark:border-white/20 opacity-60" : "border-slate-200 dark:border-white/5 hover:border-emerald-400/50 dark:hover:border-emerald-500/40"} rounded-[20px] sm:rounded-[24px] overflow-hidden ${locked ? "cursor-not-allowed" : "cursor-pointer"} ${locked ? "shadow-none" : "shadow-md hover:shadow-xl dark:shadow-none dark:hover:shadow-[0_16px_40px_rgba(16,185,129,0.15)]"} transition-all duration-400 relative`}
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                     <div className={`h-1 sm:h-1.5 w-full bg-gradient-to-r ${strip}`} />
@@ -548,9 +648,14 @@ export const CourseDetailPage = () => {
 
                     {/* Content */}
                     <div className="flex flex-col flex-1 p-4 sm:p-6 relative z-10">
-                      <h3 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white mb-1.5 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors duration-300 leading-tight">
-                        {mod.title}
-                      </h3>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <h3 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors duration-300 leading-tight">
+                          {mod.title}
+                        </h3>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${completed ? "text-emerald-500" : locked ? "text-rose-500" : "text-slate-400"}`}>
+                          {completed ? "Завершено" : locked ? "Заблоковано" : "Активний"}
+                        </span>
+                      </div>
                       {mod.description && (
                         <p className="text-xs sm:text-sm text-slate-500 dark:text-white/50 leading-relaxed flex-1 line-clamp-2">
                           {mod.description}
@@ -558,6 +663,14 @@ export const CourseDetailPage = () => {
                       )}
 
                       <ModuleProgressBar moduleId={mod.id} onComplete={handleModuleComplete} />
+
+                      {locked && (
+                        <div className="absolute inset-0 bg-black/45 z-20 flex items-center justify-center rounded-[20px]">
+                          <span className="text-sm font-black text-white uppercase tracking-widest">
+                            Блоковано
+                          </span>
+                        </div>
+                      )}
 
                       <div className="border-t border-slate-200 dark:border-white/10 mt-4 pt-4 flex items-center justify-between">
                         <span className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-white/40 uppercase tracking-widest">

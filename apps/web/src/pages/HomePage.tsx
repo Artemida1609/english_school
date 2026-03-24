@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import type { RootState } from "../store";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import progressIcons from "../data/progressIcons.json";
 import achievementsData from "../data/achievements.json";
 import { ProgressIcon } from "../icons/ProgressIcon";
 import { AchievementIcon } from "../icons/AchievmentIcon";
@@ -12,7 +12,7 @@ import { apiFetch } from "../api/client";
 
 export const HomePage = () => {
   const { t } = useTranslation();
-  const progress = 100;
+  const navigate = useNavigate();
   const { user } = useSelector((s: RootState) => s.auth);
   const [unlockedKeys, setUnlockedKeys] = useState<string[]>([]);
   const [achievementProgress, setAchievementProgress] = useState<
@@ -20,27 +20,149 @@ export const HomePage = () => {
   >({});
   const [avatar, setAvatar] = useState<string | null>(null);
 
+  // Continue learning
+  const [courseTitle, setCourseTitle] = useState<string>("");
+  const [continueModule, setContinueModule] = useState<
+    | {
+        id: string;
+        title: string;
+        stage?: number;
+        orderIndex?: number;
+        progress: number;
+        completedLessons: number;
+        totalLessons: number;
+        completed: boolean;
+        unlocked: boolean;
+      }
+    | null
+  >(null);
+
+  const [progress, setProgress] = useState(0);
+
+  // Dynamic profile data
+  const [xp, setXp] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [levelProgress, setLevelProgress] = useState(0);
+  const [xpToNextLevel, setXpToNextLevel] = useState(100);
+
+  // Dynamic progress stats
+  const [tasksCompleted, setTasksCompleted] = useState(0);
+  const [topicsStudied, setTopicsStudied] = useState(0);
+  const [topicsTotal, setTopicsTotal] = useState(0);
+  const [accuracy, setAccuracy] = useState(0);
+
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [achievementsRes, profileRes] = await Promise.all([
-          apiFetch<{
-            unlocked: string[];
-            progress?: Record<string, { current: number; target: number }>;
-          }>("/api/achievements/me"),
-          apiFetch<{ profile?: { avatar?: string | null } }>("/api/profile/me"),
-        ]);
+        // Load profile data
+        const profileRes = await apiFetch<{ 
+          profile?: { 
+            avatar?: string | null
+            xp?: number
+            level?: number
+            levelProgress?: number
+            xpToNextLevel?: number
+            coins?: number
+          }
+          learning?: {
+            course?: { id: string; title: string } | null
+            continueModule?: {
+              id: string
+              title: string
+              stage?: number
+              orderIndex?: number
+              progress?: number
+              completedLessons?: number
+              totalLessons?: number
+              completed?: boolean
+              unlocked?: boolean
+            } | null
+            modules?: unknown[]
+          }
+        }>("/api/profile/me");
+        
+        setAvatar(profileRes.profile?.avatar ?? null);
+        setXp(profileRes.profile?.xp || 0);
+        setLevel(profileRes.profile?.level || 1);
+        setLevelProgress(profileRes.profile?.levelProgress || 0);
+        setXpToNextLevel(profileRes.profile?.xpToNextLevel || 100);
+
+        // Continue learning state from profile
+        setCourseTitle(profileRes.learning?.course?.title || "Ваш курс");
+        if (profileRes.learning?.continueModule) {
+          setContinueModule({
+            id: profileRes.learning.continueModule.id,
+            title: profileRes.learning.continueModule.title,
+            stage: profileRes.learning.continueModule.stage,
+            orderIndex: profileRes.learning.continueModule.orderIndex,
+            progress: profileRes.learning.continueModule.progress || 0,
+            completedLessons: profileRes.learning.continueModule.completedLessons || 0,
+            totalLessons: profileRes.learning.continueModule.totalLessons || 0,
+            completed: profileRes.learning.continueModule.completed || false,
+            unlocked: profileRes.learning.continueModule.unlocked ?? true,
+          });
+          setProgress(profileRes.learning.continueModule.progress || 0);
+        } else {
+          setContinueModule(null);
+          setProgress(0);
+        }
+
+        // Load achievements
+        const achievementsRes = await apiFetch<{
+          unlocked: string[];
+          progress?: Record<string, { current: number; target: number }>;
+        }>("/api/achievements/me");
         setUnlockedKeys(achievementsRes.unlocked);
         if (achievementsRes.progress) {
           setAchievementProgress(achievementsRes.progress);
         }
-        setAvatar(profileRes.profile?.avatar ?? null);
+
+        // Load progress stats
+        const statsRes = await apiFetch<{
+          tasksCompleted?: number
+          topicsStudied?: number
+          topicsTotal?: number
+          accuracy?: number
+        }>("/api/progress/stats");
+        setTasksCompleted(statsRes.tasksCompleted || 0);
+        setTopicsStudied(statsRes.topicsStudied || 0);
+        setTopicsTotal(statsRes.topicsTotal || 0);
+        setAccuracy(statsRes.accuracy || 0);
+
+        // Load activity calendar for streak
+        await fetch('/api/progress/activity-calendar', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        }).then((r) => r.json());
+        // Streak rendering is handled by StreakCard component
       } catch {
         // Fallback
       }
     };
     loadData();
   }, []);
+
+  const progressCards = [
+    {
+      label: t("progress.tasksCompleted"),
+      value: tasksCompleted.toString(),
+      sub: `+${Math.max(0, Math.min(5, tasksCompleted))} цього тижня`,
+      iconType: "clipboard",
+    },
+    {
+      label: t("progress.topicsStudied"),
+      value: `${topicsStudied}/${topicsTotal}`,
+      sub: `${topicsTotal ? Math.round((topicsStudied / topicsTotal) * 100) : 0}% завершено`,
+      iconType: "target",
+    },
+    {
+      label: t("progress.accuracy"),
+      value: `${accuracy}%`,
+      sub: "середня оцінка",
+      iconType: "bolt",
+    },
+  ];
 
   return (
     <div className="min-h-full bg-slate-50 dark:bg-[#030812] overflow-hidden relative text-slate-900 dark:text-white md:rounded-[36px] border border-slate-200/50 dark:border-white/5 shadow-2xl transition-colors duration-500">
@@ -108,18 +230,23 @@ export const HomePage = () => {
                 </div>
               </div>
               <div>
-                <p className="text-xs text-slate-500 dark:text-emerald-200/60 font-medium mb-1">
-                  {t("home.module")} 1
+                <p className="text-[10px] text-slate-500 dark:text-emerald-200/60 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                  <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/30">
+                    РІВЕНЬ {continueModule?.stage || 1}
+                  </span>
+                  <span>•</span>
+                  <span>МОДУЛЬ {continueModule ? (continueModule.orderIndex ?? 0) + 1 : 1}</span>
                 </p>
-                <h2 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-white drop-shadow-sm">
-                  Основи Граматики
+                <h2 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-white drop-shadow-sm leading-tight">
+                  <span className="block text-sm text-emerald-600 dark:text-emerald-400 font-medium mb-1">{courseTitle}</span>
+                  {continueModule?.title || `Продовжити ${courseTitle}`}
                 </h2>
               </div>
             </div>
             
             <div className="flex items-center gap-4 relative z-10">
               <span className="text-[15px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-300 dark:to-teal-300 w-12 text-right">
-                {progress}%
+                {Math.round(progress)}%
               </span>
               <div className="flex-1 min-w-0">
                 <div className="h-2.5 bg-slate-200 dark:bg-slate-800/60 rounded-full overflow-hidden shadow-inner border border-transparent dark:border-white/5 transition-colors">
@@ -134,6 +261,13 @@ export const HomePage = () => {
                 </div>
               </div>
               <button
+                onClick={() => {
+                  if (continueModule?.id) {
+                    navigate(`/course/modules/${continueModule.id}`);
+                  } else {
+                    navigate(`/course`);
+                  }
+                }}
                 className="hidden md:inline-flex group relative h-12 items-center justify-center
                 overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 pl-6 pr-10 font-bold text-white
                 transition-all duration-300 hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-95 border border-emerald-400/30"
@@ -149,6 +283,13 @@ export const HomePage = () => {
               </button>
             </div>
             <button
+              onClick={() => {
+                if (continueModule?.id) {
+                  navigate(`/course/modules/${continueModule.id}`);
+                } else {
+                  navigate(`/course`);
+                }
+              }}
               className="md:hidden group relative inline-flex w-full mt-6 h-12 items-center
               justify-center overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 pl-6 pr-10 font-bold text-white
               transition-all duration-300 active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.4)] border border-emerald-400/30"
@@ -173,7 +314,7 @@ export const HomePage = () => {
                 <span className="flex-1 h-px bg-gradient-to-r from-slate-200 dark:from-white/10 to-transparent" />
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                {progressIcons.map((s, i) => (
+                {progressCards.map((s, i) => (
                   <motion.div
                     key={s.label}
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -341,7 +482,7 @@ export const HomePage = () => {
                 </div>
               </div>
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] font-black tracking-[0.2em] px-3 py-1 rounded-full border border-emerald-300/50 shadow-[0_0_10px_rgba(16,185,129,0.4)] dark:shadow-[0_0_20px_rgba(20,184,166,0.8)] whitespace-nowrap z-20">
-                LVL 4
+                LVL {level}
               </div>
             </div>
 
@@ -354,9 +495,9 @@ export const HomePage = () => {
             
             <div className="grid grid-cols-3 gap-0 bg-slate-50 dark:bg-[#050B10]/50 rounded-2xl border border-slate-200 dark:border-white/5 divide-x divide-slate-200 dark:divide-white/5 overflow-hidden">
               {[
-                ["23", t("progress.tasksCompleted").split(" ")[0] || "Tasks"],
-                ["123", t("progress.wordsLearned").split(" ")[0] || "Words"],
-                ["8", "Topics"],
+                [tasksCompleted.toString(), t("progress.tasksCompleted").split(" ")[0] || "Tasks"],
+                [topicsStudied.toString(), "Themes"],
+                [accuracy.toString() + "%", "Accuracy"],
               ].map(([v, l], idx) => (
                 <div key={idx} className="flex flex-col items-center py-4 px-2 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-default">
                   <p className="text-lg font-black text-slate-800 dark:text-white mb-0.5">{v}</p>
@@ -380,13 +521,13 @@ export const HomePage = () => {
                 {t("home.xpProgress")}
               </span>
               <span className="text-base font-black text-emerald-600 dark:text-teal-300 drop-shadow-sm dark:drop-shadow-[0_0_10px_rgba(20,184,166,0.6)] text-right">
-                1 950 <br/><span className="text-slate-400 dark:text-white/30 text-[10px] font-bold tracking-widest">/ 2500 XP</span>
+                {xp} <br/><span className="text-slate-400 dark:text-white/30 text-[10px] font-bold tracking-widest">/ {xp + xpToNextLevel} XP</span>
               </span>
             </div>
             <div className="h-2.5 bg-slate-200 dark:bg-slate-900/90 rounded-full overflow-hidden mb-4 shadow-inner border border-transparent dark:border-white/5 relative z-10">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: "78%" }}
+                animate={{ width: `${levelProgress}%` }}
                 transition={{ duration: 1.5, delay: 0.6, ease: "easeOut" }}
                 className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-green-400 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] dark:shadow-[0_0_15px_rgba(52,211,153,0.8)] relative"
               >
@@ -394,8 +535,8 @@ export const HomePage = () => {
               </motion.div>
             </div>
             <div className="flex justify-between text-[11px] font-black text-slate-500 dark:text-white/40 tracking-[0.1em] uppercase relative z-10">
-              <span>{t("home.level")} 4</span>
-              <span className="text-emerald-600 dark:text-teal-400/80">78% {t("home.toLevel")} 5</span>
+              <span>{t("home.level")} {level}</span>
+              <span className="text-emerald-600 dark:text-teal-400/80">{levelProgress}% {t("home.toLevel")} {level + 1}</span>
             </div>
           </motion.div>
 

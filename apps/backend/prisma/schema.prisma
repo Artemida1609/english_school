@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── USERS ───────────────────────────────────────────────────────────────────
@@ -71,7 +72,7 @@ enum LessonType {
 }
 
 model Course {
-  id          String      @id @default(cuid())
+  id          String      @id @default(uuid())
   title       String
   description String
   level       CourseLevel @default(BEGINNER)
@@ -98,6 +99,7 @@ model Module {
 
   course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons Lesson[]
+  vocabulary  Vocabulary[]
 
   @@map("modules")
 }
@@ -128,6 +130,7 @@ model Lesson {
   module  Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   tests   Test[]
   progress UserProgress[]
+  vocabulary  Vocabulary[]
 
   @@map("lessons")
 }
@@ -245,4 +248,25 @@ model StorePurchase {
   item StoreItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@map("store_purchases")
+}
+
+model Vocabulary {
+  id            String   @id @default(cuid())
+  expression    String
+  transcription String?
+  translation   String?
+  example       String?
+  category      String?
+  subcategory   String?
+  lessonId      String?
+  moduleId      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  lesson  Lesson?  @relation(fields: [lessonId], references: [id])
+  module  Module?  @relation(fields: [moduleId], references: [id])
+
+  @@index([lessonId])
+  @@index([moduleId])
+  @@index([category])
 }

@@ -21,6 +21,7 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
   const executeRequest = async (overrideToken?: string) => {
     const headers = {
       "Content-Type": "application/json",
+      "Cache-Control": "no-cache",
       ...getAuthHeader(),
       ...options?.headers,
     } as Record<string, string>;
@@ -72,6 +73,7 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
         
         // Retry the failed request
         res = await executeRequest(newToken);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         isRefreshing = false;
         refreshSubscribers = [];

@@ -43,6 +43,7 @@ export interface LessonDetail extends Lesson {
       answers: { id: string; answerText: string; isCorrect: boolean }[];
     }[];
   }[];
+  vocabulary?: VocabularyItem[];
 }
 
 export interface LessonProgress {
@@ -50,6 +51,16 @@ export interface LessonProgress {
   completed: boolean;
   score?: number | null;
   completedAt?: string | null;
+}
+
+export interface VocabularyItem {
+  id: string
+  expression: string
+  transcription?: string | null
+  translation?: string | null
+  example?: string | null
+  category?: string | null
+  subcategory?: string | null
 }
 
 export interface ModuleProgressResponse {

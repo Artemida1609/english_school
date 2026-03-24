@@ -7,12 +7,12 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://english-school-1izu.onrender.com",
+        target: "http://localhost:4001",
         changeOrigin: true,
         secure: false,
       },
       "/socket.io": {
-        target: "https://english-school-1izu.onrender.com",
+        target: "http://localhost:4001",
         changeOrigin: true,
         ws: true, // ← важливо для WebSocket
         secure: false,

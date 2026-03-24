@@ -25,6 +25,9 @@ export const getLessonById = async (req: Request, res: Response): Promise<void> 
             },
           },
         },
+        vocabulary: {
+          orderBy: { createdAt: 'asc' },
+        },
       },
     })
 

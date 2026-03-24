@@ -159,3 +159,143 @@ export const getModuleProgress = async (req: AuthRequest, res: Response): Promis
     res.status(500).json({ message: 'Internal server error' })
   }
 }
+
+// GET /api/progress/stats — detailed progress statistics for user profile
+export const getProgressStats = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id
+
+    // Get all progress records
+    const allProgress = await prisma.userProgress.findMany({
+      where: { userId },
+      include: {
+        lesson: {
+          select: { id: true, type: true, moduleId: true },
+        },
+      },
+    })
+
+    // Count completed lessons by type
+    const completedLessons = allProgress.filter((p) => p.completed).length
+    const completedByType = {
+      VIDEO: allProgress.filter((p) => p.completed && p.lesson.type === 'VIDEO').length,
+      THEORY: allProgress.filter((p) => p.completed && p.lesson.type === 'THEORY').length,
+      TASK: allProgress.filter((p) => p.completed && p.lesson.type === 'TASK').length,
+      TEST: allProgress.filter((p) => p.completed && p.lesson.type === 'TEST').length,
+    }
+
+    // Count unique modules studied (modules where at least 1 lesson is completed)
+    const completedModuleIds = new Set(
+      allProgress
+        .filter((p) => p.completed)
+        .map((p) => p.lesson.moduleId)
+    )
+    const topicsStudied = completedModuleIds.size
+
+    // Get total modules for percentage
+    const allModules = await prisma.module.findMany({
+      select: { id: true },
+    })
+    const topicsPercentage = allModules.length > 0 
+      ? Math.round((topicsStudied / allModules.length) * 100)
+      : 0
+
+    // Calculate accuracy (average score from lessons with scores)
+    const progressWithScores = allProgress.filter((p) => p.score !== null && p.completed)
+    const accuracy = progressWithScores.length > 0
+      ? Math.round(
+          progressWithScores.reduce((sum, p) => sum + (p.score || 0), 0) /
+            progressWithScores.length
+        )
+      : 0
+
+    res.json({
+      tasksCompleted: completedLessons,
+      byType: completedByType,
+      topicsStudied,
+      topicsTotal: allModules.length,
+      topicsPercentage,
+      accuracy,
+    })
+  } catch (error) {
+    console.error('GetProgressStats error:', error)
+    res.status(500).json({ message: 'Internal server error' })
+  }
+}
+
+// GET /api/progress/activity-calendar — activity dates for calendar
+export const getActivityCalendar = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id
+
+    // Get all completed lessons with completion dates
+    const completedLessons = await prisma.userProgress.findMany({
+      where: {
+        userId,
+        completed: true,
+        completedAt: { not: null },
+      },
+      select: { completedAt: true },
+      orderBy: { completedAt: 'asc' },
+    })
+
+    // Group by date (YYYY-MM-DD)
+    const activityDates = new Set<string>()
+    completedLessons.forEach(({ completedAt }) => {
+      if (completedAt) {
+        const date = new Date(completedAt).toISOString().split('T')[0]
+        activityDates.add(date)
+      }
+    })
+
+    // Calculate streak
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+      select: { streak: true, lastActivity: true },
+    })
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const lastActivityDate = userProfile?.lastActivity 
+      ? new Date(userProfile.lastActivity)
+      : null
+
+    if (lastActivityDate) {
+      lastActivityDate.setHours(0, 0, 0, 0)
+    }
+
+    // Calculate current streak (consecutive days from today backwards)
+    let currentStreak = 0
+    if (lastActivityDate) {
+      const daysDiff = Math.floor((today.getTime() - lastActivityDate.getTime()) / (1000 * 60 * 60 * 24))
+      
+      if (daysDiff === 0 || daysDiff === 1) {
+        // User was active today or yesterday, check streak
+        let checkDate = new Date(today)
+        let streakDays = 0
+
+        while (true) {
+          const dateStr = checkDate.toISOString().split('T')[0]
+          if (activityDates.has(dateStr)) {
+            streakDays++
+            checkDate.setDate(checkDate.getDate() - 1)
+          } else {
+            break
+          }
+        }
+
+        currentStreak = streakDays
+      }
+    }
+
+    res.json({
+      activityDates: Array.from(activityDates),
+      currentStreak,
+      lastActivity: userProfile?.lastActivity || null,
+    })
+  } catch (error) {
+    console.error('GetActivityCalendar error:', error)
+    res.status(500).json({ message: 'Internal server error' })
+  }
+}

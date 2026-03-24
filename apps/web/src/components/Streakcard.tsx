@@ -1,13 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-
-const STREAK_DAYS = 7;
-const FROZEN_DAYS = 0;
-const WEEKLY_STREAK = 1;
-
-// дні коли був стрік (для демо)
-const ACTIVE_DAYS = new Set([1, 8]);
+import { apiFetch } from "../api/client";
 
 export const StreakCard = () => {
   const { t } = useTranslation();
@@ -15,6 +9,35 @@ export const StreakCard = () => {
   const [currentMonth, setCurrentMonth] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1),
   );
+
+  const [streakDays, setStreakDays] = useState(0);
+  const [weeklyStreak, setWeeklyStreak] = useState(0);
+  const [activeDays, setActiveDays] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    apiFetch<{
+      currentStreak?: number;
+      activityDates?: string[];
+    }>('/api/progress/activity-calendar')
+      .then((data) => {
+        setStreakDays(data.currentStreak || 0);
+
+        const activeDayNumbers = new Set<number>();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+
+        (data.activityDates || []).forEach((dateStr: string) => {
+          const date = new Date(dateStr);
+          if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+            activeDayNumbers.add(date.getDate());
+          }
+        });
+
+        setActiveDays(activeDayNumbers);
+        setWeeklyStreak(data.currentStreak ? 1 : 0);
+      })
+      .catch(() => {});
+  }, []);
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -37,7 +60,7 @@ export const StreakCard = () => {
     year === today.getFullYear();
 
   const isActive = (day: number) =>
-    ACTIVE_DAYS.has(day) && month === today.getMonth();
+    activeDays.has(day) && month === today.getMonth();
 
 
   return (
@@ -64,7 +87,7 @@ export const StreakCard = () => {
             <div className="flex items-center gap-1 md:gap-1.5">
               <span className="text-sm md:text-base">🔥</span>
               <span className="text-lg md:text-2xl font-extrabold text-orange-500 dark:text-orange-400 leading-none">
-                {STREAK_DAYS}
+                {streakDays}
               </span>
             </div>
           </div>
@@ -77,7 +100,7 @@ export const StreakCard = () => {
             <div className="flex items-center gap-1 md:gap-1.5">
               <span className="text-sm md:text-base">🧊</span>
               <span className="text-lg md:text-2xl font-extrabold text-sky-500 dark:text-sky-400 leading-none">
-                {FROZEN_DAYS}
+                {/* {frozenDays} */}
               </span>
             </div>
           </div>
@@ -90,7 +113,7 @@ export const StreakCard = () => {
             <div className="flex items-center gap-1 md:gap-1.5">
               <span className="text-sm md:text-base">⚡</span>
               <span className="text-lg md:text-2xl font-extrabold text-yellow-500 dark:text-yellow-400 leading-none">
-                {WEEKLY_STREAK}
+                {weeklyStreak}
               </span>
             </div>
           </div>

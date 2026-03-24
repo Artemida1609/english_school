@@ -132,10 +132,42 @@ async function main() {
 
   // Remove previous seed data (cascade deletes modules, lessons, tests, etc.)
   const seedCourseIds = ['seed-course-1', 'seed-course-2', 'seed-course-3']
-  await prisma.storePurchase.deleteMany()
-  await prisma.storeItem.deleteMany()
-  await prisma.enrollment.deleteMany({ where: { courseId: { in: seedCourseIds } } })
-  await prisma.course.deleteMany({ where: { id: { in: seedCourseIds } } })
+  
+  // Only delete seed courses if they exist AND user has no progress on them
+  // This prevents accidental deletion of student progress data
+  const coursesToDelete = await prisma.course.findMany({
+    where: { id: { in: seedCourseIds } },
+    include: {
+      modules: {
+        include: {
+          lessons: {
+            include: {
+              progress: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  // Check if any lessons have student progress
+  const hasStudentProgress = coursesToDelete.some(course =>
+    course.modules.some(module =>
+      module.lessons.some(lesson => lesson.progress.length > 0)
+    )
+  )
+
+  if (hasStudentProgress) {
+    console.log('⚠️  Seed courses have student progress. Skipping course deletion to preserve data.')
+    console.log('ℹ️  Student progress will not be overwritten.')
+  } else {
+    // Safe to delete - no student data on these courses
+    await prisma.storePurchase.deleteMany()
+    await prisma.storeItem.deleteMany()
+    await prisma.enrollment.deleteMany({ where: { courseId: { in: seedCourseIds } } })
+    await prisma.module.deleteMany({ where: { courseId: { in: seedCourseIds } } })
+    await prisma.course.deleteMany({ where: { id: { in: seedCourseIds } } })
+  }
 
   // Test user
   const hashedPassword = await bcrypt.hash('password123', 10)
@@ -492,9 +524,18 @@ async function main() {
   }
 
   console.log('✅ Course 3:', course3.title, '—', tenseModules.length, 'modules × 4 lessons')
+
+  // Enroll test user in course 3 (Present & Past Tenses) so profile loads it by default
+  await prisma.enrollment.upsert({
+    where: { userId_courseId: { userId: user.id, courseId: course3.id } },
+    update: {},
+    create: { userId: user.id, courseId: course3.id },
+  })
+  console.log('✅ Test user enrolled in Course 3')
   console.log('')
   // Store items
   await prisma.storeItem.createMany({
+    skipDuplicates: true,
     data: [
       {
         key: 'xp-boost-x2',

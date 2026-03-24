@@ -2,14 +2,17 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { coursesApi, type Lesson, type LessonDetail, type Module } from "../api/courses";
+import { coursesApi, type Lesson, type LessonDetail, type Module, type VocabularyItem } from "../api/courses";
+import { apiFetch } from "../api/client";
 
-type TabId = "video" | "exercises" | "theory";
+// ─── Tabs ──────────────────────────────────────────────────────
+type TabId = "video" | "exercises" | "theory" | "vocabulary";
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: "video", label: "Відео", icon: "▶" },
   { id: "exercises", label: "Вправи", icon: "✏️" },
   { id: "theory", label: "Теорія", icon: "📖" },
+  { id: "vocabulary", label: "Словник", icon: "🗂" },
 ];
 
 const tabVariants = {
@@ -57,7 +60,7 @@ function FireworksCanvas({ onDone }: { onDone: () => void }) {
     canvas.height = window.innerHeight;
     type Particle = { x: number; y: number; vx: number; vy: number; alpha: number; color: string; radius: number };
     const particles: Particle[] = [];
-    const colors = ["#10b981","#14b8a6","#f59e0b","#8b5cf6","#ec4899","#3b82f6","#f97316"];
+    const colors = ["#10b981", "#14b8a6", "#f59e0b", "#8b5cf6", "#ec4899", "#3b82f6", "#f97316"];
     function burst(x: number, y: number) {
       for (let i = 0; i < 60; i++) {
         const angle = (Math.PI * 2 * i) / 60 + Math.random() * 0.3;
@@ -120,6 +123,210 @@ function CompletionModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── Flashcards Section ────────────────────────────────────────
+function FlashcardsSection({ vocabulary }: { vocabulary: VocabularyItem[] }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [known, setKnown] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState<string>("all");
+
+  const categories = useMemo(() => {
+    const cats = Array.from(new Set(vocabulary.map(v => v.category).filter(Boolean))) as string[];
+    return cats;
+  }, [vocabulary]);
+
+  const filtered = useMemo(() => {
+    if (filter === "all") return vocabulary;
+    return vocabulary.filter(v => v.category === filter);
+  }, [vocabulary, filter]);
+
+  const current = filtered[currentIndex];
+  const progress = filtered.length > 0 ? ((currentIndex + 1) / filtered.length) * 100 : 0;
+  const knownCount = filtered.filter(v => known.has(v.id)).length;
+
+  const goNext = () => {
+    setFlipped(false);
+    setTimeout(() => setCurrentIndex(i => Math.min(i + 1, filtered.length - 1)), 150);
+  };
+  const goPrev = () => {
+    setFlipped(false);
+    setTimeout(() => setCurrentIndex(i => Math.max(i - 1, 0)), 150);
+  };
+  const markKnown = () => {
+    if (!current) return;
+    setKnown(prev => { const s = new Set(prev); s.has(current.id) ? s.delete(current.id) : s.add(current.id); return s; });
+  };
+  const reset = () => { setCurrentIndex(0); setFlipped(false); setKnown(new Set()); };
+
+  if (!current) return (
+    <div className="rounded-[24px] border border-dashed border-slate-300 dark:border-white/15 p-12 text-center text-slate-500">
+      Словник для цього модуля ще не додано.
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-black text-slate-900 dark:text-white">Флеш-картки 🗂</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            {knownCount} / {filtered.length} вивчено
+          </p>
+        </div>
+        <button onClick={reset} className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 transition-all">
+          Скинути
+        </button>
+      </div>
+
+      {/* Category filter */}
+      {categories.length > 1 && (
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => { setFilter("all"); setCurrentIndex(0); setFlipped(false); }}
+            className={`text-[11px] font-black px-3 py-1.5 rounded-full border transition-all ${filter === "all" ? "bg-emerald-500 border-emerald-400 text-white" : "border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5"}`}
+          >
+            Всі ({vocabulary.length})
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => { setFilter(cat); setCurrentIndex(0); setFlipped(false); }}
+              className={`text-[11px] font-black px-3 py-1.5 rounded-full border transition-all capitalize ${filter === cat ? "bg-emerald-500 border-emerald-400 text-white" : "border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5"}`}
+            >
+              {cat.replace(/_/g, " ")} ({vocabulary.filter(v => v.category === cat).length})
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Progress bar */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+          <motion.div
+            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
+        <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 shrink-0">
+          {currentIndex + 1} / {filtered.length}
+        </span>
+      </div>
+
+      {/* Flashcard */}
+      <div
+        className="relative cursor-pointer select-none"
+        style={{ perspective: 1200 }}
+        onClick={() => setFlipped(f => !f)}
+      >
+        <motion.div
+          animate={{ rotateY: flipped ? 180 : 0 }}
+          transition={{ duration: 0.45, ease: "easeInOut" }}
+          style={{ transformStyle: "preserve-3d" }}
+          className="relative w-full"
+        >
+          {/* Front */}
+          <div
+            className="w-full min-h-[200px] rounded-[24px] bg-white dark:bg-[#06121D] border border-slate-200 dark:border-white/10 shadow-xl p-8 flex flex-col items-center justify-center gap-3 backface-hidden"
+            style={{ backfaceVisibility: "hidden" }}
+          >
+            {known.has(current.id) && (
+              <span className="absolute top-4 right-4 text-xs font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-2.5 py-1 rounded-full">✓ Знаю</span>
+            )}
+            <p className="text-2xl font-black text-slate-900 dark:text-white text-center">{current.expression}</p>
+            {current.transcription && (
+              <p className="text-sm text-slate-400 dark:text-slate-500 font-mono">{current.transcription}</p>
+            )}
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">натисни щоб побачити переклад</p>
+          </div>
+
+          {/* Back */}
+          <div
+            className="absolute inset-0 w-full min-h-[200px] rounded-[24px] bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200 dark:border-emerald-500/30 shadow-xl p-8 flex flex-col items-center justify-center gap-3"
+            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+          >
+            <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300 text-center">{current.translation}</p>
+            {current.example && (
+              <p className="text-sm text-slate-600 dark:text-slate-400 italic text-center mt-2 max-w-sm">"{current.example}"</p>
+            )}
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={goPrev}
+          disabled={currentIndex === 0}
+          className="flex-1 py-3 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white font-bold text-sm disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+        >
+          ← Назад
+        </button>
+        <button
+          onClick={markKnown}
+          className={`px-5 py-3 rounded-2xl border font-black text-sm transition-all ${
+            known.has(current.id)
+              ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+              : "border-emerald-300 dark:border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+          }`}
+        >
+          {known.has(current.id) ? "✓ Знаю" : "Знаю"}
+        </button>
+        <button
+          onClick={goNext}
+          disabled={currentIndex === filtered.length - 1}
+          className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm disabled:opacity-30 hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all border border-emerald-400/50"
+        >
+          Далі →
+        </button>
+      </div>
+
+      {/* Completion */}
+      <AnimatePresence>
+        {currentIndex === filtered.length - 1 && flipped && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-500/30 p-4 text-center"
+          >
+            <p className="font-black text-emerald-700 dark:text-emerald-300">🎉 Всі картки переглянуто!</p>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">Вивчено: {knownCount} з {filtered.length}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Vocabulary Tab Content ────────────────────────────────────
+function VocabularyTab({ vocabulary, loading }: { vocabulary: VocabularyItem[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (vocabulary.length === 0) {
+    return (
+      <div className="rounded-[24px] border border-dashed border-slate-300 dark:border-white/15 p-16 text-center">
+        <p className="text-4xl mb-4">🗂</p>
+        <p className="font-bold text-slate-600 dark:text-slate-400">Словник для цього модуля ще не додано.</p>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div key="vocabulary" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-6">
+      <div className="bg-white/80 dark:bg-[#06121D]/80 backdrop-blur-2xl rounded-[24px] md:rounded-[32px] border border-slate-200 dark:border-white/10 p-6 md:p-8 shadow-xl">
+        <FlashcardsSection vocabulary={vocabulary} />
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Main Component ────────────────────────────────────────────
 export const ModulePage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -127,34 +334,43 @@ export const ModulePage = () => {
   const [module, setModule] = useState<Module | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [moduleLocked, setModuleLocked] = useState(false);
 
   const [detailVideo, setDetailVideo] = useState<LessonDetail | null>(null);
   const [detailTheory, setDetailTheory] = useState<LessonDetail | null>(null);
   const [detailTask, setDetailTask] = useState<LessonDetail | null>(null);
   const [detailTest, setDetailTest] = useState<LessonDetail | null>(null);
 
+  // ─── Vocabulary aggregated from all lessons ────────────────
+  const [moduleVocabulary, setModuleVocabulary] = useState<VocabularyItem[]>([]);
+  const [vocabLoading, setVocabLoading] = useState(true);
+
   // ─── Progress state ────────────────────────────────────────
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const videoMarkedRef = useRef(false);
   const theoryMarkedRef = useRef(false);
-  const exercisesMarkedRef = useRef(false);
 
   // ─── Celebration state ─────────────────────────────────────
   const [showFireworks, setShowFireworks] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const celebratedRef = useRef(false);
 
-  const tabParam = searchParams.get("tab") as TabId | null;
   const returnStage = searchParams.get("returnStage");
 
-  const [activeTab, setActiveTab] = useState<TabId>(
-    tabParam && TABS.some((x) => x.id === tabParam) ? tabParam : "video",
-  );
-
-  useEffect(() => {
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
     const t = searchParams.get("tab") as TabId | null;
-    if (t && TABS.some((x) => x.id === t)) setActiveTab(t);
-  }, [searchParams]);
+    return t && TABS.some((x) => x.id === t) ? t : "video";
+  });
+
+  const tabFromParams = searchParams.get("tab") as TabId | null;
+  const validTabFromParams =
+    tabFromParams && TABS.some((x) => x.id === tabFromParams) ? tabFromParams : null;
+
+  const prevTabParamRef = useRef(validTabFromParams);
+  if (validTabFromParams && validTabFromParams !== prevTabParamRef.current) {
+    prevTabParamRef.current = validTabFromParams;
+    setActiveTab(validTabFromParams);
+  }
 
   const setTab = useCallback(
     (tab: TabId) => {
@@ -178,17 +394,45 @@ export const ModulePage = () => {
   const taskLesson = useMemo(() => sortedLessons.find((l) => l.type === "TASK"), [sortedLessons]);
   const testLesson = useMemo(() => sortedLessons.find((l) => l.type === "TEST"), [sortedLessons]);
 
+  // ─── Load module ───────────────────────────────────────────
   useEffect(() => {
     if (!moduleId) return;
-    setLoading(true);
-    setError(null);
-    coursesApi
-      .getModuleById(moduleId)
-      .then(setModule)
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await coursesApi.getModuleById(moduleId);
+        if (!cancelled) setModule(data);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void run();
+    return () => { cancelled = true; };
   }, [moduleId]);
 
+  // ─── Load unlock state ─────────────────────────────────────
+  useEffect(() => {
+    if (!moduleId) return;
+    let isCancelled = false;
+    const loadUnlock = async () => {
+      try {
+        const profileRes = await apiFetch<{ learning?: { modules?: Array<{ id: string; unlocked?: boolean }> } }>("/api/profile/me");
+        if (isCancelled) return;
+        const found = profileRes.learning?.modules?.find((m) => m.id === moduleId);
+        setModuleLocked(found ? !found.unlocked : false);
+      } catch {
+        if (!isCancelled) setModuleLocked(false);
+      }
+    };
+    void loadUnlock();
+    return () => { isCancelled = true; };
+  }, [moduleId]);
+
+  // ─── Load lesson details ───────────────────────────────────
   useEffect(() => {
     if (!module) return;
     const ls = [...(module.lessons ?? [])].sort((a, b) => a.orderIndex - b.orderIndex);
@@ -200,7 +444,7 @@ export const ModulePage = () => {
     const load = async (lesson: Lesson | undefined, setter: (d: LessonDetail | null) => void) => {
       if (!lesson?.id) { setter(null); return; }
       try { setter(await coursesApi.getLessonById(lesson.id)); }
-      catch { setter(null); }
+      catch (err) { console.error("Failed to load lesson detail:", err); setter(null); }
     };
 
     void load(v, setDetailVideo);
@@ -209,7 +453,28 @@ export const ModulePage = () => {
     void load(te, setDetailTest);
   }, [module]);
 
-  // ─── Load existing progress from server ───────────────────
+  // ─── Aggregate vocabulary from ALL lessons ─────────────────
+  // Runs when lesson details are loaded
+  useEffect(() => {
+    setVocabLoading(true);
+    const all: VocabularyItem[] = [
+      ...(detailTheory?.vocabulary ?? []),
+      ...(detailTask?.vocabulary ?? []),
+      ...(detailTest?.vocabulary ?? []),
+      ...(detailVideo?.vocabulary ?? []),
+    ];
+    // Deduplicate by id
+    const seen = new Set<string>();
+    const deduped = all.filter(v => {
+      if (seen.has(v.id)) return false;
+      seen.add(v.id);
+      return true;
+    });
+    setModuleVocabulary(deduped);
+    setVocabLoading(false);
+  }, [detailTheory, detailTask, detailTest, detailVideo]);
+
+  // ─── Load existing progress ────────────────────────────────
   useEffect(() => {
     if (!moduleId) return;
     coursesApi.getModuleProgress(moduleId)
@@ -218,13 +483,11 @@ export const ModulePage = () => {
           data.lessons.filter((l) => l.progress?.completed).map((l) => l.id)
         );
         setCompletedLessons(completed);
-        if (data.lessons.find(l => l.type === "VIDEO" && l.progress?.completed)) videoMarkedRef.current = true;
-        if (data.lessons.find(l => l.type === "THEORY" && l.progress?.completed)) theoryMarkedRef.current = true;
-        if (data.lessons.find(l => (l.type === "TASK" || l.type === "TEST") && l.progress?.completed)) exercisesMarkedRef.current = true;
-        // Don't celebrate if module was already completed before
+        if (data.lessons.find((l) => l.type === "VIDEO" && l.progress?.completed)) videoMarkedRef.current = true;
+        if (data.lessons.find((l) => l.type === "THEORY" && l.progress?.completed)) theoryMarkedRef.current = true;
         if (data.percentage === 100) celebratedRef.current = true;
       })
-      .catch(() => {});
+      .catch((err) => { console.error("Failed to load module progress:", err); });
   }, [moduleId]);
 
   // ─── Save progress helper ──────────────────────────────────
@@ -233,27 +496,23 @@ export const ModulePage = () => {
     try {
       await coursesApi.saveProgress({ lessonId, completed: true });
       setCompletedLessons((prev) => new Set([...prev, lessonId]));
-    } catch {}
+    } catch (err) {
+      console.error("Failed to save progress:", err);
+    }
   }, [completedLessons]);
 
-  // ─── Auto-mark video after 3s on tab ──────────────────────
+  // ─── Auto-mark video on tab ────────────────────────────────
   useEffect(() => {
     if (activeTab !== "video" || videoMarkedRef.current || !videoLesson?.id) return;
-    const timer = setTimeout(() => {
-      videoMarkedRef.current = true;
-      void markComplete(videoLesson.id);
-    }, 3000);
-    return () => clearTimeout(timer);
+    videoMarkedRef.current = true;
+    void markComplete(videoLesson.id);
   }, [activeTab, videoLesson, markComplete]);
 
-  // ─── Auto-mark theory after 2s on tab ─────────────────────
+  // ─── Auto-mark theory on tab ──────────────────────────────
   useEffect(() => {
     if (activeTab !== "theory" || theoryMarkedRef.current || !theoryLesson?.id) return;
-    const timer = setTimeout(() => {
-      theoryMarkedRef.current = true;
-      void markComplete(theoryLesson.id);
-    }, 2000);
-    return () => clearTimeout(timer);
+    theoryMarkedRef.current = true;
+    void markComplete(theoryLesson.id);
   }, [activeTab, theoryLesson, markComplete]);
 
   // ─── Test state ────────────────────────────────────────────
@@ -272,7 +531,6 @@ export const ModulePage = () => {
     setShowResult(true);
     if (taskLesson?.id) await markComplete(taskLesson.id);
     if (isCorrect && testLesson?.id) {
-      exercisesMarkedRef.current = true;
       await markComplete(testLesson.id);
     }
   };
@@ -289,7 +547,7 @@ export const ModulePage = () => {
   const totalCount = lessonItems.filter(({ lesson }) => !!lesson).length;
   const progressPct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
-  // ─── Trigger celebration when all lessons done ─────────────
+  // ─── Celebration trigger ───────────────────────────────────
   useEffect(() => {
     if (totalCount > 0 && completedCount === totalCount && !celebratedRef.current) {
       celebratedRef.current = true;
@@ -309,27 +567,25 @@ export const ModulePage = () => {
     if (!lesson) return null;
     const highlight = type === "VIDEO" ? activeTab === "video"
       : type === "THEORY" ? activeTab === "theory"
-      : activeTab === "exercises";
+        : activeTab === "exercises";
     const done = completedLessons.has(lesson.id);
 
     return (
       <button
         onClick={() => setTab(tab)}
-        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-1.5 text-left transition-all duration-200 group ${
-          highlight
-            ? "bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-400/30 dark:border-emerald-500/30"
-            : "hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent"
-        }`}
+        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-1.5 text-left transition-all duration-200 group ${highlight
+          ? "bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-400/30 dark:border-emerald-500/30"
+          : "hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent"
+          }`}
       >
         <div className={`w-1 h-8 rounded-full transition-all duration-200 ${highlight ? "bg-emerald-500" : "bg-transparent group-hover:bg-slate-300 dark:group-hover:bg-white/20"}`} />
         <motion.div
           animate={done ? { scale: [1, 1.2, 1] } : {}}
           transition={{ duration: 0.4 }}
-          className={`w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 border transition-all duration-300 ${
-            done
-              ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]"
-              : "bg-slate-100 dark:bg-white/5 border-slate-200/80 dark:border-white/10"
-          }`}
+          className={`w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 border transition-all duration-300 ${done
+            ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+            : "bg-slate-100 dark:bg-white/5 border-slate-200/80 dark:border-white/10"
+            }`}
         >
           {done ? <CheckIcon /> : icon}
         </motion.div>
@@ -342,6 +598,40 @@ export const ModulePage = () => {
           </p>
         </div>
         {done && <span className="text-[10px] font-black text-emerald-500 dark:text-emerald-400 shrink-0">✓</span>}
+      </button>
+    );
+  };
+
+  // ─── Sidebar vocabulary item ───────────────────────────────
+  const SidebarVocabItem = () => {
+    const highlight = activeTab === "vocabulary";
+    const hasVocab = moduleVocabulary.length > 0;
+    if (!hasVocab) return null;
+
+    return (
+      <button
+        onClick={() => setTab("vocabulary")}
+        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-1.5 text-left transition-all duration-200 group ${highlight
+          ? "bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-400/30 dark:border-emerald-500/30"
+          : "hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent"
+          }`}
+      >
+        <div className={`w-1 h-8 rounded-full transition-all duration-200 ${highlight ? "bg-emerald-500" : "bg-transparent group-hover:bg-slate-300 dark:group-hover:bg-white/20"}`} />
+        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 border transition-all duration-300 ${highlight
+          ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+          : "bg-slate-100 dark:bg-white/5 border-slate-200/80 dark:border-white/10"
+          }`}
+        >
+          🗂
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-[10px] font-black uppercase tracking-wider mb-0.5 ${highlight ? "text-emerald-500 dark:text-emerald-400" : "text-slate-400 dark:text-white/35"}`}>
+            Словник
+          </p>
+          <p className={`text-sm font-bold truncate ${highlight ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-white/60"}`}>
+            {moduleVocabulary.length} слів
+          </p>
+        </div>
       </button>
     );
   };
@@ -361,6 +651,20 @@ export const ModulePage = () => {
           <p className="text-xl font-bold text-rose-600 dark:text-rose-400 mb-4">{error ?? "Модуль не знайдено"}</p>
           <button onClick={() => navigate(backHref)} className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:scale-105 transition-transform">
             ← Повернутися
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (moduleLocked) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-[#030812] px-6">
+        <div className="bg-white/80 dark:bg-[#06121D]/80 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-[24px] p-8 max-w-sm text-center shadow-xl">
+          <p className="text-xl font-bold text-slate-900 dark:text-white mb-4">Цей модуль наразі заблоковано</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">Будь ласка, завершить попередні модулі, щоб розблокувати доступ.</p>
+          <button onClick={() => navigate(-1)} className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:scale-105 transition-transform">
+            ← Назад до курсу
           </button>
         </div>
       </div>
@@ -402,7 +706,10 @@ export const ModulePage = () => {
                 </p>
                 <motion.button
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={() => setTab("theory")}
+                  onClick={() => {
+                    if (videoLesson?.id) void markComplete(videoLesson.id);
+                    setTab("theory");
+                  }}
                   className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-black tracking-widest uppercase rounded-2xl hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-shadow border border-emerald-400/50 relative z-10"
                 >
                   {t("module.openTheory", "Теорія →")}
@@ -423,17 +730,33 @@ export const ModulePage = () => {
               <AnimatePresence>
                 {completedLessons.has(theoryLesson.id) && (
                   <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                     className="flex items-center gap-2 mb-4 text-[11px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-3 py-1.5 rounded-full w-fit relative z-10"
                   >
                     <CheckIcon /> Прочитано
                   </motion.div>
                 )}
               </AnimatePresence>
-              <div className="prose prose-sm dark:prose-invert max-w-none relative z-10 prose-headings:text-slate-900 dark:prose-headings:text-white prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-strong:text-emerald-600 dark:prose-strong:text-emerald-400">
+              <div className="relative z-10">
                 {detailTheory?.content || theoryLesson.content ? (
-                  renderMarkdownLike(detailTheory?.content ?? theoryLesson.content ?? "")
+                  <div
+                    dangerouslySetInnerHTML={{ __html: detailTheory?.content ?? theoryLesson.content ?? "" }}
+                    className="
+                      [&_h2]:text-xl [&_h2]:font-black [&_h2]:text-slate-900 [&_h2]:dark:text-white [&_h2]:mb-4 [&_h2]:mt-6
+                      [&_h3]:text-base [&_h3]:font-bold [&_h3]:text-slate-800 [&_h3]:dark:text-slate-100 [&_h3]:mt-5 [&_h3]:mb-3
+                      [&_p]:text-sm [&_p]:text-slate-700 [&_p]:dark:text-slate-300 [&_p]:leading-relaxed [&_p]:mb-2
+                      [&_ul]:list-disc [&_ul]:ml-5 [&_ul]:mb-4
+                      [&_li]:text-sm [&_li]:text-slate-700 [&_li]:dark:text-slate-300 [&_li]:mb-1.5 [&_li]:marker:text-emerald-500
+                      [&_strong]:text-emerald-600 [&_strong]:dark:text-emerald-400 [&_strong]:font-bold
+                      [&_em]:italic [&_em]:text-slate-600 [&_em]:dark:text-slate-400
+                      [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm
+                      [&_th]:bg-emerald-50 [&_th]:dark:bg-emerald-900/30 [&_th]:text-emerald-700 [&_th]:dark:text-emerald-300
+                      [&_th]:font-bold [&_th]:px-4 [&_th]:py-2.5 [&_th]:border [&_th]:border-slate-200 [&_th]:dark:border-white/10 [&_th]:text-left
+                      [&_td]:px-4 [&_td]:py-2.5 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-white/10
+                      [&_td]:text-slate-700 [&_td]:dark:text-slate-300
+                      [&_tr:nth-child(even)_td]:bg-slate-50 [&_tr:nth-child(even)_td]:dark:bg-white/5
+                    "
+                  />
                 ) : (
                   <div className="py-10 text-center text-slate-500 dark:text-slate-400 font-medium bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-300 dark:border-white/10">
                     Контент ще не додано
@@ -442,7 +765,7 @@ export const ModulePage = () => {
               </div>
               <motion.button
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                onClick={() => setTab("exercises")}
+                onClick={() => { if (theoryLesson?.id) void markComplete(theoryLesson.id); setTab("exercises"); }}
                 className="mt-8 w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-black tracking-widest uppercase rounded-2xl hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-shadow border border-emerald-400/50 relative z-10"
               >
                 Вправи →
@@ -521,7 +844,7 @@ export const ModulePage = () => {
                           ${showResult
                             ? isSuccess ? "bg-emerald-50 dark:bg-emerald-500/20 border-emerald-400 dark:border-emerald-500/50 text-emerald-800 dark:text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/30"
                               : isErr ? "bg-rose-50 dark:bg-rose-500/20 border-rose-400 dark:border-rose-500/50 text-rose-800 dark:text-rose-300"
-                              : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 dark:text-white/30"
+                                : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 dark:text-white/30"
                             : isSelected ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-400 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
                               : "bg-white dark:bg-[#06121D]/50 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white/80 hover:border-emerald-300 dark:hover:border-emerald-500/30"}`}
                       >
@@ -573,6 +896,11 @@ export const ModulePage = () => {
           </section>
         </motion.div>
       )}
+
+      {/* ─── VOCABULARY TAB ─────────────────────────────────── */}
+      {activeTab === "vocabulary" && (
+        <VocabularyTab vocabulary={moduleVocabulary} loading={vocabLoading} />
+      )}
     </AnimatePresence>
   );
 
@@ -581,120 +909,124 @@ export const ModulePage = () => {
       {showFireworks && <FireworksCanvas onDone={() => setShowFireworks(false)} />}
       <AnimatePresence>{showModal && <CompletionModal onClose={() => setShowModal(false)} />}</AnimatePresence>
 
-    <div className="flex flex-col md:flex-row h-full min-h-full bg-slate-50 dark:bg-[#030812] overflow-hidden relative text-slate-900 dark:text-white md:rounded-[36px] border border-slate-200/50 dark:border-white/5 shadow-2xl transition-colors duration-500">
-      <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-300/30 dark:bg-emerald-600/20 blur-[130px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-300/30 dark:bg-teal-600/20 blur-[130px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
+      <div className="flex flex-col md:flex-row h-full min-h-full bg-slate-50 dark:bg-[#030812] overflow-hidden relative text-slate-900 dark:text-white md:rounded-[36px] border border-slate-200/50 dark:border-white/5 shadow-2xl transition-colors duration-500">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-300/30 dark:bg-emerald-600/20 blur-[130px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-300/30 dark:bg-teal-600/20 blur-[130px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
 
-      {/* ─── DESKTOP SIDEBAR ──────────────────────────────────── */}
-      <aside className="hidden md:flex flex-col w-72 shrink-0 border-r border-slate-200/60 dark:border-white/5 bg-white/40 dark:bg-[#06121D]/60 backdrop-blur-xl relative z-10">
-        <div className="px-6 pt-6 pb-4 border-b border-slate-200/60 dark:border-white/5">
-          <button onClick={() => navigate(backHref)} className="flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-white/50 hover:text-slate-700 dark:hover:text-white/80 transition-colors mb-4">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            Back to modules
-          </button>
-          <p className="text-[10px] font-black tracking-[0.2em] uppercase text-emerald-500 dark:text-emerald-400 mb-1">Модуль</p>
-          <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight">{module.title}</h1>
-          <div className="mt-4">
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-wider">Progress</span>
-              <span className="text-[10px] font-black text-slate-600 dark:text-white/60">{completedCount} / {totalCount}</span>
-            </div>
-            <div className="h-2 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
-              <motion.div
-                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]"
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPct}%` }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-              />
-            </div>
-            <AnimatePresence>
-              {progressPct === 100 && (
-                <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-[10px] font-black text-emerald-500 mt-1.5 text-center uppercase tracking-wider">
-                  🎉 Модуль завершено!
-                </motion.p>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-        <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          <SidebarItem lesson={videoLesson} type="VIDEO" label="Відео" icon="▶" tab="video" />
-          <SidebarItem lesson={theoryLesson} type="THEORY" label="Теорія" icon="📖" tab="theory" />
-          <SidebarItem lesson={taskLesson} type="TASK" label="Вправи" icon="✏️" tab="exercises" />
-          <SidebarItem lesson={testLesson} type="TEST" label="Тест" icon="📝" tab="exercises" />
-        </nav>
-      </aside>
-
-      {/* ─── MAIN CONTENT ─────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative z-10">
-        {/* Mobile header */}
-        <header className="md:hidden flex flex-col gap-4 px-4 pt-6 pb-2 border-b border-slate-200/60 dark:border-white/5 shrink-0">
-          <div className="flex items-start gap-4">
-            <motion.button whileTap={{ scale: 0.96 }} onClick={() => navigate(backHref)} className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-2xl cursor-pointer bg-white/80 dark:bg-[#06121D]/80 backdrop-blur-md border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white shadow-md">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </motion.button>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-black tracking-[0.2em] uppercase text-emerald-500 dark:text-emerald-400 mb-1">Модуль</p>
-              <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{module.title}</h1>
+        {/* ─── DESKTOP SIDEBAR ──────────────────────────────────── */}
+        <aside className="hidden md:flex flex-col w-72 shrink-0 border-r border-slate-200/60 dark:border-white/5 bg-white/40 dark:bg-[#06121D]/60 backdrop-blur-xl relative z-10">
+          <div className="px-6 pt-6 pb-4 border-b border-slate-200/60 dark:border-white/5">
+            <button onClick={() => navigate(backHref)} className="flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-white/50 hover:text-slate-700 dark:hover:text-white/80 transition-colors mb-4">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              Back to modules
+            </button>
+            <p className="text-[10px] font-black tracking-[0.2em] uppercase text-emerald-500 dark:text-emerald-400 mb-1">Модуль</p>
+            <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight">{module.title}</h1>
+            <div className="mt-4">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-wider">Progress</span>
+                <span className="text-[10px] font-black text-slate-600 dark:text-white/60">{completedCount} / {totalCount}</span>
+              </div>
+              <div className="h-2 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPct}%` }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                />
+              </div>
+              <AnimatePresence>
+                {progressPct === 100 && (
+                  <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-[10px] font-black text-emerald-500 mt-1.5 text-center uppercase tracking-wider">
+                    🎉 Модуль завершено!
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
           </div>
-          {/* Mobile progress */}
-          <div className="px-1">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-wider">Прогрес</span>
-              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">{completedCount} / {totalCount}</span>
+          <nav className="flex-1 px-3 py-4 overflow-y-auto">
+            <SidebarItem lesson={videoLesson} type="VIDEO" label="Відео" icon="▶" tab="video" />
+            <SidebarItem lesson={theoryLesson} type="THEORY" label="Теорія" icon="📖" tab="theory" />
+            <SidebarItem lesson={taskLesson} type="TASK" label="Вправи" icon="✏️" tab="exercises" />
+            <SidebarItem lesson={testLesson} type="TEST" label="Тест" icon="📝" tab="exercises" />
+            {/* Vocabulary item — shows only if vocabulary exists */}
+            <SidebarVocabItem />
+          </nav>
+        </aside>
+
+        {/* ─── MAIN CONTENT ─────────────────────────────────────── */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative z-10">
+          {/* Mobile header */}
+          <header className="md:hidden flex flex-col gap-4 px-4 pt-6 pb-2 border-b border-slate-200/60 dark:border-white/5 shrink-0">
+            <div className="flex items-start gap-4">
+              <motion.button whileTap={{ scale: 0.96 }} onClick={() => navigate(backHref)} className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-2xl cursor-pointer bg-white/80 dark:bg-[#06121D]/80 backdrop-blur-md border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white shadow-md">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </motion.button>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-black tracking-[0.2em] uppercase text-emerald-500 dark:text-emerald-400 mb-1">Модуль</p>
+                <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{module.title}</h1>
+              </div>
             </div>
-            <div className="h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
-              <motion.div
-                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPct}%` }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-              />
+            {/* Mobile progress */}
+            <div className="px-1">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-wider">Прогрес</span>
+                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">{completedCount} / {totalCount}</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPct}%` }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                />
+              </div>
             </div>
+            {/* Mobile tabs — scrollable row to fit 4 tabs */}
+            <div className="relative flex rounded-2xl p-1 bg-slate-200/60 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 shadow-inner overflow-x-auto gap-1">
+              {TABS.filter(tab => tab.id !== "vocabulary" || moduleVocabulary.length > 0).map((tab) => {
+                const active = activeTab === tab.id;
+                const tabDone =
+                  tab.id === "video" ? (videoLesson && completedLessons.has(videoLesson.id))
+                    : tab.id === "theory" ? (theoryLesson && completedLessons.has(theoryLesson.id))
+                      : tab.id === "vocabulary" ? false
+                        : (taskLesson && completedLessons.has(taskLesson.id)) || (testLesson && completedLessons.has(testLesson.id));
+
+                return (
+                  <button key={tab.id} type="button" onClick={() => setTab(tab.id)} className={`relative flex-1 min-w-[72px] py-3 px-2 text-center text-[10px] font-black uppercase tracking-[0.1em] rounded-xl transition-colors z-10 whitespace-nowrap ${active ? "text-white" : "text-slate-500 dark:text-white/45"}`}>
+                    {active && (
+                      <motion.div layoutId="moduleTabPill" className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.45)] border border-emerald-400/40" transition={{ type: "spring", stiffness: 420, damping: 32 }} />
+                    )}
+                    <span className="relative z-10 flex items-center justify-center gap-1">
+                      {tab.label}
+                      {tabDone && !active && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </header>
+
+          {/* Desktop title */}
+          <div className="hidden md:block px-8 pt-8 pb-2 shrink-0">
+            <p className="text-[10px] font-black tracking-[0.2em] uppercase text-emerald-500 dark:text-emerald-400 mb-1">
+              {TABS.find((tab) => tab.id === activeTab)?.label}
+            </p>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              {activeTab === "video" && (videoLesson?.title ?? "Відео")}
+              {activeTab === "theory" && (theoryLesson?.title ?? "Теорія")}
+              {activeTab === "exercises" && "Практика та Тест"}
+              {activeTab === "vocabulary" && `Словник модуля · ${moduleVocabulary.length} слів`}
+            </h2>
           </div>
-          {/* Mobile tabs */}
-          <div className="relative flex rounded-2xl p-1 bg-slate-200/60 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 shadow-inner">
-            {TABS.map((tab) => {
-              const active = activeTab === tab.id;
-              const tabDone =
-                tab.id === "video" ? (videoLesson && completedLessons.has(videoLesson.id))
-                : tab.id === "theory" ? (theoryLesson && completedLessons.has(theoryLesson.id))
-                : (taskLesson && completedLessons.has(taskLesson.id)) || (testLesson && completedLessons.has(testLesson.id));
 
-              return (
-                <button key={tab.id} type="button" onClick={() => setTab(tab.id)} className={`relative flex-1 py-3 px-2 text-center text-[11px] font-black uppercase tracking-[0.12em] rounded-xl transition-colors z-10 ${active ? "text-white" : "text-slate-500 dark:text-white/45"}`}>
-                  {active && (
-                    <motion.div layoutId="moduleTabPill" className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.45)] border border-emerald-400/40" transition={{ type: "spring", stiffness: 420, damping: 32 }} />
-                  )}
-                  <span className="relative z-10 flex items-center justify-center gap-1">
-                    {tab.label}
-                    {tabDone && !active && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </header>
-
-        {/* Desktop title */}
-        <div className="hidden md:block px-8 pt-8 pb-2 shrink-0">
-          <p className="text-[10px] font-black tracking-[0.2em] uppercase text-emerald-500 dark:text-emerald-400 mb-1">
-            {TABS.find(t => t.id === activeTab)?.label}
-          </p>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            {activeTab === "video" && (videoLesson?.title ?? "Відео")}
-            {activeTab === "theory" && (theoryLesson?.title ?? "Теорія")}
-            {activeTab === "exercises" && "Практика та Тест"}
-          </h2>
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 pb-12">
-            {tabContent}
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 pb-12">
+              {tabContent}
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </>
   );
 };

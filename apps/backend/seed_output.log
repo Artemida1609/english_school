@@ -1,0 +1,23 @@
+
+> english-learning-backend@1.0.0 db:seed
+> tsx prisma/seed.ts
+
+🌱 Seeding database...
+Seed error: PrismaClientKnownRequestError: 
+Invalid `prisma.course.findMany()` invocation in
+D:\english_school\apps\backend\prisma\seed.ts:138:47
+
+  135 
+  136 // Only delete seed courses if they exist AND user has no progress on them
+  137 // This prevents accidental deletion of student progress data
+→ 138 const coursesToDelete = await prisma.course.findMany(
+The table `public.courses` does not exist in the current database.
+    at $n.handleRequestError (D:\english_school\apps\backend\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (D:\english_school\apps\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (D:\english_school\apps\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (D:\english_school\apps\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async main (D:\english_school\apps\backend\prisma\seed.ts:138:27) {
+  code: 'P2021',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'Course', table: 'public.courses' }
+}

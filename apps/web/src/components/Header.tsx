@@ -1,12 +1,35 @@
 import { NavLink } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useState, useEffect } from "react";
 import { FireIcon } from "../icons/FireIcon";
 import { LogoIcon } from "../icons/LogoIcon";
 import { ProfileIcon } from "../icons/ProfileIcon";
 import type { RootState } from "../store";
+import { apiFetch } from "../api/client";
 
 export const Header = () => {
   const { avatar } = useSelector((s: RootState) => s.auth);
+  const [xp, setXp] = useState(0);
+  const [streak, setStreak] = useState(0);
+
+  useEffect(() => {
+    // FIX: використовуємо apiFetch — він автоматично додає Authorization header
+    apiFetch<{ profile?: { xp?: number } }>("/api/profile/me")
+      .then((data) => {
+        setXp(data.profile?.xp ?? 0);
+      })
+      .catch(() => {});
+
+    // FIX: apiFetch замість fetch з ручним токеном
+    // Якщо ендпоінт ще не існує на бекенді — тихо ігноруємо (streak = 0)
+    apiFetch<{ currentStreak?: number }>("/api/progress/activity-calendar")
+      .then((data) => {
+        setStreak(data.currentStreak ?? 0);
+      })
+      .catch(() => {
+        // ендпоінт ще не реалізований — залишаємо streak = 0
+      });
+  }, []);
 
   return (
     <header
@@ -14,7 +37,7 @@ export const Header = () => {
       bg-slate-50 dark:bg-[#030812]
       transition-colors duration-500"
     >
-      {/* Лого — ширина рівна сайдбару, без border-b */}
+      {/* Лого */}
       <NavLink
         to="/"
         className="flex items-center justify-center w-16 h-full cursor-pointer group flex-shrink-0"
@@ -24,7 +47,7 @@ export const Header = () => {
         </div>
       </NavLink>
 
-      {/* Права частина — з border-b, починається після сайдбара */}
+      {/* Права частина */}
       <div
         className="flex flex-1 items-center justify-end px-6 h-full
         border-b border-slate-200 dark:border-white/5 transition-colors duration-500"
@@ -40,7 +63,7 @@ export const Header = () => {
           >
             <FireIcon size={20} />
             <span className="text-sm font-bold text-orange-500 dark:text-orange-400 tabular-nums">
-              0
+              {streak}
             </span>
             <span className="text-sm text-orange-400 dark:text-orange-500 font-medium hidden sm:inline">
               days
@@ -62,7 +85,7 @@ export const Header = () => {
               xp
             </span>
             <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-              0
+              {xp}
             </span>
           </div>
 
