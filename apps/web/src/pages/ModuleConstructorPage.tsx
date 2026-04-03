@@ -25,6 +25,23 @@ const LS_KEY = "moduleConstructorDraft";
 /** Текст уроку «Вправи» при публікації на сервер */
 const TASK_FOR_PUBLISH = "## Вправа\n\nЗакріпіть матеріал з теорії та пройдіть тест нижче.";
 
+const COURSE_LEVEL_OPTIONS: { value: string; label: string }[] = [
+  { value: "BEGINNER", label: "Початковий (A1)" },
+  { value: "ELEMENTARY", label: "Елементарний (A2)" },
+  { value: "INTERMEDIATE", label: "Середній (B1)" },
+  { value: "UPPER_INTERMEDIATE", label: "Вище середнього (B2)" },
+  { value: "ADVANCED", label: "Просунутий (C1+)" },
+];
+
+type CourseDialogState = {
+  mode: "create" | "edit";
+  editingId?: string;
+  title: string;
+  description: string;
+  level: string;
+  isPublished: boolean;
+};
+
 function formatSavedTime(d: Date): string {
   return d.toLocaleString("uk-UA", {
     day: "2-digit",
@@ -54,6 +71,8 @@ export function ModuleConstructorPage() {
   const [courseModules, setCourseModules] = useState<Module[]>([]);
   const [publishedModuleId, setPublishedModuleId] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
+  const [courseBusy, setCourseBusy] = useState(false);
+  const [courseDialog, setCourseDialog] = useState<CourseDialogState | null>(null);
   const skipNextAutosave = useRef(false);
   const lastFetchedConstructorModuleRef = useRef<string | null>(null);
 
@@ -100,17 +119,26 @@ export function ModuleConstructorPage() {
     }
   }, []);
 
-  useEffect(() => {
-    coursesApi
-      .getCoursesCatalogForStaff()
-      .then((list) => setCourses(list))
-      .catch(() => {
-        coursesApi
-          .getCourses()
-          .then((list) => setCourses(list))
-          .catch(() => setCourses([]));
-      });
+  const reloadCoursesCatalog = useCallback(async () => {
+    try {
+      const list = await coursesApi.getCoursesCatalogForStaff();
+      setCourses(list);
+      return list;
+    } catch {
+      try {
+        const list = await coursesApi.getCourses();
+        setCourses(list);
+        return list;
+      } catch {
+        setCourses([]);
+        return [];
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    void reloadCoursesCatalog();
+  }, [reloadCoursesCatalog]);
 
   useEffect(() => {
     if (courseId || courses.length === 0) return;
@@ -335,6 +363,116 @@ export function ModuleConstructorPage() {
     }
   };
 
+  const openCreateCourseDialog = () => {
+    setCourseDialog({
+      mode: "create",
+      title: "",
+      description: "",
+      level: "BEGINNER",
+      isPublished: false,
+    });
+  };
+
+  const openEditCourseDialog = () => {
+    if (!courseId) {
+      showToast("Спочатку оберіть курс у списку");
+      return;
+    }
+    const c = courses.find((x) => x.id === courseId);
+    if (!c) {
+      showToast("Курс не знайдено — оновіть список");
+      return;
+    }
+    setCourseDialog({
+      mode: "edit",
+      editingId: c.id,
+      title: c.title,
+      description: c.description ?? "",
+      level: c.level ?? "BEGINNER",
+      isPublished: Boolean(c.isPublished),
+    });
+  };
+
+  const submitCourseDialog = async () => {
+    if (!courseDialog) return;
+    const t = courseDialog.title.trim();
+    const d = courseDialog.description.trim();
+    if (!t || !d) {
+      showToast("Вкажіть назву та опис курсу");
+      return;
+    }
+    setCourseBusy(true);
+    try {
+      if (courseDialog.mode === "create") {
+        const created = await coursesApi.createStaffCourse({
+          title: t,
+          description: d,
+          level: courseDialog.level,
+        });
+        await reloadCoursesCatalog();
+        setCourseId(created.id);
+        setPublishedModuleId(null);
+        lastFetchedConstructorModuleRef.current = null;
+        skipNextAutosave.current = true;
+        showToast("Курс створено");
+      } else if (courseDialog.editingId) {
+        await coursesApi.updateStaffCourse(courseDialog.editingId, {
+          title: t,
+          description: d,
+          level: courseDialog.level,
+          isPublished: courseDialog.isPublished,
+        });
+        await reloadCoursesCatalog();
+        showToast("Курс оновлено");
+      }
+      setCourseDialog(null);
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Помилка збереження курсу");
+    } finally {
+      setCourseBusy(false);
+    }
+  };
+
+  const deleteCourseFromServer = async () => {
+    if (!courseId) {
+      showToast("Немає обраного курсу");
+      return;
+    }
+    const c = courses.find((x) => x.id === courseId);
+    const name = c?.title ?? courseId;
+    if (
+      !window.confirm(
+        `Видалити курс «${name}» повністю? Зникнуть усі модулі, уроки та записи студентів на цей курс. Дію не можна скасувати.`,
+      )
+    ) {
+      return;
+    }
+    setCourseBusy(true);
+    try {
+      await coursesApi.deleteStaffCourse(courseId);
+      setPublishedModuleId(null);
+      lastFetchedConstructorModuleRef.current = null;
+      setCourseId("");
+      setCourseModules([]);
+      await reloadCoursesCatalog();
+      try {
+        const doc: ScenarioDocument = {
+          version: 1,
+          title,
+          blocks,
+        };
+        localStorage.setItem(LS_KEY, documentToJson(doc));
+      } catch {
+        /* ignore */
+      }
+      showToast("Курс видалено");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Не вдалося видалити курс");
+    } finally {
+      setCourseBusy(false);
+    }
+  };
+
   const publishToServer = async () => {
     if (!title.trim()) {
       showToast("Вкажіть назву модуля");
@@ -416,6 +554,8 @@ export function ModuleConstructorPage() {
             <li>
               <strong>На сервер</strong> — оберіть <strong>курс</strong> (усі курси, включно з неопублікованими) і{" "}
               <strong>модуль</strong>: або «Новий модуль», або існуючий у цьому курсі для оновлення. Далі «Зберегти на сервері».
+              Під списком курсу: <strong>Новий курс</strong>, <strong>Редагувати курс</strong>, <strong>Видалити курс</strong> (лише
+              для викладача / адміна).
               Щоб <strong>створити ще один новий запис</strong> у тому ж курсі, оберіть знову «Новий модуль» у другому списку або
               натисніть «Новий модуль».
             </li>
@@ -460,6 +600,32 @@ export function ModuleConstructorPage() {
               <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
                 Для викладачів показуються всі курси, не лише опубліковані в каталозі.
               </span>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={openCreateCourseDialog}
+                  disabled={courseBusy}
+                  className="rounded-lg border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-xs font-black text-white shadow-sm hover:bg-emerald-500 disabled:opacity-40 dark:border-emerald-500 dark:bg-emerald-700 dark:hover:bg-emerald-600"
+                >
+                  + Новий курс
+                </button>
+                <button
+                  type="button"
+                  onClick={openEditCourseDialog}
+                  disabled={courseBusy || !courseId}
+                  className="rounded-lg border border-emerald-400 bg-white px-3 py-1.5 text-xs font-bold text-emerald-900 hover:bg-emerald-50 disabled:opacity-40 dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-100 dark:hover:bg-emerald-900/40"
+                >
+                  Редагувати курс
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void deleteCourseFromServer()}
+                  disabled={courseBusy || !courseId}
+                  className="rounded-lg border border-rose-400 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-900 hover:bg-rose-100 disabled:opacity-40 dark:border-rose-600 dark:bg-rose-950/40 dark:text-rose-100 dark:hover:bg-rose-900/40"
+                >
+                  Видалити курс
+                </button>
+              </div>
             </label>
             <label className="flex min-w-[200px] flex-1 flex-col gap-1">
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
@@ -710,6 +876,106 @@ export function ModuleConstructorPage() {
           </aside>
         </div>
       </div>
+
+      {courseDialog && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="course-dialog-title"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setCourseDialog(null);
+          }}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-600 dark:bg-slate-900"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <h2
+              id="course-dialog-title"
+              className="text-lg font-black text-slate-900 dark:text-white"
+            >
+              {courseDialog.mode === "create" ? "Новий курс" : "Редагувати курс"}
+            </h2>
+            <div className="mt-4 space-y-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-bold uppercase text-slate-500">Назва</span>
+                <input
+                  value={courseDialog.title}
+                  onChange={(e) =>
+                    setCourseDialog((prev) => (prev ? { ...prev, title: e.target.value } : prev))
+                  }
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                  placeholder="Наприклад: Business English Level 2"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-bold uppercase text-slate-500">Опис</span>
+                <textarea
+                  value={courseDialog.description}
+                  onChange={(e) =>
+                    setCourseDialog((prev) =>
+                      prev ? { ...prev, description: e.target.value } : prev,
+                    )
+                  }
+                  rows={4}
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                  placeholder="Короткий опис для каталогу та картки курсу"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-bold uppercase text-slate-500">Рівень</span>
+                <select
+                  value={courseDialog.level}
+                  onChange={(e) =>
+                    setCourseDialog((prev) => (prev ? { ...prev, level: e.target.value } : prev))
+                  }
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                >
+                  {COURSE_LEVEL_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {courseDialog.mode === "edit" && (
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={courseDialog.isPublished}
+                    onChange={(e) =>
+                      setCourseDialog((prev) =>
+                        prev ? { ...prev, isPublished: e.target.checked } : prev,
+                      )
+                    }
+                    className="h-4 w-4 rounded border-slate-300 text-emerald-600"
+                  />
+                  <span>Опубліковано в каталозі (видно студентам у списку курсів)</span>
+                </label>
+              )}
+            </div>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setCourseDialog(null)}
+                disabled={courseBusy}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                Скасувати
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitCourseDialog()}
+                disabled={courseBusy}
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white shadow hover:bg-emerald-500 disabled:opacity-50"
+              >
+                {courseBusy ? "Збереження…" : "Зберегти"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg md:bottom-8">

@@ -5,6 +5,7 @@ import {
   getCourseById,
   createCourse,
   updateCourse,
+  deleteCourse,
   enrollCourse,
   getCourseEnrollments,
 } from '../controllers/courses.controller'
@@ -26,6 +27,7 @@ router.post('/:id/enroll', authenticate, enrollCourse)
 router.get('/:id/enrollments', authenticate, requireRole('TEACHER', 'ADMIN'), getCourseEnrollments)
 router.post('/', authenticate, requireRole('TEACHER', 'ADMIN'), createCourse)
 router.put('/:id', authenticate, requireRole('TEACHER', 'ADMIN'), updateCourse)
+router.delete('/:id', authenticate, requireRole('TEACHER', 'ADMIN'), deleteCourse)
 router.post(
   '/:courseId/modules/constructor',
   authenticate,

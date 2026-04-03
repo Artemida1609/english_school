@@ -122,27 +122,50 @@ export const createCourse = async (req: AuthRequest, res: Response): Promise<voi
 // PUT /api/courses/:id
 export const updateCourse = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { title, description, level, thumbnail, isPublished } = req.body
     const id = getParam(req, 'id')
     if (!id) {
       res.status(400).json({ message: 'Course ID required' })
       return
     }
 
+    const body = req.body as Record<string, unknown>
+    const data: Record<string, unknown> = {}
+    if (typeof body.title === 'string') data.title = body.title
+    if (typeof body.description === 'string') data.description = body.description
+    if (typeof body.level === 'string' && body.level) data.level = body.level as CourseLevelType
+    if (typeof body.thumbnail === 'string') data.thumbnail = body.thumbnail
+    if (typeof body.isPublished === 'boolean') data.isPublished = body.isPublished
+
+    if (Object.keys(data).length === 0) {
+      res.status(400).json({ message: 'No fields to update' })
+      return
+    }
+
     const course = await prisma.course.update({
       where: { id },
-      data: {
-        title,
-        description,
-        ...(level && { level: level as CourseLevelType }),
-        thumbnail,
-        isPublished,
-      },
+      data: data as any,
     })
 
     res.json(course)
   } catch (error) {
     console.error('UpdateCourse error:', error)
+    res.status(500).json({ message: 'Internal server error' })
+  }
+}
+
+// DELETE /api/courses/:id — модулі та enrollments каскадом
+export const deleteCourse = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = getParam(req, 'id')
+    if (!id) {
+      res.status(400).json({ message: 'Course ID required' })
+      return
+    }
+
+    await prisma.course.delete({ where: { id } })
+    res.status(204).send()
+  } catch (error) {
+    console.error('DeleteCourse error:', error)
     res.status(500).json({ message: 'Internal server error' })
   }
 }

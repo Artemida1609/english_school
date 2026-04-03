@@ -35,6 +35,21 @@ export interface Course {
   _count?: { modules: number; enrollments: number };
 }
 
+export type StaffCourseCreateBody = {
+  title: string;
+  description: string;
+  level?: string;
+  thumbnail?: string;
+};
+
+export type StaffCourseUpdateBody = Partial<{
+  title: string;
+  description: string;
+  level: string;
+  thumbnail: string;
+  isPublished: boolean;
+}>;
+
 export interface LessonDetail extends Lesson {
   module?: { id: string; title: string };
   course?: { id: string; title: string };
@@ -85,6 +100,14 @@ export const coursesApi = {
   getCourseById: (id: string) => apiFetch<Course>(`/api/courses/${id}`),
   getModuleById: (id: string) => apiFetch<Module>(`/api/modules/${id}`),
   getLessonById: (id: string) => apiFetch<LessonDetail>(`/api/lessons/${id}`),
+
+  /** TEACHER/ADMIN */
+  createStaffCourse: (body: StaffCourseCreateBody) =>
+    apiFetch<Course>("/api/courses", { method: "POST", body: JSON.stringify(body) }),
+  updateStaffCourse: (id: string, body: StaffCourseUpdateBody) =>
+    apiFetch<Course>(`/api/courses/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteStaffCourse: (id: string) =>
+    apiFetch<void>(`/api/courses/${id}`, { method: "DELETE" }),
 
   // Progress
   getModuleProgress: (moduleId: string) =>
