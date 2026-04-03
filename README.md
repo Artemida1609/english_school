@@ -229,6 +229,8 @@ npm run prisma:seed    # Seed: курси, модулі, уроки + тесто
 | `prisma:migrate`  | Застосування міграцій до БД |
 | `prisma:studio`   | Відкрити Prisma Studio |
 | `prisma:generate` | Згенерувати Prisma Client |
+| `prisma:migrate:deploy` | Застосувати міграції до БД (prod / CI) |
+| `render:build` | Збірка для Render: generate → migrate deploy → tsc → seed |
 
 ---
 
@@ -242,6 +244,8 @@ npm run prisma:seed    # Seed: курси, модулі, уроки + тесто
 1. Розгорнути бекенд і підключити його до Neon.
 2. Додати `DATABASE_URL` в Environment Variables Vercel (для фронтенду, якщо потрібно).
 3. У Vercel задати `VITE_API_URL` на URL Render-бекенда (наприклад `https://english-school-1izu.onrender.com`).
+
+**Render (бекенд):** у Build Command вкажіть `npm run render:build` (або той самий ланцюжок вручну). Обов’язково **перед** `prisma:seed` має виконуватись `npm run prisma:migrate:deploy`, інакше після змін у `schema.prisma` колонки в БД не з’являться і збірка впаде з `P2022`.
 
 
 TO DO:

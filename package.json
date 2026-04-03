@@ -8,6 +8,7 @@
     "prisma:migrate": "prisma migrate dev --schema apps/backend/prisma/schema.prisma",
     "prisma:migrate:deploy": "prisma migrate deploy --schema apps/backend/prisma/schema.prisma",
     "prisma:seed": "prisma db seed --schema apps/backend/prisma/schema.prisma",
+    "render:build": "npm run prisma:generate && npm run prisma:migrate:deploy && npm run backend:build && npm run prisma:seed",
     "prisma:studio": "prisma studio --schema apps/backend/prisma/schema.prisma",
     "backend:build": "tsc",
     "backend:start": "node dist/apps/backend/src/server.js",
