@@ -27,6 +27,8 @@ export interface Course {
   description: string;
   level: string;
   thumbnail?: string;
+  /** Лише в каталозі для викладача */
+  isPublished?: boolean;
   modules?: Module[];
   _count?: { modules: number; enrollments: number };
 }
@@ -76,6 +78,8 @@ export const coursesApi = {
     const q = new URLSearchParams(params as Record<string, string>).toString();
     return apiFetch<Course[]>(`/api/courses${q ? `?${q}` : ""}`);
   },
+  /** Усі курси (опубліковані та ні); потрібні права TEACHER/ADMIN */
+  getCoursesCatalogForStaff: () => apiFetch<Course[]>("/api/courses/catalog/all"),
   getCourseById: (id: string) => apiFetch<Course>(`/api/courses/${id}`),
   getModuleById: (id: string) => apiFetch<Module>(`/api/modules/${id}`),
   getLessonById: (id: string) => apiFetch<LessonDetail>(`/api/lessons/${id}`),

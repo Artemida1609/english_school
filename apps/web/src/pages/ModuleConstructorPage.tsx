@@ -6,7 +6,7 @@ import {
   CONSTRUCTOR_PREVIEW_MODULE_ID,
   writeConstructorPreview,
 } from "../types/constructorPreview";
-import { coursesApi, type Course } from "../api/courses";
+import { coursesApi, type Course, type Module } from "../api/courses";
 import { constructorApi } from "../api/constructor";
 import { appendPracticeToTaskMarkdown } from "../utils/constructorPractice";
 import {
@@ -50,6 +50,7 @@ export function ModuleConstructorPage() {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [courseId, setCourseId] = useState("");
+  const [courseModules, setCourseModules] = useState<Module[]>([]);
   const [publishedModuleId, setPublishedModuleId] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const skipNextAutosave = useRef(false);
@@ -99,9 +100,14 @@ export function ModuleConstructorPage() {
 
   useEffect(() => {
     coursesApi
-      .getCourses()
+      .getCoursesCatalogForStaff()
       .then((list) => setCourses(list))
-      .catch(() => setCourses([]));
+      .catch(() => {
+        coursesApi
+          .getCourses()
+          .then((list) => setCourses(list))
+          .catch(() => setCourses([]));
+      });
   }, []);
 
   useEffect(() => {
@@ -110,6 +116,51 @@ export function ModuleConstructorPage() {
       courses.find((c) => c.id === "course-level-1-business-english") ?? courses[0];
     setCourseId(preferred.id);
   }, [courses, courseId]);
+
+  useEffect(() => {
+    if (!courseId) {
+      setCourseModules([]);
+      return;
+    }
+    let cancelled = false;
+    coursesApi
+      .getCourseById(courseId)
+      .then((c) => {
+        if (!cancelled) setCourseModules(c.modules ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setCourseModules([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId]);
+
+  useEffect(() => {
+    if (!publishedModuleId || courseModules.length === 0) return;
+    if (!courseModules.some((m) => m.id === publishedModuleId)) {
+      setPublishedModuleId(null);
+    }
+  }, [courseId, courseModules, publishedModuleId]);
+
+  const sortedCourseModules = useMemo(
+    () => [...courseModules].sort((a, b) => a.orderIndex - b.orderIndex),
+    [courseModules],
+  );
+
+  const moduleSelectRows = useMemo(() => {
+    const rows = sortedCourseModules.map((m) => ({ id: m.id, title: m.title }));
+    if (
+      publishedModuleId &&
+      !rows.some((r) => r.id === publishedModuleId)
+    ) {
+      rows.push({
+        id: publishedModuleId,
+        title: `Прив’язаний модуль (${publishedModuleId.slice(0, 8)}…)`,
+      });
+    }
+    return rows;
+  }, [sortedCourseModules, publishedModuleId]);
 
   useEffect(() => {
     if (skipNextAutosave.current) {
@@ -315,9 +366,10 @@ export function ModuleConstructorPage() {
           <p className="font-bold text-sky-900 dark:text-sky-100">Як зберегти</p>
           <ul className="mt-2 list-inside list-disc space-y-1.5">
             <li>
-              <strong>На сервер</strong> — оберіть курс і натисніть «Зберегти на сервері». Створюються уроки «Теорія», «Вправи» та
-              «Тест» (якщо є блоки з пропусками). Поки прив’язаний збережений модуль, кнопка оновлює його. Щоб{" "}
-              <strong>створити ще один модуль</strong>, натисніть «Новий модуль» — тоді наступне збереження зробить новий запис.
+              <strong>На сервер</strong> — оберіть <strong>курс</strong> (усі курси, включно з неопублікованими) і{" "}
+              <strong>модуль</strong>: або «Новий модуль», або існуючий у цьому курсі для оновлення. Далі «Зберегти на сервері».
+              Щоб <strong>створити ще один новий запис</strong> у тому ж курсі, оберіть знову «Новий модуль» у другому списку або
+              натисніть «Новий модуль».
             </li>
             <li>
               <strong>Видалити модуль</strong> з курсу можна кнопкою «Видалити з сервера» (лише для поточного прив’язаного модуля).
@@ -352,10 +404,40 @@ export function ModuleConstructorPage() {
                   courses.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.title}
+                      {c.isPublished === false ? " (не опубліковано)" : ""}
                     </option>
                   ))
                 )}
               </select>
+              <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
+                Для викладачів показуються всі курси, не лише опубліковані в каталозі.
+              </span>
+            </label>
+            <label className="flex min-w-[200px] flex-1 flex-col gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                Модуль для збереження
+              </span>
+              <select
+                value={publishedModuleId ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setPublishedModuleId(v ? v : null);
+                }}
+                disabled={!courseId}
+                className="rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-emerald-800 dark:bg-slate-900 dark:text-white disabled:opacity-50"
+              >
+                <option value="">
+                  Новий модуль (наступне збереження створить запис у курсі)
+                </option>
+                {moduleSelectRows.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.title}
+                  </option>
+                ))}
+              </select>
+              <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
+                Оберіть існуючий модуль, щоб оновлювати його, або залиште «Новий модуль».
+              </span>
             </label>
             <div className="flex flex-wrap gap-2">
               <button

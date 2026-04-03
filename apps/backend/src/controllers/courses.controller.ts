@@ -38,6 +38,24 @@ export const getCourses = async (req: Request, res: Response): Promise<void> => 
   }
 }
 
+/** Усі курси (включно з неопублікованими) — для конструктора / кабінету викладача */
+export const getCoursesCatalogForStaff = async (
+  _req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const courses = await prisma.course.findMany({
+      orderBy: [{ isPublished: 'desc' }, { title: 'asc' }],
+      include: { _count: { select: { modules: true, enrollments: true } } },
+    } as any)
+
+    res.json(courses)
+  } catch (error) {
+    console.error('GetCoursesCatalogForStaff error:', error)
+    res.status(500).json({ message: 'Internal server error' })
+  }
+}
+
 // GET /api/courses/:id
 export const getCourseById = async (req: Request, res: Response): Promise<void> => {
   try {

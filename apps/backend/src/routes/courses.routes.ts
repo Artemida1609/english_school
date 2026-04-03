@@ -1,7 +1,12 @@
 import { Router } from 'express'
 import {
-  getCourses, getCourseById, createCourse, updateCourse,
-  enrollCourse, getCourseEnrollments,
+  getCourses,
+  getCoursesCatalogForStaff,
+  getCourseById,
+  createCourse,
+  updateCourse,
+  enrollCourse,
+  getCourseEnrollments,
 } from '../controllers/courses.controller'
 import { createModule } from '../controllers/modules.controller'
 import { publishFromConstructor } from '../controllers/constructor.controller'
@@ -9,6 +14,12 @@ import { authenticate, requireRole } from '../middleware/auth.middleware'
 
 const router = Router()
 
+router.get(
+  '/catalog/all',
+  authenticate,
+  requireRole('TEACHER', 'ADMIN'),
+  getCoursesCatalogForStaff,
+)
 router.get('/', getCourses)
 router.get('/:id', getCourseById)
 router.post('/:id/enroll', authenticate, enrollCourse)
