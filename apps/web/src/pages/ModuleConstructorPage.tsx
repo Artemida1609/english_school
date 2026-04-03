@@ -194,6 +194,54 @@ export function ModuleConstructorPage() {
     navigate(`/course/modules/${CONSTRUCTOR_PREVIEW_MODULE_ID}`);
   };
 
+  const startNewServerModule = () => {
+    setPublishedModuleId(null);
+    try {
+      const doc: ScenarioDocument = {
+        version: 1,
+        title,
+        blocks,
+        ...(courseId ? { courseId } : {}),
+      };
+      localStorage.setItem(LS_KEY, documentToJson(doc));
+    } catch {
+      /* ignore */
+    }
+    showToast("Наступне «Зберегти на сервері» створить новий модуль");
+  };
+
+  const deleteModuleFromServer = async () => {
+    if (!publishedModuleId) return;
+    if (
+      !window.confirm(
+        "Видалити цей модуль з курсу на сервері? Уроки та тест буде втрачено. Дію не скасувати.",
+      )
+    ) {
+      return;
+    }
+    setPublishing(true);
+    try {
+      await constructorApi.remove(publishedModuleId);
+      setPublishedModuleId(null);
+      try {
+        const doc: ScenarioDocument = {
+          version: 1,
+          title,
+          blocks,
+          ...(courseId ? { courseId } : {}),
+        };
+        localStorage.setItem(LS_KEY, documentToJson(doc));
+      } catch {
+        /* ignore */
+      }
+      showToast("Модуль видалено з сервера");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Не вдалося видалити");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const publishToServer = async () => {
     if (!title.trim()) {
       showToast("Вкажіть назву модуля");
@@ -267,8 +315,12 @@ export function ModuleConstructorPage() {
           <p className="font-bold text-sky-900 dark:text-sky-100">Як зберегти</p>
           <ul className="mt-2 list-inside list-disc space-y-1.5">
             <li>
-              <strong>На сервер</strong> — оберіть курс і натисніть «Зберегти на сервері». Створються уроки «Теорія», «Вправи» та
-              «Тест» (якщо є блоки з пропусками). Повторне натискання оновлює той самий модуль.
+              <strong>На сервер</strong> — оберіть курс і натисніть «Зберегти на сервері». Створюються уроки «Теорія», «Вправи» та
+              «Тест» (якщо є блоки з пропусками). Поки прив’язаний збережений модуль, кнопка оновлює його. Щоб{" "}
+              <strong>створити ще один модуль</strong>, натисніть «Новий модуль» — тоді наступне збереження зробить новий запис.
+            </li>
+            <li>
+              <strong>Видалити модуль</strong> з курсу можна кнопкою «Видалити з сервера» (лише для поточного прив’язаного модуля).
             </li>
             <li>
               <strong>Перегляд</strong> — той самий екран, що й у студента (ModulePage): теорія, практика з картками та зіставленням; блок «Пропуски» формує лише питання тесту. Прогрес не зберігається.
@@ -312,6 +364,22 @@ export function ModuleConstructorPage() {
                 className="rounded-xl border-2 border-violet-400 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-900 shadow-sm hover:bg-violet-100 dark:border-violet-500 dark:bg-violet-950/50 dark:text-violet-100 dark:hover:bg-violet-900/40"
               >
                 Як виглядатиме модуль
+              </button>
+              <button
+                type="button"
+                onClick={startNewServerModule}
+                disabled={!publishedModuleId}
+                className="rounded-xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-900 hover:bg-sky-100 disabled:opacity-40 dark:border-sky-600 dark:bg-sky-950/40 dark:text-sky-100 dark:hover:bg-sky-900/50"
+              >
+                Новий модуль
+              </button>
+              <button
+                type="button"
+                onClick={() => void deleteModuleFromServer()}
+                disabled={publishing || !publishedModuleId}
+                className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-900 hover:bg-rose-100 disabled:opacity-40 dark:border-rose-700 dark:bg-rose-950/40 dark:text-rose-100 dark:hover:bg-rose-900/40"
+              >
+                Видалити з сервера
               </button>
               <button
                 type="button"

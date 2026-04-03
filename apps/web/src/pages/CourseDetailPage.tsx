@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSelector } from "react-redux";
 import { coursesApi, type Course, type Module } from "../api/courses";
 import { apiFetch } from "../api/client";
+import type { RootState } from "../store";
 
 const DEFAULT_IMG = "/images/module-img.png";
 const STAGES = [1, 2, 3, 4, 5] as const;
@@ -259,6 +261,9 @@ function ModuleProgressBar({
 
 // ─── Main Page ────────────────────────────────────────────────
 export const CourseDetailPage = () => {
+  const staffRole = useSelector((s: RootState) => s.auth.user?.role);
+  const isStaff = staffRole === "TEACHER" || staffRole === "ADMIN";
+
   const { courseId } = useParams<{ courseId?: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -320,7 +325,7 @@ export const CourseDetailPage = () => {
       try {
         const profileRes = await apiFetch<{
           learning?: {
-            unlockedModules?: Array<{
+            modules?: Array<{
               id: string;
               completed: boolean;
               progress: number;
@@ -330,7 +335,7 @@ export const CourseDetailPage = () => {
         }>("/api/profile/me?courseId=" + course.id);
 
         const locks: Record<string, { unlocked: boolean; completed: boolean; progress: number }> = {};
-        profileRes.learning?.unlockedModules?.forEach((mod) => {
+        profileRes.learning?.modules?.forEach((mod) => {
           locks[mod.id] = {
             unlocked: mod.unlocked ?? true,
             completed: mod.completed ?? false,
@@ -605,8 +610,9 @@ export const CourseDetailPage = () => {
               modulesInStage.map((mod, index) => {
                 const lessonCount = mod.lessons?.length ?? mod._count?.lessons ?? 0;
                 const strip = ACCENT_STRIP[index % ACCENT_STRIP.length];
-                const completed = moduleLocks[mod.id]?.completed ?? false;
-                const locked = !moduleUnlockState[mod.id];
+                const completed =
+                  moduleLocks[mod.id]?.completed ?? moduleCompletions[mod.id] ?? false;
+                const locked = isStaff ? false : !moduleUnlockState[mod.id];
 
                 return (
                   <motion.div

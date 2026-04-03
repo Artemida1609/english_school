@@ -96,5 +96,12 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { message?: string }).message ?? `Request failed: ${res.status}`);
   }
-  return res.json();
+  if (res.status === 204 || res.status === 205) {
+    return undefined as T;
+  }
+  const text = await res.text();
+  if (!text.trim()) {
+    return undefined as T;
+  }
+  return JSON.parse(text) as T;
 }

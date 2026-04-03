@@ -92,3 +92,26 @@ export const updateModule = async (req: AuthRequest, res: Response): Promise<voi
     res.status(500).json({ message: 'Internal server error' })
   }
 }
+
+// DELETE /api/modules/:id
+export const deleteModule = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = getParam(req, 'id')
+    if (!id) {
+      res.status(400).json({ message: 'Module ID required' })
+      return
+    }
+
+    const existing = await prisma.module.findUnique({ where: { id } })
+    if (!existing) {
+      res.status(404).json({ message: 'Module not found' })
+      return
+    }
+
+    await prisma.module.delete({ where: { id } })
+    res.status(204).send()
+  } catch (error) {
+    console.error('DeleteModule error:', error)
+    res.status(500).json({ message: 'Internal server error' })
+  }
+}

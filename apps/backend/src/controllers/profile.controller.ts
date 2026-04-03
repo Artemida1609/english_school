@@ -135,9 +135,11 @@ export const getMyProfile = async (
       };
     });
 
+    const isStaff = user.role === "TEACHER" || user.role === "ADMIN";
+
     let prevStageComplete = true;
     const unlockedModules = modulesWithStatus.map((modStatus, idx) => {
-      const unlocked = idx === 0 ? true : prevStageComplete;
+      const unlocked = isStaff ? true : idx === 0 ? true : prevStageComplete;
       prevStageComplete = prevStageComplete && modStatus.completed;
       return { ...modStatus, unlocked };
     });

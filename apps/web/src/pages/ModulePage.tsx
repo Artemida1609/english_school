@@ -2,7 +2,9 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useSelector } from "react-redux";
 import { coursesApi, type Lesson, type LessonDetail, type Module, type VocabularyItem } from "../api/courses";
+import type { RootState } from "../store";
 import { apiFetch } from "../api/client";
 import { CONSTRUCTOR_PREVIEW_MODULE_ID, readConstructorPreview } from "../types/constructorPreview";
 import { appendPracticeToTaskMarkdown, parsePracticeFromTaskContent } from "../utils/constructorPractice";
@@ -344,6 +346,8 @@ function VocabularyTab({ vocabulary, loading }: { vocabulary: VocabularyItem[]; 
 // ─── Main Component ────────────────────────────────────────────
 export const ModulePage = () => {
   const { t } = useTranslation();
+  const staffRole = useSelector((s: RootState) => s.auth.user?.role);
+  const isStaffUser = staffRole === "TEACHER" || staffRole === "ADMIN";
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [module, setModule] = useState<Module | null>(null);
@@ -568,6 +572,10 @@ export const ModulePage = () => {
   // ─── Load unlock state ─────────────────────────────────────
   useEffect(() => {
     if (!moduleId || isConstructorPreview) return;
+    if (isStaffUser) {
+      setModuleLocked(false);
+      return;
+    }
     let isCancelled = false;
     const loadUnlock = async () => {
       try {
@@ -581,7 +589,7 @@ export const ModulePage = () => {
     };
     void loadUnlock();
     return () => { isCancelled = true; };
-  }, [moduleId, isConstructorPreview]);
+  }, [moduleId, isConstructorPreview, isStaffUser]);
 
   // ─── Load lesson details ───────────────────────────────────
   useEffect(() => {

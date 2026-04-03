@@ -34,4 +34,7 @@ export const constructorApi = {
       method: "PUT",
       body: JSON.stringify(body),
     }),
+
+  remove: (moduleId: string) =>
+    apiFetch<void>(`/api/modules/${moduleId}`, { method: "DELETE" }),
 };
