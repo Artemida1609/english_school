@@ -33,6 +33,24 @@ const COURSE_LEVEL_OPTIONS: { value: string; label: string }[] = [
   { value: "ADVANCED", label: "Просунутий (C1+)" },
 ];
 
+const STAGE_SLOT_COUNT = 5;
+
+function packStageTitles(rows: string[]): string[] | undefined {
+  const cleaned = rows.slice(0, STAGE_SLOT_COUNT).map((s) => s.trim().slice(0, 160));
+  while (cleaned.length > 0 && cleaned[cleaned.length - 1] === "") cleaned.pop();
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
+function stageTitlesFromCourse(c: Course): string[] {
+  const out = Array.from({ length: STAGE_SLOT_COUNT }, () => "");
+  const raw = c.stageTitles;
+  if (!Array.isArray(raw)) return out;
+  for (let i = 0; i < STAGE_SLOT_COUNT; i++) {
+    out[i] = typeof raw[i] === "string" ? raw[i] : "";
+  }
+  return out;
+}
+
 type CourseDialogState = {
   mode: "create" | "edit";
   editingId?: string;
@@ -40,6 +58,8 @@ type CourseDialogState = {
   description: string;
   level: string;
   isPublished: boolean;
+  thumbnail: string;
+  stageTitles: string[];
 };
 
 function formatSavedTime(d: Date): string {
@@ -73,6 +93,7 @@ export function ModuleConstructorPage() {
   const [publishing, setPublishing] = useState(false);
   const [courseBusy, setCourseBusy] = useState(false);
   const [courseDialog, setCourseDialog] = useState<CourseDialogState | null>(null);
+  const [modulePublishStage, setModulePublishStage] = useState(1);
   const skipNextAutosave = useRef(false);
   const lastFetchedConstructorModuleRef = useRef<string | null>(null);
 
@@ -187,6 +208,12 @@ export function ModuleConstructorPage() {
       try {
         const mod = await coursesApi.getModuleById(mid);
         if (cancelled) return;
+        if (typeof mod.stage === "number") {
+          const s = Math.min(5, Math.max(1, Math.round(mod.stage)));
+          setModulePublishStage(s);
+        } else {
+          setModulePublishStage(1);
+        }
         const result = await loadConstructorDocumentFromServerModule(mod);
         if (cancelled) return;
         if (result) {
@@ -317,6 +344,7 @@ export function ModuleConstructorPage() {
 
   const startNewServerModule = () => {
     setPublishedModuleId(null);
+    setModulePublishStage(1);
     try {
       const doc: ScenarioDocument = {
         version: 1,
@@ -370,6 +398,8 @@ export function ModuleConstructorPage() {
       description: "",
       level: "BEGINNER",
       isPublished: false,
+      thumbnail: "",
+      stageTitles: Array.from({ length: STAGE_SLOT_COUNT }, () => ""),
     });
   };
 
@@ -390,6 +420,8 @@ export function ModuleConstructorPage() {
       description: c.description ?? "",
       level: c.level ?? "BEGINNER",
       isPublished: Boolean(c.isPublished),
+      thumbnail: c.thumbnail ?? "",
+      stageTitles: stageTitlesFromCourse(c),
     });
   };
 
@@ -404,10 +436,13 @@ export function ModuleConstructorPage() {
     setCourseBusy(true);
     try {
       if (courseDialog.mode === "create") {
+        const packedStages = packStageTitles(courseDialog.stageTitles);
         const created = await coursesApi.createStaffCourse({
           title: t,
           description: d,
           level: courseDialog.level,
+          ...(courseDialog.thumbnail.trim() ? { thumbnail: courseDialog.thumbnail.trim() } : {}),
+          ...(packedStages ? { stageTitles: packedStages } : {}),
         });
         await reloadCoursesCatalog();
         setCourseId(created.id);
@@ -421,6 +456,8 @@ export function ModuleConstructorPage() {
           description: d,
           level: courseDialog.level,
           isPublished: courseDialog.isPublished,
+          thumbnail: courseDialog.thumbnail.trim() === "" ? null : courseDialog.thumbnail.trim(),
+          stageTitles: packStageTitles(courseDialog.stageTitles) ?? null,
         });
         await reloadCoursesCatalog();
         showToast("Курс оновлено");
@@ -498,6 +535,7 @@ export function ModuleConstructorPage() {
       theoryHtml: htmlExport,
       taskMarkdown,
       scenarioJson,
+      stage: modulePublishStage,
       ...(testQuestions.length ? { testQuestions } : {}),
     };
     setPublishing(true);
@@ -636,6 +674,7 @@ export function ModuleConstructorPage() {
                 onChange={(e) => {
                   const v = e.target.value;
                   setPublishedModuleId(v ? v : null);
+                  if (!v) setModulePublishStage(1);
                 }}
                 disabled={!courseId}
                 className="rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-emerald-800 dark:bg-slate-900 dark:text-white disabled:opacity-50"
@@ -652,6 +691,26 @@ export function ModuleConstructorPage() {
               <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
                 Оберіть існуючий модуль — теорія та практика підтягнуться з сервера. Збережіть чернетку перед
                 зміною, якщо потрібно не втратити поточні правки.
+              </span>
+            </label>
+            <label className="flex min-w-[140px] flex-col gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                Етап курсу (1–5)
+              </span>
+              <select
+                value={modulePublishStage}
+                onChange={(e) => setModulePublishStage(Number(e.target.value))}
+                disabled={!courseId}
+                className="rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-emerald-800 dark:bg-slate-900 dark:text-white disabled:opacity-50"
+              >
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <option key={n} value={n}>
+                    Етап {n}
+                  </option>
+                ))}
+              </select>
+              <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
+                У курсі лише п’ять етапів; модуль відображається на сторінці курсу в обраному етапі.
               </span>
             </label>
             <div className="flex flex-wrap gap-2">
@@ -888,7 +947,7 @@ export function ModuleConstructorPage() {
           }}
         >
           <div
-            className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-600 dark:bg-slate-900"
+            className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-600 dark:bg-slate-900"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <h2
@@ -924,7 +983,7 @@ export function ModuleConstructorPage() {
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-bold uppercase text-slate-500">Рівень</span>
+                <span className="text-xs font-bold uppercase text-slate-500">Рівень (CEFR)</span>
                 <select
                   value={courseDialog.level}
                   onChange={(e) =>
@@ -939,6 +998,50 @@ export function ModuleConstructorPage() {
                   ))}
                 </select>
               </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-bold uppercase text-slate-500">
+                  URL обкладинки курсу
+                </span>
+                <input
+                  value={courseDialog.thumbnail}
+                  onChange={(e) =>
+                    setCourseDialog((prev) =>
+                      prev ? { ...prev, thumbnail: e.target.value } : prev,
+                    )
+                  }
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                  placeholder="https://… або /images/…"
+                />
+              </label>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-600 dark:bg-slate-950/50">
+                <p className="mb-2 text-xs font-bold uppercase text-slate-500">
+                  Підписи етапів (макс. 5)
+                </p>
+                <p className="mb-3 text-[11px] text-slate-500 dark:text-slate-400">
+                  Відображаються на сторінці курсу у вкладках етапів. Якщо поле порожнє — показується «Рівень» і
+                  номер.
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {courseDialog.stageTitles.map((st, i) => (
+                    <label key={i} className="flex flex-col gap-0.5">
+                      <span className="text-[10px] font-bold text-slate-500">Етап {i + 1}</span>
+                      <input
+                        value={st}
+                        onChange={(e) =>
+                          setCourseDialog((prev) => {
+                            if (!prev) return prev;
+                            const next = [...prev.stageTitles];
+                            next[i] = e.target.value;
+                            return { ...prev, stageTitles: next };
+                          })
+                        }
+                        className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
+                        placeholder={`Наприклад: Граматика ${i + 1}`}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
               {courseDialog.mode === "edit" && (
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                   <input

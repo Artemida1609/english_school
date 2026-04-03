@@ -35,6 +35,26 @@ function moduleStage(m: Module, sortedModules: Module[]): number {
   return s >= 1 && s <= 5 ? s : inferredStageFromOrderIndex(m.orderIndex);
 }
 
+/** Підпис вкладки етапу: кастомний з курсу або «Рівень» */
+function stagePrimaryLabel(course: Course, stageNum: number): string {
+  const raw = course.stageTitles;
+  if (Array.isArray(raw)) {
+    const s = raw[stageNum - 1];
+    if (typeof s === "string" && s.trim()) return s.trim();
+  }
+  return "Рівень";
+}
+
+/** Бейдж на картці модуля */
+function stageBadgePrefix(course: Course, stageNum: number): string {
+  const raw = course.stageTitles;
+  if (Array.isArray(raw)) {
+    const s = raw[stageNum - 1];
+    if (typeof s === "string" && s.trim()) return s.trim();
+  }
+  return `Рівень ${stageNum}`;
+}
+
 // ─── Fireworks Canvas ─────────────────────────────────────────
 function FireworksCanvas({ onDone }: { onDone: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -555,8 +575,10 @@ export const CourseDetailPage = () => {
                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                       />
                     )}
-                    <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest ${active ? "text-emerald-700 dark:text-emerald-300" : "text-slate-400 dark:text-white/35"}`}>
-                      Рівень
+                    <span
+                      className={`max-w-[68px] sm:max-w-[80px] text-center text-[8px] sm:text-[9px] font-black uppercase tracking-widest leading-tight line-clamp-2 ${active ? "text-emerald-700 dark:text-emerald-300" : "text-slate-400 dark:text-white/35"}`}
+                    >
+                      {stagePrimaryLabel(course, stage)}
                     </span>
                     <span className={`text-xl sm:text-2xl font-black tabular-nums ${active ? "text-emerald-600 dark:text-emerald-400" : "text-slate-600 dark:text-white/50"}`}>
                       {stageDone ? "✅" : stage}
@@ -644,8 +666,8 @@ export const CourseDetailPage = () => {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/15" />
-                      <div className="absolute top-3 left-3 bg-white/90 dark:bg-[#06121D]/90 backdrop-blur-md text-[9px] sm:text-[10px] font-black text-slate-700 dark:text-emerald-300 px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm">
-                        Рівень {selectedStage} · {index + 1}
+                      <div className="absolute top-3 left-3 max-w-[85%] bg-white/90 dark:bg-[#06121D]/90 backdrop-blur-md text-[9px] sm:text-[10px] font-black text-slate-700 dark:text-emerald-300 px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm line-clamp-2">
+                        {stageBadgePrefix(course, selectedStage)} · {index + 1}
                       </div>
                       <div className="absolute bottom-3 right-3 bg-emerald-500/90 text-[10px] sm:text-[11px] font-black text-white px-2.5 py-1 rounded-full border border-emerald-400/50 shadow-[0_0_12px_rgba(16,185,129,0.5)]">
                         {lessonCount} уроків

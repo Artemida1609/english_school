@@ -29,6 +29,8 @@ export interface Course {
   description: string;
   level: string;
   thumbnail?: string;
+  /** До 5 підписів для вкладок етапів (індекс 0 = етап 1) */
+  stageTitles?: string[] | null;
   /** Лише в каталозі для викладача */
   isPublished?: boolean;
   modules?: Module[];
@@ -40,14 +42,17 @@ export type StaffCourseCreateBody = {
   description: string;
   level?: string;
   thumbnail?: string;
+  /** Максимум 5 рядків — підписи етапів на сторінці курсу */
+  stageTitles?: string[] | null;
 };
 
 export type StaffCourseUpdateBody = Partial<{
   title: string;
   description: string;
   level: string;
-  thumbnail: string;
+  thumbnail: string | null;
   isPublished: boolean;
+  stageTitles: string[] | null;
 }>;
 
 export interface LessonDetail extends Lesson {

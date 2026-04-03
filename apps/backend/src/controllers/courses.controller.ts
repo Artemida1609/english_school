@@ -5,6 +5,18 @@ import { getParam } from '../utils/params'
 
 type CourseLevelType = 'BEGINNER' | 'ELEMENTARY' | 'INTERMEDIATE' | 'UPPER_INTERMEDIATE' | 'ADVANCED'
 
+/** До 5 рядків для підписів етапів; порожнє → null */
+function normalizeStageTitlesInput(input: unknown): string[] | null | undefined {
+  if (input === undefined) return undefined
+  if (input === null) return null
+  if (!Array.isArray(input)) return undefined
+  const out = input
+    .slice(0, 5)
+    .map((x) => (typeof x === 'string' ? x.trim().slice(0, 160) : ''))
+  while (out.length > 0 && out[out.length - 1] === '') out.pop()
+  return out.length > 0 ? out : null
+}
+
 // GET /api/courses
 export const getCourses = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -96,19 +108,29 @@ export const getCourseById = async (req: Request, res: Response): Promise<void> 
 // POST /api/courses (TEACHER/ADMIN)
 export const createCourse = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { title, description, level, thumbnail } = req.body
+    const body = req.body as Record<string, unknown>
+    const title = body.title
+    const description = body.description
+    const level = body.level
+    const thumbnail = body.thumbnail
+    const stageTitlesRaw = body.stageTitles
 
-    if (!title || !description) {
+    if (typeof title !== 'string' || typeof description !== 'string' || !title || !description) {
       res.status(400).json({ message: 'Title and description are required' })
       return
     }
+
+    const st = normalizeStageTitlesInput(stageTitlesRaw)
+    const thumb =
+      typeof thumbnail === 'string' && thumbnail.trim() !== '' ? thumbnail.trim() : null
 
     const course = await prisma.course.create({
       data: {
         title,
         description,
         level: (level as CourseLevelType) ?? 'BEGINNER',
-        thumbnail,
+        thumbnail: thumb,
+        ...(st !== undefined ? { stageTitles: st } : {}),
       },
     } as any)
 
@@ -133,8 +155,16 @@ export const updateCourse = async (req: AuthRequest, res: Response): Promise<voi
     if (typeof body.title === 'string') data.title = body.title
     if (typeof body.description === 'string') data.description = body.description
     if (typeof body.level === 'string' && body.level) data.level = body.level as CourseLevelType
-    if (typeof body.thumbnail === 'string') data.thumbnail = body.thumbnail
+    if ('thumbnail' in body) {
+      if (typeof body.thumbnail === 'string') {
+        data.thumbnail = body.thumbnail.trim() === '' ? null : body.thumbnail.trim()
+      }
+    }
     if (typeof body.isPublished === 'boolean') data.isPublished = body.isPublished
+    if ('stageTitles' in body) {
+      const st = normalizeStageTitlesInput(body.stageTitles)
+      data.stageTitles = st === undefined ? null : st
+    }
 
     if (Object.keys(data).length === 0) {
       res.status(400).json({ message: 'No fields to update' })

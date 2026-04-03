@@ -19,6 +19,12 @@ type ConstructorBody = {
   scenarioJson?: string | null
 }
 
+function clampCourseStage(n: unknown): number {
+  const x = typeof n === 'number' ? n : Number(n)
+  if (!Number.isFinite(x)) return 1
+  return Math.min(5, Math.max(1, Math.round(x)))
+}
+
 function validateConstructorBody(body: ConstructorBody): string | null {
   if (!body.title?.trim()) return 'Title is required'
   if (!body.theoryHtml?.trim()) return 'theoryHtml is required'
@@ -135,7 +141,7 @@ export const publishFromConstructor = async (req: AuthRequest, res: Response): P
           title: body.title.trim(),
           description: body.description?.trim() ?? '',
           orderIndex: nextOrder,
-          stage: body.stage ?? 1,
+          stage: clampCourseStage(body.stage ?? 1),
           constructorJson: body.scenarioJson?.trim() || null,
         },
       })
@@ -181,7 +187,7 @@ export const syncConstructorModule = async (req: AuthRequest, res: Response): Pr
           description: body.description?.trim() ?? existing.description ?? '',
           constructorJson: body.scenarioJson != null ? body.scenarioJson.trim() || null : undefined,
           ...(typeof body.orderIndex === 'number' ? { orderIndex: body.orderIndex } : {}),
-          ...(typeof body.stage === 'number' ? { stage: body.stage } : {}),
+          ...(typeof body.stage === 'number' ? { stage: clampCourseStage(body.stage) } : {}),
         },
       })
       await createLessonsForModule(tx, mod.id, mod.title, body, 0)
