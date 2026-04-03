@@ -156,6 +156,9 @@ function FlashcardsSection({ vocabulary }: { vocabulary: VocabularyItem[] }) {
     if (!current) return;
     setKnown(prev => { const s = new Set(prev); s.has(current.id) ? s.delete(current.id) : s.add(current.id); return s; });
   };
+  const markAllKnown = () => {
+    setKnown(new Set(filtered.map((item) => item.id)));
+  };
   const reset = () => { setCurrentIndex(0); setFlipped(false); setKnown(new Set()); };
 
   if (!current) return (
@@ -174,9 +177,17 @@ function FlashcardsSection({ vocabulary }: { vocabulary: VocabularyItem[] }) {
             {knownCount} / {filtered.length} вивчено
           </p>
         </div>
-        <button onClick={reset} className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 transition-all">
-          Скинути
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={markAllKnown}
+            className="text-xs font-bold text-emerald-600 dark:text-emerald-300 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all"
+          >
+            Знаю всі
+          </button>
+          <button onClick={reset} className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 transition-all">
+            Скинути
+          </button>
+        </div>
       </div>
 
       {/* Category filter */}
@@ -359,18 +370,12 @@ export const ModulePage = () => {
 
   const [activeTab, setActiveTab] = useState<TabId>(() => {
     const t = searchParams.get("tab") as TabId | null;
-    return t && TABS.some((x) => x.id === t) ? t : "video";
+    return t && TABS.some((x) => x.id === t) ? t : "theory";
   });
 
   const tabFromParams = searchParams.get("tab") as TabId | null;
   const validTabFromParams =
     tabFromParams && TABS.some((x) => x.id === tabFromParams) ? tabFromParams : null;
-
-  const prevTabParamRef = useRef(validTabFromParams);
-  if (validTabFromParams && validTabFromParams !== prevTabParamRef.current) {
-    prevTabParamRef.current = validTabFromParams;
-    setActiveTab(validTabFromParams);
-  }
 
   const setTab = useCallback(
     (tab: TabId) => {
@@ -393,6 +398,58 @@ export const ModulePage = () => {
   const theoryLesson = useMemo(() => sortedLessons.find((l) => l.type === "THEORY"), [sortedLessons]);
   const taskLesson = useMemo(() => sortedLessons.find((l) => l.type === "TASK"), [sortedLessons]);
   const testLesson = useMemo(() => sortedLessons.find((l) => l.type === "TEST"), [sortedLessons]);
+
+  const hasVideo = useMemo(() => {
+    const url = detailVideo?.videoUrl ?? videoLesson?.videoUrl;
+    return Boolean(videoLesson && extractDriveId(url) && url);
+  }, [detailVideo?.videoUrl, videoLesson]);
+  const hasTheory = Boolean(theoryLesson);
+  const hasTaskContent = Boolean((detailTask?.content ?? taskLesson?.content ?? "").trim());
+  const hasTestContent = Boolean(
+    detailTest?.tests?.some((test) => (test.questions?.length ?? 0) > 0)
+  );
+  const hasExercises = hasTaskContent || hasTestContent;
+  const hasVocabulary = moduleVocabulary.length > 0;
+
+  const availableTabs = useMemo<TabId[]>(() => {
+    const tabs: TabId[] = [];
+    if (hasVideo) tabs.push("video");
+    if (hasExercises) tabs.push("exercises");
+    if (hasTheory) tabs.push("theory");
+    if (hasVocabulary) tabs.push("vocabulary");
+    return tabs;
+  }, [hasVideo, hasExercises, hasTheory, hasVocabulary]);
+
+  const defaultTab = useMemo<TabId>(() => {
+    if (hasVideo) return "video";
+    if (hasTheory) return "theory";
+    if (hasExercises) return "exercises";
+    if (hasVocabulary) return "vocabulary";
+    return "theory";
+  }, [hasTheory, hasExercises, hasVideo, hasVocabulary]);
+
+  useEffect(() => {
+    const requestedTab = validTabFromParams;
+    const desiredTab =
+      requestedTab && availableTabs.includes(requestedTab) ? requestedTab : defaultTab;
+
+    if (activeTab !== desiredTab) {
+      setActiveTab(desiredTab);
+    }
+
+    if (searchParams.get("tab") !== desiredTab) {
+      const next = new URLSearchParams(searchParams);
+      next.set("tab", desiredTab);
+      setSearchParams(next, { replace: true });
+    }
+  }, [
+    activeTab,
+    availableTabs,
+    defaultTab,
+    searchParams,
+    setSearchParams,
+    validTabFromParams,
+  ]);
 
   // ─── Load module ───────────────────────────────────────────
   useEffect(() => {
@@ -458,6 +515,7 @@ export const ModulePage = () => {
   useEffect(() => {
     setVocabLoading(true);
     const all: VocabularyItem[] = [
+      ...(module?.vocabulary ?? []),
       ...(detailTheory?.vocabulary ?? []),
       ...(detailTask?.vocabulary ?? []),
       ...(detailTest?.vocabulary ?? []),
@@ -472,7 +530,7 @@ export const ModulePage = () => {
     });
     setModuleVocabulary(deduped);
     setVocabLoading(false);
-  }, [detailTheory, detailTask, detailTest, detailVideo]);
+  }, [detailTheory, detailTask, detailTest, detailVideo, module?.vocabulary]);
 
   // ─── Load existing progress ────────────────────────────────
   useEffect(() => {
@@ -516,21 +574,26 @@ export const ModulePage = () => {
   }, [activeTab, theoryLesson, markComplete]);
 
   // ─── Test state ────────────────────────────────────────────
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [showResult, setShowResult] = useState(false);
 
-  const currentTest = detailTest?.tests?.[0];
+  const currentTest = hasTestContent ? detailTest?.tests?.[0] : undefined;
   const questions = currentTest?.questions ?? [];
-  const firstQuestion = questions[0];
-  const answers = firstQuestion?.answers ?? [];
-  const correctIndex = answers.findIndex((a) => a.isCorrect);
-  const isCorrect = selectedAnswer !== null && correctIndex >= 0 && selectedAnswer === correctIndex;
+  const totalQuestions = questions.length;
+  const answeredQuestions = questions.filter((q) => selectedAnswers[q.id] !== undefined).length;
+  const correctCount = questions.reduce((sum, q) => {
+    const selectedIndex = selectedAnswers[q.id];
+    if (selectedIndex === undefined) return sum;
+    const correctIndex = q.answers.findIndex((a) => a.isCorrect);
+    return selectedIndex === correctIndex ? sum + 1 : sum;
+  }, 0);
+  const isAllCorrect = totalQuestions > 0 && correctCount === totalQuestions;
 
   const handleCheck = async () => {
-    if (selectedAnswer === null) return;
+    if (answeredQuestions !== totalQuestions) return;
     setShowResult(true);
     if (taskLesson?.id) await markComplete(taskLesson.id);
-    if (isCorrect && testLesson?.id) {
+    if (isAllCorrect && testLesson?.id) {
       await markComplete(testLesson.id);
     }
   };
@@ -819,42 +882,62 @@ export const ModulePage = () => {
               </AnimatePresence>
             </div>
 
-            {testLesson && firstQuestion ? (
+            {testLesson && totalQuestions > 0 ? (
               <>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 mb-6">
                   <span className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.8)] animate-pulse" />
                   <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                    {t("module.task", "Тест")} 1 / {questions.length || 1}
+                    {t("module.task", "Тест")} {answeredQuestions} / {totalQuestions}
                   </span>
                 </div>
-                <p className="text-xl md:text-2xl font-black text-slate-800 dark:text-white mb-8 leading-tight drop-shadow-sm">{firstQuestion.questionText}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {answers.map((ans, i) => {
-                    const isSelected = selectedAnswer === i;
-                    const isErr = showResult && isSelected && !ans.isCorrect;
-                    const isSuccess = showResult && ans.isCorrect;
+                <div className="flex flex-col gap-8">
+                  {questions.map((question, questionIdx) => {
+                    const selectedIndex = selectedAnswers[question.id];
+                    const correctIndex = question.answers.findIndex((a) => a.isCorrect);
                     return (
-                      <motion.button
-                        key={ans.id}
-                        whileHover={!showResult ? { scale: 1.02 } : {}}
-                        whileTap={!showResult ? { scale: 0.98 } : {}}
-                        disabled={showResult}
-                        onClick={() => setSelectedAnswer(i)}
-                        className={`relative py-4 px-6 rounded-2xl text-base font-bold transition-all duration-300 shadow-sm border text-left overflow-hidden
-                          ${showResult
-                            ? isSuccess ? "bg-emerald-50 dark:bg-emerald-500/20 border-emerald-400 dark:border-emerald-500/50 text-emerald-800 dark:text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/30"
-                              : isErr ? "bg-rose-50 dark:bg-rose-500/20 border-rose-400 dark:border-rose-500/50 text-rose-800 dark:text-rose-300"
-                                : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 dark:text-white/30"
-                            : isSelected ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-400 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
-                              : "bg-white dark:bg-[#06121D]/50 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white/80 hover:border-emerald-300 dark:hover:border-emerald-500/30"}`}
-                      >
-                        {(isSuccess || isErr) && <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${isSuccess ? "bg-emerald-500" : "bg-rose-500"}`} />}
-                        <div className="flex items-center justify-between gap-2">
-                          <span>{ans.answerText}</span>
-                          {showResult && isSuccess && <span className="text-xl">✨</span>}
-                          {showResult && isErr && <span className="text-xl">❌</span>}
+                      <div key={question.id} className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/40 dark:bg-black/10 p-4 sm:p-6">
+                        <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 dark:text-white/40 mb-3">
+                          Питання {questionIdx + 1}
+                        </p>
+                        <p className="text-lg md:text-xl font-black text-slate-800 dark:text-white mb-5 leading-tight drop-shadow-sm">
+                          {question.questionText}
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {question.answers.map((ans, ansIdx) => {
+                            const isSelected = selectedIndex === ansIdx;
+                            const isErr = showResult && isSelected && !ans.isCorrect;
+                            const isSuccess = showResult && ans.isCorrect;
+                            return (
+                              <motion.button
+                                key={ans.id}
+                                whileHover={!showResult ? { scale: 1.02 } : {}}
+                                whileTap={!showResult ? { scale: 0.98 } : {}}
+                                disabled={showResult}
+                                onClick={() => setSelectedAnswers((prev) => ({ ...prev, [question.id]: ansIdx }))}
+                                className={`relative py-4 px-6 rounded-2xl text-base font-bold transition-all duration-300 shadow-sm border text-left overflow-hidden
+                                  ${showResult
+                                    ? isSuccess ? "bg-emerald-50 dark:bg-emerald-500/20 border-emerald-400 dark:border-emerald-500/50 text-emerald-800 dark:text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/30"
+                                      : isErr ? "bg-rose-50 dark:bg-rose-500/20 border-rose-400 dark:border-rose-500/50 text-rose-800 dark:text-rose-300"
+                                        : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 dark:text-white/30"
+                                    : isSelected ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-400 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+                                      : "bg-white dark:bg-[#06121D]/50 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white/80 hover:border-emerald-300 dark:hover:border-emerald-500/30"}`}
+                              >
+                                {(isSuccess || isErr) && <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${isSuccess ? "bg-emerald-500" : "bg-rose-500"}`} />}
+                                <div className="flex items-center justify-between gap-2">
+                                  <span>{ans.answerText}</span>
+                                  {showResult && isSuccess && <span className="text-xl">✨</span>}
+                                  {showResult && isErr && <span className="text-xl">❌</span>}
+                                </div>
+                              </motion.button>
+                            );
+                          })}
                         </div>
-                      </motion.button>
+                        {showResult && (
+                          <p className={`mt-4 text-sm font-bold ${selectedIndex === correctIndex ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                            {selectedIndex === correctIndex ? "Правильно" : `Правильна відповідь: ${question.answers[correctIndex]?.answerText ?? "-"}`}
+                          </p>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -863,18 +946,20 @@ export const ModulePage = () => {
                     <motion.div
                       initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8 }}
                       transition={{ type: "spring", stiffness: 320, damping: 24 }}
-                      className={`mt-8 rounded-3xl p-6 md:p-8 border shadow-xl backdrop-blur-xl ${isCorrect ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-500/40 shadow-[0_0_40px_rgba(16,185,129,0.35)]" : "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-500/30"}`}
+                      className={`mt-8 rounded-3xl p-6 md:p-8 border shadow-xl backdrop-blur-xl ${isAllCorrect ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-500/40 shadow-[0_0_40px_rgba(16,185,129,0.35)]" : "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-500/30"}`}
                     >
                       <div className="flex items-start gap-4">
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 border shadow-inner ${isCorrect ? "bg-emerald-100 dark:bg-emerald-500/25 border-emerald-300" : "bg-rose-100 dark:bg-rose-500/20 border-rose-300"}`}>
-                          {isCorrect ? "🎯" : "💡"}
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 border shadow-inner ${isAllCorrect ? "bg-emerald-100 dark:bg-emerald-500/25 border-emerald-300" : "bg-rose-100 dark:bg-rose-500/20 border-rose-300"}`}>
+                          {isAllCorrect ? "🎯" : "💡"}
                         </motion.div>
                         <div>
-                          <p className={`text-lg font-black mb-1 ${isCorrect ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}>
-                            {isCorrect ? t("module.correct", "Чудово! Абсолютно вірно.") : t("module.incorrect", "Не зовсім правильно.")}
+                          <p className={`text-lg font-black mb-1 ${isAllCorrect ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}>
+                            {isAllCorrect ? t("module.correct", "Чудово! Абсолютно вірно.") : t("module.incorrect", "Не зовсім правильно.")}
                           </p>
                           <p className="text-sm font-medium text-slate-600 dark:text-white/60">
-                            {isCorrect ? t("module.earnedXp", "Ви успішно засвоїли матеріал і отримуєте +15 XP!") : `${t("module.correctAnswer", "Правильна відповідь")}: "${answers[correctIndex]?.answerText ?? ""}"`}
+                            {isAllCorrect
+                              ? t("module.earnedXp", "Ви успішно засвоїли матеріал і отримуєте +15 XP!")
+                              : `Правильно: ${correctCount} з ${totalQuestions}`}
                           </p>
                         </div>
                       </div>
@@ -883,8 +968,15 @@ export const ModulePage = () => {
                 </AnimatePresence>
                 <motion.button
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={() => { if (!showResult) void handleCheck(); else { setShowResult(false); setSelectedAnswer(null); } }}
-                  disabled={!showResult && selectedAnswer === null}
+                  onClick={() => {
+                    if (!showResult) {
+                      void handleCheck();
+                    } else {
+                      setShowResult(false);
+                      setSelectedAnswers({});
+                    }
+                  }}
+                  disabled={!showResult && answeredQuestions !== totalQuestions}
                   className="w-full mt-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[14px] font-black uppercase tracking-widest rounded-2xl disabled:opacity-40 hover:shadow-[0_0_24px_rgba(16,185,129,0.5)] transition-all border border-emerald-400/50 disabled:border-transparent"
                 >
                   {!showResult ? t("module.check", "Перевірити відповідь") : "OK"}
@@ -945,10 +1037,10 @@ export const ModulePage = () => {
             </div>
           </div>
           <nav className="flex-1 px-3 py-4 overflow-y-auto">
-            <SidebarItem lesson={videoLesson} type="VIDEO" label="Відео" icon="▶" tab="video" />
+            {hasVideo && <SidebarItem lesson={videoLesson} type="VIDEO" label="Відео" icon="▶" tab="video" />}
             <SidebarItem lesson={theoryLesson} type="THEORY" label="Теорія" icon="📖" tab="theory" />
-            <SidebarItem lesson={taskLesson} type="TASK" label="Вправи" icon="✏️" tab="exercises" />
-            <SidebarItem lesson={testLesson} type="TEST" label="Тест" icon="📝" tab="exercises" />
+            {hasTaskContent && <SidebarItem lesson={taskLesson} type="TASK" label="Вправи" icon="✏️" tab="exercises" />}
+            {hasTestContent && <SidebarItem lesson={testLesson} type="TEST" label="Тест" icon="📝" tab="exercises" />}
             {/* Vocabulary item — shows only if vocabulary exists */}
             <SidebarVocabItem />
           </nav>
@@ -984,13 +1076,13 @@ export const ModulePage = () => {
             </div>
             {/* Mobile tabs — scrollable row to fit 4 tabs */}
             <div className="relative flex rounded-2xl p-1 bg-slate-200/60 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 shadow-inner overflow-x-auto gap-1">
-              {TABS.filter(tab => tab.id !== "vocabulary" || moduleVocabulary.length > 0).map((tab) => {
+              {TABS.filter((tab) => availableTabs.includes(tab.id)).map((tab) => {
                 const active = activeTab === tab.id;
                 const tabDone =
                   tab.id === "video" ? (videoLesson && completedLessons.has(videoLesson.id))
                     : tab.id === "theory" ? (theoryLesson && completedLessons.has(theoryLesson.id))
                       : tab.id === "vocabulary" ? false
-                        : (taskLesson && completedLessons.has(taskLesson.id)) || (testLesson && completedLessons.has(testLesson.id));
+                        : (hasTaskContent && taskLesson && completedLessons.has(taskLesson.id)) || (hasTestContent && testLesson && completedLessons.has(testLesson.id));
 
                 return (
                   <button key={tab.id} type="button" onClick={() => setTab(tab.id)} className={`relative flex-1 min-w-[72px] py-3 px-2 text-center text-[10px] font-black uppercase tracking-[0.1em] rounded-xl transition-colors z-10 whitespace-nowrap ${active ? "text-white" : "text-slate-500 dark:text-white/45"}`}>

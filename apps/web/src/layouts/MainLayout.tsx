@@ -9,7 +9,7 @@ export const MainLayout = () => {
       <div className="flex flex-1 pt-16 min-h-0">
         <SideBar />
         <main
-          className="flex-1 md:ml-16 mb-16 md:mb-0 p-4 md:p-6
+          className="flex-1 md:ml-20 mb-16 md:mb-0
           bg-slate-50 dark:bg-[#030812] overflow-y-auto overflow-x-hidden transition-colors duration-500"
         >
           <Outlet />

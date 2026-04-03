@@ -18,7 +18,17 @@ export const getModuleById = async (req: Request, res: Response): Promise<void> 
         course: { select: { id: true, title: true } },
         lessons: {
           orderBy: { orderIndex: 'asc' },
-          select: { id: true, title: true, type: true, orderIndex: true, videoUrl: true },
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            orderIndex: true,
+            videoUrl: true,
+            content: true,
+          },
+        },
+        vocabulary: {
+          orderBy: { createdAt: 'asc' },
         },
       },
     })

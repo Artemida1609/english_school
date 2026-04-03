@@ -16,6 +16,7 @@ export interface Module {
   orderIndex: number;
   stage?: number;
   lessons?: Lesson[];
+  vocabulary?: VocabularyItem[];
   _count?: { lessons: number };
   course?: { id: string; title: string };
 }

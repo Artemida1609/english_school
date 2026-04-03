@@ -23,6 +23,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { AuthGuard } from "./components/AuthGuard";
 import { ProfilePage } from "./pages/ProfilePage";
+import { MainHomePage } from "./pages/MainHomePage";
 
 export const App = () => {
   const { theme, setTheme } = useThemeStore();
@@ -53,9 +54,10 @@ export const App = () => {
 
         <Route element={<AuthGuard />}>
           <Route element={<MainLayout />}>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<MainHomePage />} />
             <Route path="/course" element={<CourseDetailPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile" element={<HomePage />} />
+            <Route path="/profile-settings" element={<ProfilePage />} />
             <Route path="/chats" element={<ChatsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route

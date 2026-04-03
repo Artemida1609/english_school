@@ -93,7 +93,7 @@ export const Header = () => {
           <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 mx-1" />
 
           {/* Profile */}
-          <NavLink to="/profile">
+          <NavLink to="/profile-settings">
             <button
               className="flex items-center justify-center w-9 h-9 rounded-full
               hover:bg-gray-100 dark:hover:bg-slate-800
