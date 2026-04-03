@@ -1,13 +1,13 @@
-// prisma/seeds/module1.ts
-// Запуск: npx ts-node prisma/seeds/module1.ts
-// або через: npx prisma db seed (якщо налаштовано в package.json)
+// prisma/seeds/module1.ts — викликається з prisma/seed.ts
 
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
-
-async function main() {
+export async function seedModule1(prisma: PrismaClient) {
   console.log('🌱 Seeding Module 1: Personal work identity...');
+
+  await prisma.vocabulary.deleteMany({
+    where: { moduleId: 'module-1-personal-work-identity' },
+  });
 
   // ─────────────────────────────────────────────
   // 1. Знайти існуючий курс
@@ -36,16 +36,19 @@ async function main() {
   // 2. Створити Module 1
   // ─────────────────────────────────────────────
   const module1 = await prisma.module.upsert({
-    where: {
-      // Якщо є unique constraint на courseId + order або slug — адаптуй
-      // Якщо немає — замінити на create + перевірку exists
-      id: 'module-1-personal-work-identity', // або використай cuid()
+    where: { id: 'module-1-personal-work-identity' },
+    update: {
+      title: 'Personal work identity',
+      description: 'Grammar, collocations, jobs & roles (Business English Level 1)',
+      orderIndex: 0,
+      stage: 1,
     },
-    update: {},
     create: {
       id: 'module-1-personal-work-identity',
       title: 'Personal work identity',
+      description: 'Grammar, collocations, jobs & roles (Business English Level 1)',
       orderIndex: 0,
+      stage: 1,
       courseId: course.id,
     },
   });
@@ -480,12 +483,3 @@ async function main() {
   console.log(`      - Jobs: ${jobs.length}`);
   console.log(`      - C-Suite roles: ${cSuite.length}`);
 }
-
-main()
-  .catch((e) => {
-    console.error('❌ Помилка seed:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });

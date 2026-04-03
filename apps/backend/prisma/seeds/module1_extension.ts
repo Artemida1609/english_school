@@ -1,15 +1,8 @@
-// prisma/seeds/module1_extension.ts
-// ДОПОВНЕННЯ до module1.ts — Department Heads, Departments, Industries
-// Запускати ПІСЛЯ module1.ts (або об'єднати в один файл)
-//
-// Передумова: lesson5 вже існує з id 'lesson-m1-vocab-jobs'
-// Всі нові записи прив'язуються до того ж lesson5 і module1
+// prisma/seeds/module1_extension.ts — викликається після seedModule1 з prisma/seed.ts
 
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
-
-async function main() {
+export async function seedModule1Extension(prisma: PrismaClient) {
   const moduleId = 'module-1-personal-work-identity';
   const lessonId = 'lesson-m1-vocab-jobs'; // той самий урок Lesson 5
 
@@ -183,12 +176,3 @@ async function main() {
   console.log(`      - Departments:        ${departments.length}`);
   console.log(`      - Industries:         ${industries.length}`);
 }
-
-main()
-  .catch((e) => {
-    console.error('❌ Помилка:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
