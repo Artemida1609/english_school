@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { BackButton } from "../components/BackButton";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   cardCls,
   inputCls,
@@ -11,12 +12,14 @@ import {
   SectionTitle,
 } from "../components/Settings";
 import type { RootState } from "../store";
+import type { AppDispatch } from "../store";
 import { apiFetch } from "../api/client";
-import { setAvatar as setAvatarInStore } from "../store/authSlice";
+import { setAvatar as setAvatarInStore, logout } from "../store/authSlice";
 
 export const ProfilePage = () => {
   const { t } = useTranslation();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const { user } = useSelector((s: RootState) => s.auth);
 
   // Розбиваємо name на firstName / lastName (бекенд зберігає як "Ім'я Прізвище")
@@ -36,11 +39,21 @@ export const ProfilePage = () => {
   const [levelProgress, setLevelProgress] = useState(0);
   const [streak, setStreak] = useState(0);
   const [completedModules, setCompletedModules] = useState(0);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // FIX: ChangeElement → ChangeEvent
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) setAvatar(URL.createObjectURL(file));
+  };
+
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    dispatch(logout());
+    navigate("/login");
   };
 
   useEffect(() => {
@@ -89,7 +102,7 @@ export const ProfilePage = () => {
   const avatarSrc = avatar ?? serverAvatar;
 
   return (
-    <section className="max-w-lg justify-self-center">
+    <section className="max-w-lg justify-self-center flex flex-col gap-4 p-6">
       <BackButton title={t("settings.profile.title")} />
 
       {/* ── Avatar card ── */}
@@ -181,12 +194,12 @@ export const ProfilePage = () => {
         transition={{ duration: 0.5, delay: 0.04, ease: "easeOut" }}
         className={`${cardCls} space-y-4`}
       >
-        <SectionTitle>Статистика навчання</SectionTitle>
+        <SectionTitle>{t("mainHome.profile.statsTitle")}</SectionTitle>
 
         {/* Level progress bar */}
         <div className="space-y-1">
           <div className="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
-            <span>Рівень {level}</span>
+            <span>{t("mainHome.profile.level")} {level}</span>
             <span>{levelProgress}%</span>
           </div>
           <div className="h-2 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
@@ -203,7 +216,7 @@ export const ProfilePage = () => {
               {completedModules}
             </div>
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              Завершених модулів
+              {t("mainHome.profile.completedModules")}
             </div>
           </div>
           <div className="text-center">
@@ -217,7 +230,7 @@ export const ProfilePage = () => {
               {level}
             </div>
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              Рівень
+              {t("mainHome.profile.level")}
             </div>
           </div>
           <div className="text-center">
@@ -225,7 +238,7 @@ export const ProfilePage = () => {
               {streak}
             </div>
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              Днів поспіль
+              {t("mainHome.profile.daysInRow")}
             </div>
           </div>
         </div>
@@ -357,6 +370,21 @@ export const ProfilePage = () => {
       </motion.div>
 
       <SaveButton />
+
+      {/* Logout */}
+      <motion.button
+        onClick={handleLogout}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+        className="w-full py-3 rounded-xl sm:rounded-2xl
+          border border-rose-100 dark:border-rose-900/40
+          bg-rose-50 dark:bg-rose-900/20
+          hover:bg-rose-100 dark:hover:bg-rose-900/30
+          text-rose-500 dark:text-rose-400 text-sm font-bold transition-colors duration-150"
+      >
+        🚪 {t("settings.logout")}
+      </motion.button>
     </section>
   );
 };

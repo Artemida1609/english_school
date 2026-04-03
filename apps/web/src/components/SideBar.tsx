@@ -72,7 +72,7 @@ export const SideBar = () => {
           key={index}
           className={({ isActive }) =>
             `nav-item group/item flex flex-col items-center justify-center
-            flex-1 md:flex-none p-2 md:px-2 md:py-3 md:rounded-xl
+            flex-1 md:flex-none p-2 md:px-2 md:py-3
             transition-colors duration-200
             ${isActive
               ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30"

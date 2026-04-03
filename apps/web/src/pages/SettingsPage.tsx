@@ -1,14 +1,11 @@
 import { motion } from "framer-motion";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { settingsConfig } from "../data/settingsData";
 import { useThemeStore } from "../store/themeStore";
 import { useSettingsStore } from "../store/settingsStore";
 import { useLanguageStore } from "../store/languageStore";
 import { LANGUAGES } from "../i18n";
-import { useDispatch } from "react-redux";
-import { logout } from "../store/authSlice";
-import type { AppDispatch } from "../store";
 
 const groups = [
   { labelKey: "settings.groups.account", items: settingsConfig.slice(0, 1) },
@@ -22,13 +19,6 @@ export const SettingsPage = () => {
   const { theme } = useThemeStore();
   const { goal, notifications, subscription } = useSettingsStore();
   const { language } = useLanguageStore();
-  const dispatch = useDispatch<AppDispatch>();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate("/login");
-  };
 
   // Динамічні підзаголовки для кожного i18nKey
   const getDynamicSubtitle = (i18nKey: string): string | null => {
@@ -63,7 +53,7 @@ export const SettingsPage = () => {
   };
 
   return (
-    <section className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+    <section className="max-w-2xl mx-auto p-6 sm:px-4 py-4 sm:py-6">
       {/* Header */}
       <div className="mb-5 sm:mb-8">
         <motion.p
@@ -158,22 +148,6 @@ export const SettingsPage = () => {
           </div>
         ))}
       </div>
-
-      {/* Logout */}
-      <motion.button
-        onClick={handleLogout}
-        initial={{ opacity: 0, y: 10 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        viewport={{ once: true, amount: 0 }}
-        className="w-full mt-6 sm:mt-8 py-3 rounded-xl sm:rounded-2xl
-          border border-rose-100 dark:border-rose-900/40
-          bg-rose-50 dark:bg-rose-900/20
-          hover:bg-rose-100 dark:hover:bg-rose-900/30
-          text-rose-500 dark:text-rose-400 text-sm font-bold transition-colors duration-150"
-      >
-        🚪 {t("settings.logout")}
-      </motion.button>
     </section>
   );
 };

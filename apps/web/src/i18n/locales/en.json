@@ -234,5 +234,103 @@
     "fri": "Fr",
     "sat": "Sa",
     "sun": "Su"
+  },
+  "mainHome": {
+    "hero": {
+      "badge": "Online Learning Course",
+      "subtitle": "Practical business English for work, communication and confidence in an international environment.",
+      "startLearning": "Start Learning",
+      "viewProfile": "View Profile",
+      "pill1": "Real business scenarios",
+      "pill2": "Structured learning path",
+      "pill3": "Measurable progress",
+      "students": "Active Students",
+      "modules": "modules",
+      "ratingFrom": "from 2 400 students"
+    },
+    "cabinet": {
+      "title": "At English School you also get a Personal Cabinet",
+      "subtitle": "See your possibilities",
+      "feature1Title": "Manage your learning",
+      "feature1Desc": "Sign up independently via online booking, choose the type of learning and your dream teacher 💚",
+      "feature2Title": "Do homework online",
+      "feature2Desc": "Take tests, listen to audio, watch video lessons and study words in a unique word trainer specially developed for this purpose. Who said homework is boring?",
+      "feature3Title": "Stay motivated",
+      "feature3Desc": "Choose your learning goal and achieve it. Track progress and level up your knowledge 💪"
+    },
+    "about": {
+      "badge": "Get To Know About Us",
+      "title": "Dive into our Online Courses and Ignite Your Learning!",
+      "desc": "We are a modern platform for learning business English. Our mission is to help professionals communicate confidently in an international environment, develop their careers and reach new heights.",
+      "item1": "Interactive lessons with professional teachers",
+      "item2": "Access to 100+ business courses and materials",
+      "item3": "Certificates upon successful course completion",
+      "button": "About More →"
+    },
+    "categories": {
+      "title": "Learning",
+      "titleHighlight": "Categories",
+      "subtitle": "Master English with our comprehensive course collection designed for every skill level"
+    },
+    "testimonials": {
+      "badge": "Testimonials",
+      "title": "What Our Students Say"
+    },
+    "pricing": {
+      "badge": "Pricing Plans",
+      "title": "Choose Your Learning Path",
+      "getStarted": "Get Started",
+      "popular": "POPULAR",
+      "starter": {
+        "title": "Starter",
+        "price": "Free",
+        "desc": "Start learning English for free",
+        "f1": "Access to 5 modules",
+        "f2": "Basic flashcards",
+        "f3": "Daily tasks"
+      },
+      "basic": {
+        "title": "Basic",
+        "period": "/month",
+        "desc": "For those who are serious",
+        "f1": "All courses",
+        "f2": "Unlimited flashcards",
+        "f3": "Video lessons",
+        "f4": "Personal analytics"
+      },
+      "pro": {
+        "title": "Pro",
+        "period": "/month",
+        "desc": "Maximum results",
+        "f1": "Everything in Basic",
+        "f2": "IELTS preparation",
+        "f3": "Group sessions",
+        "f4": "Priority support"
+      },
+      "enterprise": {
+        "title": "Enterprise",
+        "price": "Custom",
+        "desc": "For companies and teams",
+        "f1": "Corporate courses",
+        "f2": "CRM integration",
+        "f3": "HR reports",
+        "f4": "Personal manager"
+      }
+    },
+    "footer": {
+      "brand": "Modern English language learning platform. We help professionals communicate confidently.",
+      "nav": "Navigation",
+      "navLinks": ["Home", "Courses", "About us", "Reviews", "Pricing"],
+      "contact": "Contacts",
+      "rights": "All rights reserved.",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
+    },
+    "profile": {
+      "statsTitle": "Learning Statistics",
+      "level": "Level",
+      "completedModules": "Completed modules",
+      "daysInRow": "Days in a row"
+    }
   }
 }

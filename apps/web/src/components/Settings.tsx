@@ -32,17 +32,21 @@ export const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 export const SaveButton = ({
   onClick,
   label,
+  disabled,
 }: {
   onClick?: () => void;
   label?: string;
+  disabled?: boolean;
 }) => {
   const { t } = useTranslation();
   return (
     <button
       onClick={onClick}
-      className="mt-8 w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500
+      disabled={disabled}
+      className={`mt-8 w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500
         text-white font-black text-[13px] tracking-widest uppercase
-        hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all duration-300 border border-emerald-400/50"
+        hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all duration-300 border border-emerald-400/50
+        ${disabled ? "opacity-50 cursor-not-allowed hover:shadow-none" : ""}`}
     >
       {label ?? t("settings.saveChanges")}
     </button>
@@ -138,7 +142,6 @@ const NotifRow = ({
   </div>
 );
 
-// ─── Notifications ────────────────────────────────────────────────────────────
 // ─── Notifications ────────────────────────────────────────────────────────────
 export const NotificationSettings = () => {
   const { t } = useTranslation();
@@ -279,7 +282,10 @@ export const NotificationSettings = () => {
         />
       </div>
 
-      <SaveButton onClick={() => setNotifications(local)} />
+      <SaveButton
+        onClick={() => setNotifications(local)}
+        disabled={JSON.stringify(local) === JSON.stringify(notifications)}
+      />
     </section>
   );
 };
@@ -292,7 +298,7 @@ export const LanguageSettings = () => {
   const [selected, setSelected] = useState(language);
 
   return (
-    <section className="max-w-lg justify-self-center">
+    <section className="max-w-lg justify-self-center mt-4">
       <BackButton title={t("settings.language.title")} />
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5">
         <SectionTitle>{t("settings.language.sectionTitle")}</SectionTitle>
@@ -342,7 +348,10 @@ export const LanguageSettings = () => {
           ))}
         </div>
       </div>
-      <SaveButton onClick={() => setLanguage(selected)} />
+      <SaveButton
+        onClick={() => setLanguage(selected)}
+        disabled={selected === language}
+      />
     </section>
   );
 };
@@ -495,7 +504,10 @@ export const GoalSettings = () => {
           })}
         </div>
       </div>
-      <SaveButton onClick={() => setGoal(selected as "casual" | "regular" | "intense")} />
+      <SaveButton
+        onClick={() => setGoal(selected as "casual" | "regular" | "intense")}
+        disabled={selected === goal}
+      />
     </section>
   );
 };
@@ -819,7 +831,10 @@ export const ThemeSettings = () => {
           })}
         </div>
       </div>
-      <SaveButton onClick={() => setTheme(selected)} />
+      <SaveButton
+        onClick={() => setTheme(selected)}
+        disabled={selected === theme}
+      />
     </section>
   );
 };

@@ -151,7 +151,7 @@ export const HomePage = () => {
       iconType: "clipboard",
     },
     {
-      label: t("progress.topicsStudied"),
+      label: t("progress.topicsLearned"),
       value: `${topicsStudied}/${topicsTotal}`,
       sub: `${topicsTotal ? Math.round((topicsStudied / topicsTotal) * 100) : 0}% завершено`,
       iconType: "target",
@@ -165,7 +165,7 @@ export const HomePage = () => {
   ];
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-[#030812] overflow-hidden relative text-slate-900 dark:text-white md:rounded-[36px] border border-slate-200/50 dark:border-white/5 shadow-2xl transition-colors duration-500">
+    <div className="min-h-full bg-slate-50 dark:bg-[#030812] overflow-hidden relative text-slate-900 dark:text-white border border-slate-200/50 dark:border-white/5 shadow-2xl transition-colors duration-500">
       {/* Dynamic Glowing Orbs (adapted for light/dark modes) */}
       <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-emerald-300/40 dark:bg-emerald-600/30 blur-[140px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none transition-colors duration-500" />
       <div className="absolute top-[30%] -right-[10%] w-[40%] h-[50%] bg-teal-300/30 dark:bg-teal-600/20 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none transition-colors duration-500" />

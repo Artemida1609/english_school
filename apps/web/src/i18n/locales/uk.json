@@ -234,5 +234,103 @@
     "fri": "Пт",
     "sat": "Сб",
     "sun": "Нд"
+  },
+  "mainHome": {
+    "hero": {
+      "badge": "Online Learning Course",
+      "subtitle": "Практична бізнес-англійська для роботи, комунікації та впевненості у міжнародному середовищі.",
+      "startLearning": "Start Learning",
+      "viewProfile": "View Profile",
+      "pill1": "Real business scenarios",
+      "pill2": "Structured learning path",
+      "pill3": "Measurable progress",
+      "students": "Активних учнів",
+      "modules": "модулів",
+      "ratingFrom": "від 2 400 учнів"
+    },
+    "cabinet": {
+      "title": "А ще у English School ти матимеш Особистий кабінет",
+      "subtitle": "Подивися на свої можливості",
+      "feature1Title": "Керуй навчанням",
+      "feature1Desc": "Записуйся самостійно через онлайн-запис, обери тип навчання і майбутнього викладача мрії 💚",
+      "feature2Title": "Роби домашку онлайн",
+      "feature2Desc": "Проходь тести, слухай аудіо, дивись відеоуроки та вивчай слова в унікальному тренажері слів, спеціально розробленому під цю мету. Хто сказав, що домашка це нудно?",
+      "feature3Title": "Мотивуйся",
+      "feature3Desc": "Обирай ціль навчання та досягай її. Відстежуй прогрес і прокачуй знання від рівня до рівня 💪"
+    },
+    "about": {
+      "badge": "Get To Know About Us",
+      "title": "Dive into our Online Courses and Ignite Your Learning!",
+      "desc": "Ми — сучасна платформа для вивчення бізнес-англійської. Наша місія — допомогти професіоналам впевнено спілкуватися в міжнародному середовищі, розвивати кар'єру та досягати нових висот.",
+      "item1": "Інтерактивні уроки з професійними викладачами",
+      "item2": "Доступ до 100+ бізнес-курсів та матеріалів",
+      "item3": "Сертифікати після успішного завершення курсу",
+      "button": "About More →"
+    },
+    "categories": {
+      "title": "Learning",
+      "titleHighlight": "Categories",
+      "subtitle": "Master English with our comprehensive course collection designed for every skill level"
+    },
+    "testimonials": {
+      "badge": "Testimonials",
+      "title": "What Our Students Say"
+    },
+    "pricing": {
+      "badge": "Pricing Plans",
+      "title": "Choose Your Learning Path",
+      "getStarted": "Get Started",
+      "popular": "POPULAR",
+      "starter": {
+        "title": "Starter",
+        "price": "Free",
+        "desc": "Почніть вивчати англійську безкоштовно",
+        "f1": "Доступ до 5 модулів",
+        "f2": "Базові флеш-картки",
+        "f3": "Щоденні завдання"
+      },
+      "basic": {
+        "title": "Basic",
+        "period": "/місяць",
+        "desc": "Для тих, хто серйозно налаштований",
+        "f1": "Всі курси",
+        "f2": "Необмежені флеш-картки",
+        "f3": "Відео уроки",
+        "f4": "Персональна аналітика"
+      },
+      "pro": {
+        "title": "Pro",
+        "period": "/місяць",
+        "desc": "Максимальний результат",
+        "f1": "Все з Basic",
+        "f2": "IELTS підготовка",
+        "f3": "Групові заняття",
+        "f4": "Пріоритетна підтримка"
+      },
+      "enterprise": {
+        "title": "Enterprise",
+        "price": "Custom",
+        "desc": "Для компаній та команд",
+        "f1": "Корпоративні курси",
+        "f2": "CRM інтеграція",
+        "f3": "Звіти для HR",
+        "f4": "Персональний менеджер"
+      }
+    },
+    "footer": {
+      "brand": "Сучасна платформа для вивчення англійської мови. Допомагаємо професіоналам спілкуватися впевнено.",
+      "nav": "Навігація",
+      "navLinks": ["Головна", "Курси", "Про нас", "Відгуки", "Ціни"],
+      "contact": "Контакти",
+      "rights": "Всі права захищені.",
+      "privacy": "Політика конфіденційності",
+      "terms": "Умови використання"
+    },
+    "profile": {
+      "statsTitle": "Статистика навчання",
+      "level": "Рівень",
+      "completedModules": "Завершених модулів",
+      "daysInRow": "Днів поспіль"
+    }
   }
 }
