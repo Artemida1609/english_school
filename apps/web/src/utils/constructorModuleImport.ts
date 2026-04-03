@@ -1,6 +1,7 @@
 import { coursesApi, type Lesson, type LessonDetail, type Module } from "../api/courses";
 import { parsePracticeFromTaskContent } from "./constructorPractice";
-import { newBlockId, normalizeScenarioBlocks, parseScenarioJson, type ScenarioBlock } from "../types/scenario";
+import { newBlockId, normalizeScenarioBlocks, type ScenarioBlock } from "../types/scenario";
+import { parseScenarioJson } from "./scenarioExport";
 
 export type ModuleWithConstructor = Module & { constructorJson?: string | null };
 
