@@ -58,16 +58,7 @@ export async function seedModule1(prisma: PrismaClient) {
   // ─────────────────────────────────────────────
   // 3. Lesson 1 — THEORY: Grammar "to be"
   // ─────────────────────────────────────────────
-  const lesson1 = await prisma.lesson.upsert({
-    where: { id: 'lesson-m1-grammar-to-be' },
-    update: {},
-    create: {
-      id: 'lesson-m1-grammar-to-be',
-      title: 'Grammar: "to be"',
-      type: 'THEORY',
-      orderIndex: 0,
-      moduleId: module1.id,
-      content: `
+  const lesson1Content = `
 <h2>The verb "to be"</h2>
 
 <p><strong>Definition:</strong> The verb <strong>"to be"</strong> is one of the most important and most frequently used verbs in English. It is used to describe:</p>
@@ -128,25 +119,33 @@ export async function seedModule1(prisma: PrismaClient) {
   <li>that is</li>
   <li>here is</li>
 </ul>
-      `.trim(),
+      `.trim()
+
+  const lesson1 = await prisma.lesson.upsert({
+    where: { id: 'lesson-m1-grammar-to-be' },
+    update: {
+      title: 'Grammar: "to be"',
+      type: 'THEORY',
+      orderIndex: 0,
+      moduleId: module1.id,
+      content: lesson1Content,
     },
-  });
+    create: {
+      id: 'lesson-m1-grammar-to-be',
+      title: 'Grammar: "to be"',
+      type: 'THEORY',
+      orderIndex: 0,
+      moduleId: module1.id,
+      content: lesson1Content,
+    },
+  })
 
   console.log(`✅ Lesson 1 створено: "${lesson1.title}"`);
 
   // ─────────────────────────────────────────────
   // 4. Lesson 2 — THEORY: Grammar "to have / have got"
   // ─────────────────────────────────────────────
-  const lesson2 = await prisma.lesson.upsert({
-    where: { id: 'lesson-m1-grammar-to-have' },
-    update: {},
-    create: {
-      id: 'lesson-m1-grammar-to-have',
-      title: 'Grammar: "to have / have got"',
-      type: 'THEORY',
-      orderIndex: 1,
-      moduleId: module1.id,
-      content: `
+  const lesson2Content = `
 <h2>The verb "to have / have got"</h2>
 
 <p><strong>Definition:</strong> The verb <strong>"have got"</strong> is used in English to show what someone possesses, owns, or has in their life. It can also describe:</p>
@@ -209,9 +208,26 @@ export async function seedModule1(prisma: PrismaClient) {
   <li><strong>Have</strong> I / you / we / they <strong>got</strong> the contract ready?</li>
   <li><strong>Has</strong> he / she / it <strong>got</strong> the final report?</li>
 </ul>
-      `.trim(),
+      `.trim()
+
+  const lesson2 = await prisma.lesson.upsert({
+    where: { id: 'lesson-m1-grammar-to-have' },
+    update: {
+      title: 'Grammar: "to have / have got"',
+      type: 'THEORY',
+      orderIndex: 1,
+      moduleId: module1.id,
+      content: lesson2Content,
     },
-  });
+    create: {
+      id: 'lesson-m1-grammar-to-have',
+      title: 'Grammar: "to have / have got"',
+      type: 'THEORY',
+      orderIndex: 1,
+      moduleId: module1.id,
+      content: lesson2Content,
+    },
+  })
 
   console.log(`✅ Lesson 2 створено: "${lesson2.title}"`);
 

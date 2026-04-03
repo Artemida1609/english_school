@@ -1,13 +1,26 @@
-import { coursesApi, type LessonDetail, type Module } from "../api/courses";
+import { coursesApi, type Lesson, type LessonDetail, type Module } from "../api/courses";
 import { parsePracticeFromTaskContent } from "./constructorPractice";
 import { newBlockId, normalizeScenarioBlocks, parseScenarioJson, type ScenarioBlock } from "../types/scenario";
 
 export type ModuleWithConstructor = Module & { constructorJson?: string | null };
 
+/** Підтягує текст уроку з відповіді модуля або через GET /lessons/:id (викладач залогінений). */
+async function resolveLessonContent(lesson: Lesson): Promise<string> {
+  const fromList = lesson.content?.trim() ?? "";
+  if (fromList) return fromList;
+  if (!lesson.id) return "";
+  try {
+    const detail: LessonDetail = await coursesApi.getLessonById(lesson.id);
+    return detail.content?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
 /**
  * Відновлює title + blocks для конструктора з модуля API:
  * 1) поле constructorJson (повний сценарій після збереження з конструктора);
- * 2) інакше — евристика з уроків THEORY / TASK / TEST.
+ * 2) інакше — евристика з уроків THEORY / TASK / TEST (усі теорії та всі таски з контентом).
  */
 export async function loadConstructorDocumentFromServerModule(
   mod: ModuleWithConstructor,
@@ -37,9 +50,10 @@ async function legacyBlocksFromModuleLessons(
 
   const blocks: ScenarioBlock[] = [];
 
-  const theory = lessons.find((l) => l.type === "THEORY");
-  if (theory?.content?.trim()) {
-    const c = theory.content.trim();
+  const theoryLessons = lessons.filter((l) => l.type === "THEORY");
+  for (const theory of theoryLessons) {
+    const c = await resolveLessonContent(theory);
+    if (!c) continue;
     blocks.push({
       id: newBlockId(),
       type: "text",
@@ -48,9 +62,11 @@ async function legacyBlocksFromModuleLessons(
     });
   }
 
-  const task = lessons.find((l) => l.type === "TASK");
-  if (task?.content?.trim()) {
-    const { practice } = parsePracticeFromTaskContent(task.content);
+  const taskLessons = lessons.filter((l) => l.type === "TASK");
+  for (const task of taskLessons) {
+    const rawTask = await resolveLessonContent(task);
+    if (!rawTask) continue;
+    const { practice } = parsePracticeFromTaskContent(rawTask);
     if (practice?.quizlet?.length) {
       blocks.push({
         id: newBlockId(),
@@ -101,6 +117,27 @@ async function legacyBlocksFromModuleLessons(
     }
   }
 
-  if (blocks.length === 0) return null;
+  if (blocks.length === 0) {
+    return {
+      title: mod.title,
+      blocks: normalizeScenarioBlocks([
+        {
+          id: newBlockId(),
+          type: "text",
+          richText: true,
+          body: `<p>Модуль «${escapeHtml(mod.title)}» має ${lessons.length} урок(ів), але в БД немає тексту теорії/практики (або сид ще не оновив контент). На сервері виконайте повторний <strong>prisma db seed</strong> або відредагуйте уроки вручну.</p>`,
+        },
+      ]),
+    };
+  }
+
   return { title: mod.title, blocks: normalizeScenarioBlocks(blocks) };
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
