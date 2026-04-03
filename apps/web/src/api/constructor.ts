@@ -7,6 +7,8 @@ export type ConstructorPublishBody = {
   stage?: number;
   theoryHtml: string;
   taskMarkdown?: string;
+  /** JSON сценарію конструктора (version, title, blocks) для повторного відкриття */
+  scenarioJson?: string | null;
   testQuestions?: {
     questionText: string;
     answers: { text: string; isCorrect: boolean }[];

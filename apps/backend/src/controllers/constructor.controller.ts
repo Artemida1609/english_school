@@ -15,11 +15,16 @@ type ConstructorBody = {
   theoryHtml: string
   taskMarkdown?: string
   testQuestions?: QuestionDto[]
+  /** JSON документа конструктора (version, title, blocks) для повторного відкриття в редакторі */
+  scenarioJson?: string | null
 }
 
 function validateConstructorBody(body: ConstructorBody): string | null {
   if (!body.title?.trim()) return 'Title is required'
   if (!body.theoryHtml?.trim()) return 'theoryHtml is required'
+  if (body.scenarioJson != null && body.scenarioJson.length > 2_500_000) {
+    return 'scenarioJson is too large'
+  }
   if (body.testQuestions) {
     for (const q of body.testQuestions) {
       if (!q.questionText?.trim()) return 'Each test question needs questionText'
@@ -131,6 +136,7 @@ export const publishFromConstructor = async (req: AuthRequest, res: Response): P
           description: body.description?.trim() ?? '',
           orderIndex: nextOrder,
           stage: body.stage ?? 1,
+          constructorJson: body.scenarioJson?.trim() || null,
         },
       })
       await createLessonsForModule(tx, mod.id, mod.title, body, 0)
@@ -173,6 +179,7 @@ export const syncConstructorModule = async (req: AuthRequest, res: Response): Pr
         data: {
           title: body.title.trim(),
           description: body.description?.trim() ?? existing.description ?? '',
+          constructorJson: body.scenarioJson != null ? body.scenarioJson.trim() || null : undefined,
           ...(typeof body.orderIndex === 'number' ? { orderIndex: body.orderIndex } : {}),
           ...(typeof body.stage === 'number' ? { stage: body.stage } : {}),
         },

@@ -9,6 +9,7 @@ import {
 import { coursesApi, type Course, type Module } from "../api/courses";
 import { constructorApi } from "../api/constructor";
 import { appendPracticeToTaskMarkdown } from "../utils/constructorPractice";
+import { loadConstructorDocumentFromServerModule } from "../utils/constructorModuleImport";
 import {
   blocksToHtml,
   buildPracticeFromBlocks,
@@ -54,6 +55,7 @@ export function ModuleConstructorPage() {
   const [publishedModuleId, setPublishedModuleId] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const skipNextAutosave = useRef(false);
+  const lastFetchedConstructorModuleRef = useRef<string | null>(null);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -142,6 +144,46 @@ export function ModuleConstructorPage() {
       setPublishedModuleId(null);
     }
   }, [courseId, courseModules, publishedModuleId]);
+
+  useEffect(() => {
+    if (!publishedModuleId) {
+      lastFetchedConstructorModuleRef.current = null;
+      return;
+    }
+    if (lastFetchedConstructorModuleRef.current === publishedModuleId) return;
+
+    const mid = publishedModuleId;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const mod = await coursesApi.getModuleById(mid);
+        if (cancelled) return;
+        const result = await loadConstructorDocumentFromServerModule(mod);
+        if (cancelled) return;
+        if (result) {
+          lastFetchedConstructorModuleRef.current = mid;
+          skipNextAutosave.current = true;
+          setTitle(result.title);
+          setBlocks(result.blocks);
+          setExpandedId(null);
+          showToast(
+            result.fromStoredJson
+              ? "Сценарій завантажено з сервера"
+              : "Відновлено з уроків (збережіть модуль, щоб з’явився повний JSON конструктора)",
+          );
+        } else {
+          showToast("У модулі немає даних для конструктора");
+        }
+      } catch {
+        if (!cancelled) showToast("Не вдалося завантажити модуль");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [publishedModuleId, showToast]);
 
   const sortedCourseModules = useMemo(
     () => [...courseModules].sort((a, b) => a.orderIndex - b.orderIndex),
@@ -307,11 +349,17 @@ export function ModuleConstructorPage() {
       TASK_FOR_PUBLISH,
       buildPracticeFromBlocks(blocks),
     );
+    const scenarioJson = documentToJson({
+      version: 1,
+      title: title.trim(),
+      blocks,
+    });
     const body = {
       title: title.trim(),
       description: "Створено в конструкторі модулів",
       theoryHtml: htmlExport,
       taskMarkdown,
+      scenarioJson,
       ...(testQuestions.length ? { testQuestions } : {}),
     };
     setPublishing(true);
@@ -436,7 +484,8 @@ export function ModuleConstructorPage() {
                 ))}
               </select>
               <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
-                Оберіть існуючий модуль, щоб оновлювати його, або залиште «Новий модуль».
+                Оберіть існуючий модуль — теорія та практика підтягнуться з сервера. Збережіть чернетку перед
+                зміною, якщо потрібно не втратити поточні правки.
               </span>
             </label>
             <div className="flex flex-wrap gap-2">

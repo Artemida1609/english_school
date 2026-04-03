@@ -15,6 +15,8 @@ export interface Module {
   description?: string;
   orderIndex: number;
   stage?: number;
+  /** Зберігається при публікації з конструктора */
+  constructorJson?: string | null;
   lessons?: Lesson[];
   vocabulary?: VocabularyItem[];
   _count?: { lessons: number };

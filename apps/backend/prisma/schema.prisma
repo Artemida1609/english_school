@@ -95,6 +95,8 @@ model Module {
   orderIndex  Int      @default(0) @map("order_index")
   /// Внутрішній етап курсу (1–5), не плутати з Course.level
   stage       Int      @default(1)
+  /// Повний JSON сценарію конструктора (блоки) для зворотного завантаження в редактор
+  constructorJson String? @map("constructor_json") @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
 
   course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
