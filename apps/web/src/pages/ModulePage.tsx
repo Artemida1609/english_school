@@ -164,6 +164,10 @@ function FlashcardsSection({ vocabulary }: { vocabulary: VocabularyItem[] }) {
   };
   const markAllKnown = () => {
     setKnown(new Set(filtered.map((item) => item.id)));
+    if (filtered.length > 0) {
+      setCurrentIndex(filtered.length - 1);
+      setFlipped(true);
+    }
   };
   const reset = () => { setCurrentIndex(0); setFlipped(false); setKnown(new Set()); };
 
