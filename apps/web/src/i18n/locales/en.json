@@ -115,6 +115,9 @@
       "other": "Other"
     },
     "logout": "Log out",
+    "logoutConfirmTitle": "Are you sure you want to log out?",
+    "logoutConfirmText": "You will need to enter your password again to access your account.",
+    "cancel": "Cancel",
     "saveChanges": "Save changes",
     "back": "Back",
     "profile": {
