@@ -26,8 +26,6 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { MainHomePage } from "./pages/MainHomePage";
 import { StaffGuard } from "./components/StaffGuard";
 import { ModuleConstructorPage } from "./pages/ModuleConstructorPage";
-import { ConstructorPreviewPage } from "./pages/ConstructorPreviewPage";
-
 export const App = () => {
   const { theme, setTheme } = useThemeStore();
 
@@ -84,7 +82,6 @@ export const App = () => {
 
           <Route element={<ModuleLayout />}>
             <Route path="/course/modules/:id" element={<ModulePage />} />
-            <Route path="/constructor/preview" element={<ConstructorPreviewPage />} />
           </Route>
         </Route>
       </Routes>

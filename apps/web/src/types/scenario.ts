@@ -1,5 +1,12 @@
 export type ScenarioBlock =
-  | { id: string; type: "text"; body: string }
+  | {
+      id: string;
+      type: "text";
+      /** HTML з редактора або простий текст (див. richText) */
+      body: string;
+      /** false = розбивка по рядках як раніше; true/undefined = body як HTML */
+      richText?: boolean;
+    }
   | {
       id: string;
       type: "table";
@@ -11,6 +18,7 @@ export type ScenarioBlock =
       type: "cards";
       items: { title: string; body: string }[];
     }
+  /** Стрілка між секціями теорії */
   | {
       id: string;
       type: "connector";
@@ -18,11 +26,20 @@ export type ScenarioBlock =
       toId: string;
       label?: string;
     }
+  /** Зіставлення лівий / правий стовпчик (як на робочому аркуші) */
+  | {
+      id: string;
+      type: "match";
+      left: string[];
+      right: string[];
+    }
   | {
       id: string;
       type: "cloze";
       text: string;
       answers: string[];
+      /** Хибні варіанти для тесту (MCQ) */
+      distractors?: string[];
     };
 
 export type ScenarioDocument = {
@@ -45,7 +62,7 @@ export function defaultBlock(type: ScenarioBlock["type"]): ScenarioBlock {
   const id = newBlockId();
   switch (type) {
     case "text":
-      return { id, type: "text", body: "Текст параграфу…" };
+      return { id, type: "text", body: "<p>Текст параграфу…</p>", richText: true };
     case "table":
       return {
         id,
@@ -61,18 +78,39 @@ export function defaultBlock(type: ScenarioBlock["type"]): ScenarioBlock {
         id,
         type: "cards",
         items: [
-          { title: "Картка 1", body: "Опис…" },
-          { title: "Картка 2", body: "Опис…" },
+          { title: "Термін 1", body: "Визначення…" },
+          { title: "Термін 2", body: "Визначення…" },
         ],
       };
     case "connector":
       return { id, type: "connector", fromId: "", toId: "", label: "" };
+    case "match":
+      return {
+        id,
+        type: "match",
+        left: ["Елемент A", "Елемент B", "Елемент C"],
+        right: ["Відповідь 1", "Відповідь 2", "Відповідь 3"],
+      };
     case "cloze":
       return {
         id,
         type: "cloze",
         text: "She ___ to the office every day.",
         answers: ["goes"],
+        distractors: ["go", "going", "went"],
       };
   }
+}
+
+/** Нормалізація блоків після імпорту старого JSON */
+export function normalizeScenarioBlocks(blocks: ScenarioBlock[]): ScenarioBlock[] {
+  return blocks.map((b) => {
+    if (b.type === "cloze" && !b.distractors) {
+      return { ...b, distractors: [] };
+    }
+    if (b.type === "text" && b.richText === undefined && !b.body.includes("<")) {
+      return { ...b, richText: false };
+    }
+    return b;
+  });
 }

@@ -1,17 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { defaultBlock, type ScenarioBlock, type ScenarioDocument } from "../types/scenario";
-import { writeConstructorPreview } from "../types/constructorPreview";
+import { defaultBlock, normalizeScenarioBlocks, type ScenarioBlock, type ScenarioDocument } from "../types/scenario";
+import {
+  CONSTRUCTOR_PREVIEW_MODULE_ID,
+  writeConstructorPreview,
+} from "../types/constructorPreview";
 import { coursesApi, type Course } from "../api/courses";
 import { constructorApi } from "../api/constructor";
+import { appendPracticeToTaskMarkdown } from "../utils/constructorPractice";
 import {
   blocksToHtml,
+  buildPracticeFromBlocks,
   buildTestQuestionsFromBlocks,
   documentToJson,
   extractClozeTestPayload,
   parseScenarioJson,
 } from "../utils/scenarioExport";
+import { RichTextEditor } from "../components/constructor/RichTextEditor";
 
 const LS_KEY = "moduleConstructorDraft";
 
@@ -82,7 +88,9 @@ export function ModuleConstructorPage() {
     if (doc) {
       skipNextAutosave.current = true;
       setTitle(doc.title);
-      setBlocks(doc.blocks.length ? doc.blocks : [defaultBlock("text")]);
+      setBlocks(
+        doc.blocks.length ? normalizeScenarioBlocks(doc.blocks) : [defaultBlock("text")],
+      );
       if (doc.publishedModuleId) setPublishedModuleId(doc.publishedModuleId);
       if (doc.courseId) setCourseId(doc.courseId);
       setLastSavedAt(new Date());
@@ -129,19 +137,22 @@ export function ModuleConstructorPage() {
   const htmlExport = useMemo(() => blocksToHtml(blocks), [blocks]);
   const testPayload = useMemo(() => extractClozeTestPayload(blocks), [blocks]);
 
-  const sectionOptions = useMemo(
-    () => blocks.filter((b) => b.type !== "connector"),
+  const theorySectionOptions = useMemo(
+    () =>
+      blocks.filter(
+        (b) => b.type === "text" || b.type === "table" || b.type === "cloze",
+      ),
     [blocks],
   );
 
   const addBlock = (type: ScenarioBlock["type"]) => {
     let nb: ScenarioBlock = defaultBlock(type);
-    if (type === "connector" && sectionOptions.length >= 2) {
+    if (type === "connector" && theorySectionOptions.length >= 2) {
       nb = {
         id: nb.id,
         type: "connector",
-        fromId: sectionOptions[0].id,
-        toId: sectionOptions[1].id,
+        fromId: theorySectionOptions[0].id,
+        toId: theorySectionOptions[1].id,
         label: "",
       };
     }
@@ -180,20 +191,24 @@ export function ModuleConstructorPage() {
       return;
     }
     setTitle(doc.title);
-    setBlocks(doc.blocks.length ? doc.blocks : [defaultBlock("text")]);
+    setBlocks(
+      doc.blocks.length ? normalizeScenarioBlocks(doc.blocks) : [defaultBlock("text")],
+    );
     setPublishedModuleId(doc.publishedModuleId ?? null);
     setCourseId(doc.courseId ?? "");
     showToast("Імпортовано");
   };
 
   const openModulePreview = () => {
+    const practice = buildPracticeFromBlocks(blocks);
     writeConstructorPreview({
       title: title.trim() || "Перегляд",
       theoryHtml: htmlExport,
       taskMarkdown: TASK_FOR_PUBLISH,
       testQuestions: buildTestQuestionsFromBlocks(blocks),
+      practice,
     });
-    navigate("/constructor/preview");
+    navigate(`/course/modules/${CONSTRUCTOR_PREVIEW_MODULE_ID}`);
   };
 
   const publishToServer = async () => {
@@ -206,11 +221,15 @@ export function ModuleConstructorPage() {
       return;
     }
     const testQuestions = buildTestQuestionsFromBlocks(blocks);
+    const taskMarkdown = appendPracticeToTaskMarkdown(
+      TASK_FOR_PUBLISH,
+      buildPracticeFromBlocks(blocks),
+    );
     const body = {
       title: title.trim(),
       description: "Створено в конструкторі модулів",
       theoryHtml: htmlExport,
-      taskMarkdown: TASK_FOR_PUBLISH,
+      taskMarkdown,
       ...(testQuestions.length ? { testQuestions } : {}),
     };
     setPublishing(true);
@@ -269,7 +288,7 @@ export function ModuleConstructorPage() {
               «Тест» (якщо є блоки з пропусками). Повторне натискання оновлює той самий модуль.
             </li>
             <li>
-              <strong>Перегляд</strong> — «Як виглядатиме модуль» відкриває повноекранний перегляд без збереження прогресу.
+              <strong>Перегляд</strong> — той самий екран, що й у студента (ModulePage): теорія, практика з картками та зіставленням, тест. Прогрес не зберігається.
             </li>
             <li>
               <strong>Чернетка в браузері</strong> — додатково зберігається локально (авто або кнопка «Зберегти чернетку»).
@@ -366,9 +385,10 @@ export function ModuleConstructorPage() {
             <ToolBtn onClick={() => addBlock("cards")} label="Картки" />
             <ToolBtn
               onClick={() => addBlock("connector")}
-              label="Конектор"
-              disabled={sectionOptions.length < 2}
+              label="Стрілка (секції)"
+              disabled={theorySectionOptions.length < 2}
             />
+            <ToolBtn onClick={() => addBlock("match")} label="Зіставлення" />
             <ToolBtn onClick={() => addBlock("cloze")} label="Пропуски" />
           </div>
         </div>
@@ -493,7 +513,7 @@ export function ModuleConstructorPage() {
                     <div className="p-4">
                       <BlockFields
                         block={b}
-                        sectionOptions={sectionOptions}
+                        theorySectionOptions={theorySectionOptions}
                         onChange={(patch) => updateBlock(b.id, patch)}
                       />
                     </div>
@@ -536,7 +556,9 @@ function blockTitle(b: ScenarioBlock): string {
     case "cards":
       return "Картки";
     case "connector":
-      return "Конектор (стрілка)";
+      return "Стрілка між секціями";
+    case "match":
+      return "Зіставлення (лінії)";
     case "cloze":
       return "Пропуски для тесту";
     default: {
@@ -595,22 +617,41 @@ function IconBtn({
 
 function BlockFields({
   block,
-  sectionOptions,
+  theorySectionOptions,
   onChange,
 }: {
   block: ScenarioBlock;
-  sectionOptions: ScenarioBlock[];
+  theorySectionOptions: ScenarioBlock[];
   onChange: (patch: Partial<ScenarioBlock>) => void;
 }) {
   switch (block.type) {
     case "text":
       return (
-        <textarea
-          value={block.body}
-          onChange={(e) => onChange({ body: e.target.value })}
-          rows={6}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
-        />
+        <div className="space-y-3">
+          <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
+            <input
+              type="checkbox"
+              checked={block.richText !== false}
+              onChange={(e) => onChange({ richText: e.target.checked ? true : false })}
+              className="rounded border-slate-300"
+            />
+            Форматування (жирний, курсив, списки, заголовки)
+          </label>
+          {block.richText !== false ? (
+            <RichTextEditor
+              mountKey={block.id}
+              value={block.body}
+              onChange={(html) => onChange({ body: html })}
+            />
+          ) : (
+            <textarea
+              value={block.body}
+              onChange={(e) => onChange({ body: e.target.value })}
+              rows={6}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
+            />
+          )}
+        </div>
       );
     case "table": {
       const setHeader = (i: number, v: string) => {
@@ -688,9 +729,12 @@ function BlockFields({
         <div className="space-y-3">
           {block.items.map((it, i) => (
             <div key={i} className="rounded-xl border border-slate-100 p-3 dark:border-slate-700">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                Термін (лицева сторона)
+              </p>
               <input
                 value={it.title}
-                placeholder="Заголовок"
+                placeholder="Термін"
                 onChange={(e) => {
                   const items = block.items.map((x, j) =>
                     j === i ? { ...x, title: e.target.value } : x,
@@ -699,9 +743,12 @@ function BlockFields({
                 }}
                 className="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 font-bold dark:border-slate-600 dark:bg-slate-800"
               />
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                Визначення (зворотна сторона)
+              </p>
               <textarea
                 value={it.body}
-                placeholder="Текст картки"
+                placeholder="Визначення"
                 onChange={(e) => {
                   const items = block.items.map((x, j) =>
                     j === i ? { ...x, body: e.target.value } : x,
@@ -732,7 +779,7 @@ function BlockFields({
             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-900"
           >
             <option value="">—</option>
-            {sectionOptions.map((s) => (
+            {theorySectionOptions.map((s) => (
               <option key={s.id} value={s.id} disabled={s.id === block.toId}>
                 {blockTitle(s)} ({s.id.slice(0, 8)}…)
               </option>
@@ -745,7 +792,7 @@ function BlockFields({
             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-900"
           >
             <option value="">—</option>
-            {sectionOptions.map((s) => (
+            {theorySectionOptions.map((s) => (
               <option key={s.id} value={s.id} disabled={s.id === block.fromId}>
                 {blockTitle(s)} ({s.id.slice(0, 8)}…)
               </option>
@@ -760,8 +807,65 @@ function BlockFields({
           />
         </div>
       );
+    case "match": {
+      const setSide = (side: "left" | "right", lines: string[]) => {
+        onChange(side === "left" ? { left: lines } : { right: lines });
+      };
+      const LineEditor = ({
+        label,
+        lines,
+        onLines,
+      }: {
+        label: string;
+        lines: string[];
+        onLines: (next: string[]) => void;
+      }) => (
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-500">{label}</label>
+          <p className="text-[11px] text-slate-500">
+            Порядок у стовпчиках може відрізнятися: перший елемент ліворуч відповідає першому
+            праворуч, другий — другому тощо.
+          </p>
+          {lines.map((line, i) => (
+            <div key={i} className="flex gap-2">
+              <input
+                value={line}
+                onChange={(e) => {
+                  const next = [...lines];
+                  next[i] = e.target.value;
+                  onLines(next);
+                }}
+                className="min-w-0 flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800"
+              />
+              <button
+                type="button"
+                onClick={() => onLines(lines.filter((_, j) => j !== i))}
+                className="shrink-0 rounded-lg px-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                aria-label="Видалити рядок"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => onLines([...lines, ""])}
+            className="text-xs font-bold text-emerald-600"
+          >
+            + рядок
+          </button>
+        </div>
+      );
+      return (
+        <div className="grid gap-6 md:grid-cols-2">
+          <LineEditor label="Лівий стовпчик" lines={block.left} onLines={(l) => setSide("left", l)} />
+          <LineEditor label="Правий стовпчик" lines={block.right} onLines={(r) => setSide("right", r)} />
+        </div>
+      );
+    }
     case "cloze": {
       const gapCount = (block.text.match(/___/g) ?? []).length;
+      const distractors = block.distractors ?? [];
       return (
         <div className="space-y-3">
           <p className="text-xs text-slate-500">
@@ -784,6 +888,21 @@ function BlockFields({
                 .filter(Boolean);
               onChange({ answers });
             }}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-600 dark:bg-slate-900"
+          />
+          <label className="text-xs font-bold text-slate-500">
+            Хибні варіанти для тесту (через кому; підмішуються до варіантів відповіді)
+          </label>
+          <input
+            value={distractors.join(", ")}
+            onChange={(e) => {
+              const next = e.target.value
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean);
+              onChange({ distractors: next });
+            }}
+            placeholder="наприклад: go, going, went"
             className="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-600 dark:bg-slate-900"
           />
         </div>

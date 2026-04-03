@@ -4,6 +4,10 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { coursesApi, type Lesson, type LessonDetail, type Module, type VocabularyItem } from "../api/courses";
 import { apiFetch } from "../api/client";
+import { CONSTRUCTOR_PREVIEW_MODULE_ID, readConstructorPreview } from "../types/constructorPreview";
+import { appendPracticeToTaskMarkdown, parsePracticeFromTaskContent } from "../utils/constructorPractice";
+import { QuizletCards } from "../components/constructor/QuizletCards";
+import { MatchingExercise } from "../components/constructor/MatchingExercise";
 
 // ─── Tabs ──────────────────────────────────────────────────────
 type TabId = "video" | "exercises" | "theory" | "vocabulary";
@@ -388,6 +392,7 @@ export const ModulePage = () => {
   );
 
   const { id: moduleId } = useParams<{ id: string }>();
+  const isConstructorPreview = moduleId === CONSTRUCTOR_PREVIEW_MODULE_ID;
 
   const sortedLessons = useMemo(() => {
     if (!module?.lessons) return [];
@@ -454,6 +459,92 @@ export const ModulePage = () => {
   // ─── Load module ───────────────────────────────────────────
   useEffect(() => {
     if (!moduleId) return;
+
+    if (isConstructorPreview) {
+      const pv = readConstructorPreview();
+      if (!pv) {
+        setLoading(false);
+        setError(
+          "Немає даних перегляду. Відкрийте конструктор і натисніть «Як виглядатиме модуль».",
+        );
+        setModule(null);
+        return;
+      }
+      const practice = pv.practice ?? { version: 1 as const, quizlet: [], matching: [] };
+      const taskBody = appendPracticeToTaskMarkdown(pv.taskMarkdown, practice);
+      const lessons: Lesson[] = [
+        {
+          id: "pvc-theory",
+          title: "Теорія",
+          type: "THEORY",
+          orderIndex: 0,
+          content: pv.theoryHtml,
+        },
+        { id: "pvc-task", title: "Вправи", type: "TASK", orderIndex: 1, content: taskBody },
+      ];
+      if (pv.testQuestions.length > 0) {
+        lessons.push({ id: "pvc-test", title: "Тест", type: "TEST", orderIndex: 2 });
+      }
+      setModule({
+        id: CONSTRUCTOR_PREVIEW_MODULE_ID,
+        title: pv.title,
+        description: "Перегляд з конструктора",
+        orderIndex: 0,
+        stage: 1,
+        lessons,
+      });
+      setDetailTheory({
+        id: "pvc-theory",
+        title: "Теорія",
+        type: "THEORY",
+        orderIndex: 0,
+        content: pv.theoryHtml,
+        moduleId: CONSTRUCTOR_PREVIEW_MODULE_ID,
+        tests: [],
+      } as LessonDetail);
+      setDetailTask({
+        id: "pvc-task",
+        title: "Вправи",
+        type: "TASK",
+        orderIndex: 1,
+        content: taskBody,
+        moduleId: CONSTRUCTOR_PREVIEW_MODULE_ID,
+        tests: [],
+      } as LessonDetail);
+      if (pv.testQuestions.length > 0) {
+        setDetailTest({
+          id: "pvc-test",
+          title: "Тест",
+          type: "TEST",
+          orderIndex: 2,
+          moduleId: CONSTRUCTOR_PREVIEW_MODULE_ID,
+          tests: [
+            {
+              id: "pvc-test-root",
+              title: "Тест",
+              questions: pv.testQuestions.map((q, qi) => ({
+                id: `pvc-q-${qi}`,
+                questionText: q.questionText,
+                orderIndex: qi,
+                answers: q.answers.map((a, ai) => ({
+                  id: `pvc-a-${qi}-${ai}`,
+                  answerText: a.text,
+                  isCorrect: a.isCorrect,
+                })),
+              })),
+            },
+          ],
+        } as LessonDetail);
+      } else {
+        setDetailTest(null);
+      }
+      setDetailVideo(null);
+      setModuleLocked(false);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     let cancelled = false;
     const run = async () => {
       try {
@@ -468,12 +559,14 @@ export const ModulePage = () => {
       }
     };
     void run();
-    return () => { cancelled = true; };
-  }, [moduleId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [moduleId, isConstructorPreview]);
 
   // ─── Load unlock state ─────────────────────────────────────
   useEffect(() => {
-    if (!moduleId) return;
+    if (!moduleId || isConstructorPreview) return;
     let isCancelled = false;
     const loadUnlock = async () => {
       try {
@@ -487,11 +580,11 @@ export const ModulePage = () => {
     };
     void loadUnlock();
     return () => { isCancelled = true; };
-  }, [moduleId]);
+  }, [moduleId, isConstructorPreview]);
 
   // ─── Load lesson details ───────────────────────────────────
   useEffect(() => {
-    if (!module) return;
+    if (!module || isConstructorPreview) return;
     const ls = [...(module.lessons ?? [])].sort((a, b) => a.orderIndex - b.orderIndex);
     const v = ls.find((l) => l.type === "VIDEO");
     const th = ls.find((l) => l.type === "THEORY");
@@ -508,7 +601,7 @@ export const ModulePage = () => {
     void load(th, setDetailTheory);
     void load(ta, setDetailTask);
     void load(te, setDetailTest);
-  }, [module]);
+  }, [module, isConstructorPreview]);
 
   // ─── Aggregate vocabulary from ALL lessons ─────────────────
   // Runs when lesson details are loaded
@@ -534,7 +627,7 @@ export const ModulePage = () => {
 
   // ─── Load existing progress ────────────────────────────────
   useEffect(() => {
-    if (!moduleId) return;
+    if (!moduleId || isConstructorPreview) return;
     coursesApi.getModuleProgress(moduleId)
       .then((data) => {
         const completed = new Set(
@@ -546,18 +639,27 @@ export const ModulePage = () => {
         if (data.percentage === 100) celebratedRef.current = true;
       })
       .catch((err) => { console.error("Failed to load module progress:", err); });
-  }, [moduleId]);
+  }, [moduleId, isConstructorPreview]);
 
   // ─── Save progress helper ──────────────────────────────────
   const markComplete = useCallback(async (lessonId: string | undefined) => {
-    if (!lessonId || completedLessons.has(lessonId)) return;
+    if (isConstructorPreview || !lessonId || completedLessons.has(lessonId)) return;
     try {
       await coursesApi.saveProgress({ lessonId, completed: true });
       setCompletedLessons((prev) => new Set([...prev, lessonId]));
     } catch (err) {
       console.error("Failed to save progress:", err);
     }
-  }, [completedLessons]);
+  }, [completedLessons, isConstructorPreview]);
+
+  const taskContentRaw = useMemo(
+    () => detailTask?.content ?? taskLesson?.content ?? "",
+    [detailTask?.content, taskLesson?.content],
+  );
+  const { markdown: taskMdForRender, practice: constructorPractice } = useMemo(
+    () => parsePracticeFromTaskContent(taskContentRaw),
+    [taskContentRaw],
+  );
 
   // ─── Auto-mark video on tab ────────────────────────────────
   useEffect(() => {
@@ -621,7 +723,11 @@ export const ModulePage = () => {
     }
   }, [completedCount, totalCount]);
 
-  const backHref = returnStage ? `/course?stage=${returnStage}` : "/course";
+  const backHref = isConstructorPreview
+    ? "/constructor"
+    : returnStage
+      ? `/course?stage=${returnStage}`
+      : "/course";
 
   // ─── Sidebar lesson item ───────────────────────────────────
   const SidebarItem = ({
@@ -805,6 +911,13 @@ export const ModulePage = () => {
                   <div
                     dangerouslySetInnerHTML={{ __html: detailTheory?.content ?? theoryLesson.content ?? "" }}
                     className="
+                      [&_.constructor-rich_h2]:text-xl [&_.constructor-rich_h2]:font-black [&_.constructor-rich_h2]:text-slate-900 [&_.constructor-rich_h2]:dark:text-white [&_.constructor-rich_h2]:mb-4 [&_.constructor-rich_h2]:mt-6
+                      [&_.constructor-rich_h3]:text-base [&_.constructor-rich_h3]:font-bold [&_.constructor-rich_h3]:text-slate-800 [&_.constructor-rich_h3]:dark:text-slate-100 [&_.constructor-rich_h3]:mt-5 [&_.constructor-rich_h3]:mb-3
+                      [&_.constructor-rich_p]:text-sm [&_.constructor-rich_p]:text-slate-700 [&_.constructor-rich_p]:dark:text-slate-300 [&_.constructor-rich_p]:leading-relaxed [&_.constructor-rich_p]:mb-2
+                      [&_.constructor-rich_ul]:list-disc [&_.constructor-rich_ul]:ml-5 [&_.constructor-rich_ul]:mb-4
+                      [&_.constructor-rich_li]:text-sm [&_.constructor-rich_li]:text-slate-700 [&_.constructor-rich_li]:dark:text-slate-300 [&_.constructor-rich_li]:mb-1.5 [&_.constructor-rich_li]:marker:text-emerald-500
+                      [&_.constructor-rich_strong]:text-emerald-600 [&_.constructor-rich_strong]:dark:text-emerald-400 [&_.constructor-rich_b]:font-bold
+                      [&_.constructor-rich_em]:italic [&_.constructor-rich_em]:text-slate-600 [&_.constructor-rich_em]:dark:text-slate-400
                       [&_h2]:text-xl [&_h2]:font-black [&_h2]:text-slate-900 [&_h2]:dark:text-white [&_h2]:mb-4 [&_h2]:mt-6
                       [&_h3]:text-base [&_h3]:font-bold [&_h3]:text-slate-800 [&_h3]:dark:text-slate-100 [&_h3]:mt-5 [&_h3]:mb-3
                       [&_p]:text-sm [&_p]:text-slate-700 [&_p]:dark:text-slate-300 [&_p]:leading-relaxed [&_p]:mb-2
@@ -857,9 +970,24 @@ export const ModulePage = () => {
               </AnimatePresence>
             </div>
             {taskLesson && (detailTask?.content || taskLesson.content) ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none prose-p:text-slate-800 dark:prose-p:text-slate-200">
-                {renderMarkdownLike(detailTask?.content ?? taskLesson.content ?? "")}
-              </div>
+              <>
+                {taskMdForRender.trim() ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none prose-p:text-slate-800 dark:prose-p:text-slate-200 mb-8">
+                    {renderMarkdownLike(taskMdForRender)}
+                  </div>
+                ) : null}
+                {constructorPractice && constructorPractice.quizlet.length > 0 && (
+                  <QuizletCards items={constructorPractice.quizlet} />
+                )}
+                {(constructorPractice?.matching ?? []).map((m, idx) => (
+                  <MatchingExercise
+                    key={idx}
+                    left={m.left}
+                    right={m.right}
+                    exerciseIndex={idx}
+                  />
+                ))}
+              </>
             ) : taskLesson ? (
               <p className="text-sm text-slate-500 dark:text-white/50">Контент вправи з'явиться незабаром.</p>
             ) : (
@@ -1010,7 +1138,7 @@ export const ModulePage = () => {
           <div className="px-6 pt-6 pb-4 border-b border-slate-200/60 dark:border-white/5">
             <button onClick={() => navigate(backHref)} className="flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-white/50 hover:text-slate-700 dark:hover:text-white/80 transition-colors mb-4">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              Back to modules
+              {isConstructorPreview ? "До конструктора" : "Back to modules"}
             </button>
             <p className="text-[10px] font-black tracking-[0.2em] uppercase text-emerald-500 dark:text-emerald-400 mb-1">Модуль</p>
             <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight">{module.title}</h1>

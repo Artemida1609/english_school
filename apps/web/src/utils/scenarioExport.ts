@@ -1,4 +1,5 @@
 import type { ScenarioBlock, ScenarioDocument } from "../types/scenario";
+import type { ConstructorPracticePayload } from "./constructorPractice";
 
 function escapeHtml(s: string): string {
   return s
@@ -8,7 +9,21 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** HTML для поля уроку (THEORY / TASK) — як у сиді, через dangerouslySetInnerHTML */
+/** Мінімальне очищення HTML з редактора (без повного sanitizer) */
+export function sanitizeBasicHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
+    .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, "")
+    .replace(/javascript:/gi, "")
+    .trim();
+}
+
+function countsAsTheorySection(b: ScenarioBlock): boolean {
+  return b.type === "text" || b.type === "table" || b.type === "cloze";
+}
+
+/** HTML для поля уроку (THEORY) — картки та зіставлення лише у вкладці «Практика» */
 export function blocksToHtml(blocks: ScenarioBlock[]): string {
   const parts: string[] = [];
   let sectionIndex = 0;
@@ -32,19 +47,29 @@ export function blocksToHtml(blocks: ScenarioBlock[]): string {
       continue;
     }
 
+    if (b.type === "cards" || b.type === "match") {
+      continue;
+    }
+
     sectionIndex += 1;
     const sid = `constructor-section-${b.id}`;
 
     switch (b.type) {
       case "text": {
-        const paras = b.body
-          .split(/\n+/)
-          .map((line) => line.trim())
-          .filter(Boolean)
-          .map((line) => `<p class="mb-3 text-slate-700 dark:text-slate-300 leading-relaxed">${escapeHtml(line)}</p>`)
-          .join("");
+        const useRich = b.richText !== false;
+        const inner = useRich
+          ? `<div class="constructor-rich prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300">${sanitizeBasicHtml(b.body)}</div>`
+          : b.body
+              .split(/\n+/)
+              .map((line) => line.trim())
+              .filter(Boolean)
+              .map(
+                (line) =>
+                  `<p class="mb-3 text-slate-700 dark:text-slate-300 leading-relaxed">${escapeHtml(line)}</p>`,
+              )
+              .join("");
         parts.push(
-          `<section id="${sid}" class="constructor-text mb-8" data-section-index="${sectionIndex}">${paras || `<p class="text-slate-400">…</p>`}</section>`,
+          `<section id="${sid}" class="constructor-text mb-8" data-section-index="${sectionIndex}">${inner || `<p class="text-slate-400">…</p>`}</section>`,
         );
         break;
       }
@@ -58,18 +83,6 @@ export function blocksToHtml(blocks: ScenarioBlock[]): string {
           .join("");
         parts.push(
           `<section id="${sid}" class="constructor-table mb-8 overflow-x-auto" data-section-index="${sectionIndex}"><table class="min-w-full border-collapse text-sm">${th ? `<thead><tr>${th}</tr></thead>` : ""}<tbody>${tr}</tbody></table></section>`,
-        );
-        break;
-      }
-      case "cards": {
-        const cards = b.items
-          .map(
-            (it) =>
-              `<div class="rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900/50 p-4 shadow-sm"><h4 class="font-bold text-slate-900 dark:text-white mb-2">${escapeHtml(it.title)}</h4><p class="text-sm text-slate-600 dark:text-slate-300">${escapeHtml(it.body)}</p></div>`,
-          )
-          .join("");
-        parts.push(
-          `<section id="${sid}" class="constructor-cards mb-8 grid gap-4 sm:grid-cols-2" data-section-index="${sectionIndex}">${cards}</section>`,
         );
         break;
       }
@@ -99,11 +112,22 @@ function sectionLabel(block: ScenarioBlock, all: ScenarioBlock[]): string {
     table: "Таблиця",
     cards: "Картки",
     cloze: "Пропуски",
+    match: "Зіставлення",
   };
-  const nonConn = all.filter((b) => b.type !== "connector");
+  const nonConn = all.filter((b) => b.type !== "connector" && countsAsTheorySection(b));
   const idx = nonConn.findIndex((b) => b.id === block.id);
   const n = idx >= 0 ? idx + 1 : 0;
   return `Секція ${n} (${typeNames[block.type] ?? block.type})`;
+}
+
+export function buildPracticeFromBlocks(blocks: ScenarioBlock[]): ConstructorPracticePayload {
+  const quizlet = blocks
+    .filter((b): b is Extract<ScenarioBlock, { type: "cards" }> => b.type === "cards")
+    .flatMap((b) => b.items.map((it) => ({ term: it.title, definition: it.body })));
+  const matching = blocks
+    .filter((b): b is Extract<ScenarioBlock, { type: "match" }> => b.type === "match")
+    .map((b) => ({ left: [...b.left], right: [...b.right] }));
+  return { version: 1, quizlet, matching };
 }
 
 /** Дані для ручного перенесення в тест (пропущені слова) */
@@ -158,6 +182,7 @@ export function buildTestQuestionsFromBlocks(
   for (const b of clozeBlocks) {
     const parts = b.text.split("___");
     const answers = b.answers.map((x) => x.trim());
+    const dist = (b.distractors ?? []).map((x) => x.trim()).filter(Boolean);
     const numGaps = Math.max(0, parts.length - 1);
     for (let j = 0; j < numGaps; j++) {
       const correct = answers[j];
@@ -165,7 +190,10 @@ export function buildTestQuestionsFromBlocks(
       const before = parts.slice(0, j + 1).join(" ___ ");
       const after = parts.slice(j + 1).join(" ___ ");
       const questionText = `${before} ______ ${after}`.replace(/\s+/g, " ").trim();
-      const wrongPool = pool.filter((x) => x.toLowerCase() !== correct.toLowerCase());
+      const wrongPool = [
+        ...dist.filter((x) => x.toLowerCase() !== correct.toLowerCase()),
+        ...pool.filter((x) => x.toLowerCase() !== correct.toLowerCase()),
+      ];
       const wrongs: string[] = [];
       for (const w of wrongPool) {
         if (wrongs.length >= 3) break;
