@@ -1,12 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
-const statItems = [
-  { label: "Online Students", value: "16 500+", icon: "👩‍🎓" },
-  { label: "Completed Lessons", value: "48 000+", icon: "✅" },
-  { label: "Active Modules", value: "120+", icon: "📚" },
-  { label: "Live Chat Support", value: "24/7", icon: "💬" },
-];
 
 const features_benefits = [
   {
@@ -53,7 +47,6 @@ const features_benefits = [
     bg: "bg-blue-50",
   },
 ];
-
 
 const popularTracks = [
   { title: "Business Communication", lessons: "28 lessons", weeks: "10 weeks", color: "from-emerald-500 to-teal-400", emoji: "💼" },
@@ -140,50 +133,6 @@ const OrangeDots = ({ className }: { className?: string }) => (
       <circle key={i} cx={x} cy={y} r="3.5" fill="#f59e0b" opacity="0.75" />
     ))}
   </svg>
-);
-
-// ─── Rating badge ──────────────────────────────────────────────
-const RatingBadge = () => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.8, x: 20 }}
-    animate={{ opacity: 1, scale: 1, x: 0 }}
-    transition={{ delay: 0.9, type: "spring", stiffness: 280 }}
-    className="hidden md:block absolute -right-4 top-12 bg-white dark:bg-[#06121D] rounded-2xl px-4 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] border border-emerald-100 dark:border-emerald-800/40 z-20"
-  >
-    <div className="flex items-center gap-1 mb-0.5">
-      {[1, 2, 3, 4, 5].map(i => (
-        <svg key={i} className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-    </div>
-    <p className="text-lg font-black text-slate-900 dark:text-white leading-none">4.9</p>
-    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">від 2 400 учнів</p>
-  </motion.div>
-);
-
-// ─── Students badge ────────────────────────────────────────────
-const StudentsBadge = () => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.8, y: 20 }}
-    animate={{ opacity: 1, scale: 1, y: 0 }}
-    transition={{ delay: 1.1, type: "spring", stiffness: 280 }}
-    className="hidden md:block absolute -left-4 bottom-16 bg-emerald-500 rounded-2xl px-4 py-3 shadow-[0_8px_30px_rgba(16,185,129,0.4)] z-20"
-  >
-    <div className="flex items-center gap-2">
-      <div className="flex -space-x-2">
-        {["👩", "👨", "👩‍🦱"].map((emoji, i) => (
-          <div key={i} className="w-7 h-7 rounded-full bg-white/20 border-2 border-emerald-400 flex items-center justify-center text-sm">
-            {emoji}
-          </div>
-        ))}
-      </div>
-      <div>
-        <p className="text-sm font-black text-white leading-none">16 500+</p>
-        <p className="text-[10px] text-emerald-100 font-medium">Активних учнів</p>
-      </div>
-    </div>
-  </motion.div>
 );
 
 export const MainHomePage = () => {
