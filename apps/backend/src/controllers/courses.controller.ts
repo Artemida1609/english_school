@@ -10,9 +10,15 @@ export const getCourses = async (req: Request, res: Response): Promise<void> => 
   try {
     const { level, search } = req.query
 
+    // За замовчуванням показуємо лише опубліковані. Якщо таких немає (наприклад після db push
+    // без seed), повертаємо всі курси — інакше каталог і /course порожні при is_published=false.
+    const publishedCount = await prisma.course.count({ where: { isPublished: true } })
+    const visibility =
+      publishedCount > 0 ? { isPublished: true } : {}
+
     const courses = await prisma.course.findMany({
       where: {
-        isPublished: true,
+        ...visibility,
         ...(level && { level: level as CourseLevelType }),
         ...(search && {
           OR: [
