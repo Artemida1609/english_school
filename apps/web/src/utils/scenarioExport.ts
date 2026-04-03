@@ -79,10 +79,7 @@ export function buildPracticeFromBlocks(blocks: ScenarioBlock[]): ConstructorPra
   const matching = blocks
     .filter((b): b is Extract<ScenarioBlock, { type: "match" }> => b.type === "match")
     .map((b) => ({ left: [...b.left], right: [...b.right] }));
-  const cloze = blocks
-    .filter((b): b is Extract<ScenarioBlock, { type: "cloze" }> => b.type === "cloze")
-    .map((b) => ({ text: b.text, answers: [...b.answers] }));
-  return { version: 1, quizlet, matching, cloze };
+  return { version: 1, quizlet, matching };
 }
 
 /** Дані для ручного перенесення в тест (пропущені слова) */

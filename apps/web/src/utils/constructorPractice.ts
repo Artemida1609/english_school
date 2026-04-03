@@ -4,8 +4,6 @@ export type ConstructorPracticePayload = {
   version: 1;
   quizlet: { term: string; definition: string }[];
   matching: { left: string[]; right: string[] }[];
-  /** Пропуски ___ — тільки вкладка «Вправи» */
-  cloze: { text: string; answers: string[] }[];
 };
 
 export function parsePracticeFromTaskContent(content: string | null | undefined): {
@@ -20,10 +18,7 @@ export function parsePracticeFromTaskContent(content: string | null | undefined)
   try {
     const o = JSON.parse(jsonPart) as ConstructorPracticePayload;
     if (o?.version === 1 && Array.isArray(o.quizlet) && Array.isArray(o.matching)) {
-      const cloze = Array.isArray((o as ConstructorPracticePayload).cloze)
-        ? (o as ConstructorPracticePayload).cloze
-        : [];
-      return { markdown: md, practice: { ...o, cloze } as ConstructorPracticePayload };
+      return { markdown: md, practice: o as ConstructorPracticePayload };
     }
   } catch {
     /* ignore */

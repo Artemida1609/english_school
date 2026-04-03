@@ -8,8 +8,6 @@ import { CONSTRUCTOR_PREVIEW_MODULE_ID, readConstructorPreview } from "../types/
 import { appendPracticeToTaskMarkdown, parsePracticeFromTaskContent } from "../utils/constructorPractice";
 import { QuizletCards } from "../components/constructor/QuizletCards";
 import { MatchingExercise } from "../components/constructor/MatchingExercise";
-import { ClozePractice } from "../components/constructor/ClozePractice";
-
 // ─── Tabs ──────────────────────────────────────────────────────
 type TabId = "video" | "theory" | "exercises" | "test" | "vocabulary";
 
@@ -473,12 +471,7 @@ export const ModulePage = () => {
         setModule(null);
         return;
       }
-      const practice = pv.practice ?? {
-        version: 1 as const,
-        quizlet: [],
-        matching: [],
-        cloze: [],
-      };
+      const practice = pv.practice ?? { version: 1 as const, quizlet: [], matching: [] };
       const taskBody = appendPracticeToTaskMarkdown(pv.taskMarkdown, practice);
       const lessons: Lesson[] = [
         {
@@ -990,14 +983,6 @@ export const ModulePage = () => {
                     key={idx}
                     left={m.left}
                     right={m.right}
-                    exerciseIndex={idx}
-                  />
-                ))}
-                {(constructorPractice?.cloze ?? []).map((c, idx) => (
-                  <ClozePractice
-                    key={`cloze-${idx}`}
-                    text={c.text}
-                    answers={c.answers}
                     exerciseIndex={idx}
                   />
                 ))}

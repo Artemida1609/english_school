@@ -259,7 +259,7 @@ export function ModuleConstructorPage() {
             Конструктор модулів
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
-            Збирайте сценарій уроку: текст, таблиці, картки, зіставлення з лініями та пропуски в тексті (практика й тест).
+            Збирайте сценарій уроку: текст, таблиці, картки, зіставлення з лініями та пропуски для питань тесту.
           </p>
         </header>
 
@@ -271,7 +271,7 @@ export function ModuleConstructorPage() {
               «Тест» (якщо є блоки з пропусками). Повторне натискання оновлює той самий модуль.
             </li>
             <li>
-              <strong>Перегляд</strong> — той самий екран, що й у студента (ModulePage): теорія, практика з картками, зіставленням і пропусками, окремо тест. Прогрес не зберігається.
+              <strong>Перегляд</strong> — той самий екран, що й у студента (ModulePage): теорія, практика з картками та зіставленням; блок «Пропуски» формує лише питання тесту. Прогрес не зберігається.
             </li>
             <li>
               <strong>Чернетка в браузері</strong> — додатково зберігається локально (авто або кнопка «Зберегти чернетку»).
@@ -367,7 +367,7 @@ export function ModuleConstructorPage() {
             <ToolBtn onClick={() => addBlock("table")} label="Таблиця" />
             <ToolBtn onClick={() => addBlock("cards")} label="Картки" />
             <ToolBtn onClick={() => addBlock("match")} label="Зіставлення" />
-            <ToolBtn onClick={() => addBlock("cloze")} label="Пропуски" />
+            <ToolBtn onClick={() => addBlock("cloze")} label="Пропуски (тест)" />
           </div>
         </div>
 
@@ -532,7 +532,7 @@ function blockTitle(b: ScenarioBlock): string {
     case "match":
       return "Зіставлення (лінії)";
     case "cloze":
-      return "Пропуски у тексті (вкладка Вправи)";
+      return "Пропуски (питання тесту)";
     default: {
       const _ex: never = b;
       return _ex;
@@ -801,8 +801,10 @@ function BlockFields({
       return (
         <div className="space-y-3">
           <p className="text-xs text-slate-500">
-            Використовуйте <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">___</code> як
-            пропуск. Кількість пропусків: {gapCount}
+            З кожного пропуску будується питання з варіантами на вкладці <strong>Тест</strong> (не
+            показується у «Вправах»). Використовуйте{" "}
+            <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">___</code> як пропуск.
+            Кількість: {gapCount}
           </p>
           <textarea
             value={block.text}
