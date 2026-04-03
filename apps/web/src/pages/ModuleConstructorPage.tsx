@@ -137,25 +137,8 @@ export function ModuleConstructorPage() {
   const htmlExport = useMemo(() => blocksToHtml(blocks), [blocks]);
   const testPayload = useMemo(() => extractClozeTestPayload(blocks), [blocks]);
 
-  const theorySectionOptions = useMemo(
-    () =>
-      blocks.filter(
-        (b) => b.type === "text" || b.type === "table" || b.type === "cloze",
-      ),
-    [blocks],
-  );
-
   const addBlock = (type: ScenarioBlock["type"]) => {
-    let nb: ScenarioBlock = defaultBlock(type);
-    if (type === "connector" && theorySectionOptions.length >= 2) {
-      nb = {
-        id: nb.id,
-        type: "connector",
-        fromId: theorySectionOptions[0].id,
-        toId: theorySectionOptions[1].id,
-        label: "",
-      };
-    }
+    const nb: ScenarioBlock = defaultBlock(type);
     setBlocks((prev) => [...prev, nb]);
     setExpandedId(nb.id);
   };
@@ -383,11 +366,6 @@ export function ModuleConstructorPage() {
             <ToolBtn onClick={() => addBlock("text")} label="Текст" />
             <ToolBtn onClick={() => addBlock("table")} label="Таблиця" />
             <ToolBtn onClick={() => addBlock("cards")} label="Картки" />
-            <ToolBtn
-              onClick={() => addBlock("connector")}
-              label="Стрілка (секції)"
-              disabled={theorySectionOptions.length < 2}
-            />
             <ToolBtn onClick={() => addBlock("match")} label="Зіставлення" />
             <ToolBtn onClick={() => addBlock("cloze")} label="Пропуски" />
           </div>
@@ -511,11 +489,7 @@ export function ModuleConstructorPage() {
                   </div>
                   {expandedId === b.id && (
                     <div className="p-4">
-                      <BlockFields
-                        block={b}
-                        theorySectionOptions={theorySectionOptions}
-                        onChange={(patch) => updateBlock(b.id, patch)}
-                      />
+                      <BlockFields block={b} onChange={(patch) => updateBlock(b.id, patch)} />
                     </div>
                   )}
                 </motion.div>
@@ -555,12 +529,10 @@ function blockTitle(b: ScenarioBlock): string {
       return "Таблиця";
     case "cards":
       return "Картки";
-    case "connector":
-      return "Стрілка між секціями";
     case "match":
       return "Зіставлення (лінії)";
     case "cloze":
-      return "Пропуски для тесту";
+      return "Пропуски у тексті (вкладка Вправи)";
     default: {
       const _ex: never = b;
       return _ex;
@@ -617,11 +589,9 @@ function IconBtn({
 
 function BlockFields({
   block,
-  theorySectionOptions,
   onChange,
 }: {
   block: ScenarioBlock;
-  theorySectionOptions: ScenarioBlock[];
   onChange: (patch: Partial<ScenarioBlock>) => void;
 }) {
   switch (block.type) {
@@ -767,44 +737,6 @@ function BlockFields({
           >
             + картка
           </button>
-        </div>
-      );
-    case "connector":
-      return (
-        <div className="space-y-3">
-          <label className="block text-xs font-bold text-slate-500">Від секції</label>
-          <select
-            value={block.fromId}
-            onChange={(e) => onChange({ fromId: e.target.value })}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-900"
-          >
-            <option value="">—</option>
-            {theorySectionOptions.map((s) => (
-              <option key={s.id} value={s.id} disabled={s.id === block.toId}>
-                {blockTitle(s)} ({s.id.slice(0, 8)}…)
-              </option>
-            ))}
-          </select>
-          <label className="block text-xs font-bold text-slate-500">До секції</label>
-          <select
-            value={block.toId}
-            onChange={(e) => onChange({ toId: e.target.value })}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-900"
-          >
-            <option value="">—</option>
-            {theorySectionOptions.map((s) => (
-              <option key={s.id} value={s.id} disabled={s.id === block.fromId}>
-                {blockTitle(s)} ({s.id.slice(0, 8)}…)
-              </option>
-            ))}
-          </select>
-          <label className="block text-xs font-bold text-slate-500">Підпис (необов’язково)</label>
-          <input
-            value={block.label ?? ""}
-            onChange={(e) => onChange({ label: e.target.value })}
-            placeholder="наприклад: логіка уроку"
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-600 dark:bg-slate-900"
-          />
         </div>
       );
     case "match": {

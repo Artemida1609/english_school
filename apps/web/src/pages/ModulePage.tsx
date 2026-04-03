@@ -8,14 +8,16 @@ import { CONSTRUCTOR_PREVIEW_MODULE_ID, readConstructorPreview } from "../types/
 import { appendPracticeToTaskMarkdown, parsePracticeFromTaskContent } from "../utils/constructorPractice";
 import { QuizletCards } from "../components/constructor/QuizletCards";
 import { MatchingExercise } from "../components/constructor/MatchingExercise";
+import { ClozePractice } from "../components/constructor/ClozePractice";
 
 // ─── Tabs ──────────────────────────────────────────────────────
-type TabId = "video" | "exercises" | "theory" | "vocabulary";
+type TabId = "video" | "theory" | "exercises" | "test" | "vocabulary";
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: "video", label: "Відео", icon: "▶" },
-  { id: "exercises", label: "Вправи", icon: "✏️" },
   { id: "theory", label: "Теорія", icon: "📖" },
+  { id: "exercises", label: "Вправи", icon: "✏️" },
+  { id: "test", label: "Тест", icon: "📝" },
   { id: "vocabulary", label: "Словник", icon: "🗂" },
 ];
 
@@ -413,25 +415,26 @@ export const ModulePage = () => {
   const hasTestContent = Boolean(
     detailTest?.tests?.some((test) => (test.questions?.length ?? 0) > 0)
   );
-  const hasExercises = hasTaskContent || hasTestContent;
   const hasVocabulary = moduleVocabulary.length > 0;
 
   const availableTabs = useMemo<TabId[]>(() => {
     const tabs: TabId[] = [];
     if (hasVideo) tabs.push("video");
-    if (hasExercises) tabs.push("exercises");
     if (hasTheory) tabs.push("theory");
+    if (hasTaskContent) tabs.push("exercises");
+    if (hasTestContent) tabs.push("test");
     if (hasVocabulary) tabs.push("vocabulary");
     return tabs;
-  }, [hasVideo, hasExercises, hasTheory, hasVocabulary]);
+  }, [hasVideo, hasTheory, hasTaskContent, hasTestContent, hasVocabulary]);
 
   const defaultTab = useMemo<TabId>(() => {
     if (hasVideo) return "video";
     if (hasTheory) return "theory";
-    if (hasExercises) return "exercises";
+    if (hasTaskContent) return "exercises";
+    if (hasTestContent) return "test";
     if (hasVocabulary) return "vocabulary";
     return "theory";
-  }, [hasTheory, hasExercises, hasVideo, hasVocabulary]);
+  }, [hasTheory, hasTaskContent, hasTestContent, hasVideo, hasVocabulary]);
 
   useEffect(() => {
     const requestedTab = validTabFromParams;
@@ -470,7 +473,12 @@ export const ModulePage = () => {
         setModule(null);
         return;
       }
-      const practice = pv.practice ?? { version: 1 as const, quizlet: [], matching: [] };
+      const practice = pv.practice ?? {
+        version: 1 as const,
+        quizlet: [],
+        matching: [],
+        cloze: [],
+      };
       const taskBody = appendPracticeToTaskMarkdown(pv.taskMarkdown, practice);
       const lessons: Lesson[] = [
         {
@@ -705,7 +713,7 @@ export const ModulePage = () => {
     { lesson: videoLesson, type: "VIDEO", label: "Відео", tab: "video" as TabId },
     { lesson: theoryLesson, type: "THEORY", label: "Теорія", tab: "theory" as TabId },
     { lesson: taskLesson, type: "TASK", label: "Вправи", tab: "exercises" as TabId },
-    { lesson: testLesson, type: "TEST", label: "Тест", tab: "exercises" as TabId },
+    { lesson: testLesson, type: "TEST", label: "Тест", tab: "test" as TabId },
   ], [videoLesson, theoryLesson, taskLesson, testLesson]);
 
   const completedCount = lessonItems.filter(({ lesson }) => lesson && completedLessons.has(lesson.id)).length;
@@ -731,12 +739,10 @@ export const ModulePage = () => {
 
   // ─── Sidebar lesson item ───────────────────────────────────
   const SidebarItem = ({
-    lesson, type, label, icon, tab,
+    lesson, label, icon, tab,
   }: { lesson: Lesson | undefined; type: string; label: string; icon: string; tab: TabId }) => {
     if (!lesson) return null;
-    const highlight = type === "VIDEO" ? activeTab === "video"
-      : type === "THEORY" ? activeTab === "theory"
-        : activeTab === "exercises";
+    const highlight = activeTab === tab;
     const done = completedLessons.has(lesson.id);
 
     return (
@@ -987,14 +993,39 @@ export const ModulePage = () => {
                     exerciseIndex={idx}
                   />
                 ))}
+                {(constructorPractice?.cloze ?? []).map((c, idx) => (
+                  <ClozePractice
+                    key={`cloze-${idx}`}
+                    text={c.text}
+                    answers={c.answers}
+                    exerciseIndex={idx}
+                  />
+                ))}
               </>
             ) : taskLesson ? (
               <p className="text-sm text-slate-500 dark:text-white/50">Контент вправи з'явиться незабаром.</p>
             ) : (
               <p className="text-sm text-slate-500 dark:text-white/40">Текстових вправ для цього модуля немає.</p>
             )}
+            {hasTestContent && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  if (taskLesson?.id) void markComplete(taskLesson.id);
+                  setTab("test");
+                }}
+                className="mt-8 w-full py-3.5 bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white text-[13px] font-black tracking-widest uppercase rounded-2xl hover:shadow-[0_0_20px_rgba(139,92,246,0.45)] transition-shadow border border-violet-400/50"
+              >
+                Тест →
+              </motion.button>
+            )}
           </section>
+        </motion.div>
+      )}
 
+      {activeTab === "test" && (
+        <motion.div key="test" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-8">
           <section className="relative rounded-[24px] md:rounded-[28px] overflow-hidden border border-violet-200/50 dark:border-violet-500/25 bg-gradient-to-br from-violet-50/80 to-white/90 dark:from-violet-950/25 dark:to-[#06121D]/90 backdrop-blur-xl p-6 md:p-8 shadow-xl">
             <div className="flex items-center justify-between gap-3 mb-6">
               <div className="flex items-center gap-3">
@@ -1168,7 +1199,7 @@ export const ModulePage = () => {
             {hasVideo && <SidebarItem lesson={videoLesson} type="VIDEO" label="Відео" icon="▶" tab="video" />}
             <SidebarItem lesson={theoryLesson} type="THEORY" label="Теорія" icon="📖" tab="theory" />
             {hasTaskContent && <SidebarItem lesson={taskLesson} type="TASK" label="Вправи" icon="✏️" tab="exercises" />}
-            {hasTestContent && <SidebarItem lesson={testLesson} type="TEST" label="Тест" icon="📝" tab="exercises" />}
+            {hasTestContent && <SidebarItem lesson={testLesson} type="TEST" label="Тест" icon="📝" tab="test" />}
             {/* Vocabulary item — shows only if vocabulary exists */}
             <SidebarVocabItem />
           </nav>
@@ -1202,15 +1233,20 @@ export const ModulePage = () => {
                 />
               </div>
             </div>
-            {/* Mobile tabs — scrollable row to fit 4 tabs */}
+            {/* Mobile tabs — scrollable row */}
             <div className="relative flex rounded-2xl p-1 bg-slate-200/60 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 shadow-inner overflow-x-auto gap-1">
               {TABS.filter((tab) => availableTabs.includes(tab.id)).map((tab) => {
                 const active = activeTab === tab.id;
                 const tabDone =
-                  tab.id === "video" ? (videoLesson && completedLessons.has(videoLesson.id))
-                    : tab.id === "theory" ? (theoryLesson && completedLessons.has(theoryLesson.id))
-                      : tab.id === "vocabulary" ? false
-                        : (hasTaskContent && taskLesson && completedLessons.has(taskLesson.id)) || (hasTestContent && testLesson && completedLessons.has(testLesson.id));
+                  tab.id === "video"
+                    ? Boolean(videoLesson && completedLessons.has(videoLesson.id))
+                    : tab.id === "theory"
+                      ? Boolean(theoryLesson && completedLessons.has(theoryLesson.id))
+                      : tab.id === "exercises"
+                        ? Boolean(taskLesson && completedLessons.has(taskLesson.id))
+                        : tab.id === "test"
+                          ? Boolean(testLesson && completedLessons.has(testLesson.id))
+                          : false;
 
                 return (
                   <button key={tab.id} type="button" onClick={() => setTab(tab.id)} className={`relative flex-1 min-w-[72px] py-3 px-2 text-center text-[10px] font-black uppercase tracking-[0.1em] rounded-xl transition-colors z-10 whitespace-nowrap ${active ? "text-white" : "text-slate-500 dark:text-white/45"}`}>
@@ -1235,7 +1271,8 @@ export const ModulePage = () => {
             <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               {activeTab === "video" && (videoLesson?.title ?? "Відео")}
               {activeTab === "theory" && (theoryLesson?.title ?? "Теорія")}
-              {activeTab === "exercises" && "Практика та Тест"}
+              {activeTab === "exercises" && (taskLesson?.title ?? "Вправи")}
+              {activeTab === "test" && (testLesson?.title ?? "Тест")}
               {activeTab === "vocabulary" && `Словник модуля · ${moduleVocabulary.length} слів`}
             </h2>
           </div>

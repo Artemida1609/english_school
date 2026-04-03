@@ -19,35 +19,13 @@ export function sanitizeBasicHtml(html: string): string {
     .trim();
 }
 
-function countsAsTheorySection(b: ScenarioBlock): boolean {
-  return b.type === "text" || b.type === "table" || b.type === "cloze";
-}
-
-/** HTML для поля уроку (THEORY) — картки та зіставлення лише у вкладці «Практика» */
+/** HTML для поля уроку (THEORY) — практика (картки, зіставлення, пропуски) лише у вкладці «Вправи» */
 export function blocksToHtml(blocks: ScenarioBlock[]): string {
   const parts: string[] = [];
   let sectionIndex = 0;
 
   for (const b of blocks) {
-    if (b.type === "connector") {
-      const from = blocks.find((x) => x.id === b.fromId);
-      const to = blocks.find((x) => x.id === b.toId);
-      const fromLabel = from ? sectionLabel(from, blocks) : "?";
-      const toLabel = to ? sectionLabel(to, blocks) : "?";
-      const label = b.label?.trim() ? escapeHtml(b.label.trim()) : "";
-      parts.push(`
-<div class="constructor-connector my-6 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-4 dark:border-emerald-500/30 dark:bg-emerald-950/40">
-  <span class="text-sm font-bold text-slate-700 dark:text-slate-200">${fromLabel}</span>
-  <span class="flex items-center text-emerald-600 dark:text-emerald-400" aria-hidden="true">
-    <svg width="40" height="24" viewBox="0 0 40 24" fill="none"><path d="M2 12h28m0 0l-6-6m6 6l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </span>
-  <span class="text-sm font-bold text-slate-700 dark:text-slate-200">${toLabel}</span>
-  ${label ? `<span class="w-full text-center text-xs text-slate-500 dark:text-slate-400">${label}</span>` : ""}
-</div>`);
-      continue;
-    }
-
-    if (b.type === "cards" || b.type === "match") {
+    if (b.type === "cards" || b.type === "match" || b.type === "cloze") {
       continue;
     }
 
@@ -86,38 +64,12 @@ export function blocksToHtml(blocks: ScenarioBlock[]): string {
         );
         break;
       }
-      case "cloze": {
-        let i = 0;
-        const html = b.text.replace(/___/g, () => {
-          const ans = b.answers[i] ?? "";
-          i += 1;
-          return `<span class="cloze-gap inline-block min-w-[6rem] border-b-2 border-emerald-500/70 px-1 mx-0.5 align-bottom" data-answer="${escapeHtml(ans)}">______</span>`;
-        });
-        parts.push(
-          `<section id="${sid}" class="constructor-cloze mb-8 rounded-xl border border-amber-200/80 bg-amber-50/50 p-4 dark:border-amber-500/25 dark:bg-amber-950/30" data-section-index="${sectionIndex}"><p class="text-slate-800 dark:text-slate-200 leading-relaxed">${html}</p><p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Заповніть пропуски (для тесту див. експорт JSON).</p></section>`,
-        );
-        break;
-      }
       default:
         break;
     }
   }
 
   return parts.join("\n");
-}
-
-function sectionLabel(block: ScenarioBlock, all: ScenarioBlock[]): string {
-  const typeNames: Record<string, string> = {
-    text: "Текст",
-    table: "Таблиця",
-    cards: "Картки",
-    cloze: "Пропуски",
-    match: "Зіставлення",
-  };
-  const nonConn = all.filter((b) => b.type !== "connector" && countsAsTheorySection(b));
-  const idx = nonConn.findIndex((b) => b.id === block.id);
-  const n = idx >= 0 ? idx + 1 : 0;
-  return `Секція ${n} (${typeNames[block.type] ?? block.type})`;
 }
 
 export function buildPracticeFromBlocks(blocks: ScenarioBlock[]): ConstructorPracticePayload {
@@ -127,7 +79,10 @@ export function buildPracticeFromBlocks(blocks: ScenarioBlock[]): ConstructorPra
   const matching = blocks
     .filter((b): b is Extract<ScenarioBlock, { type: "match" }> => b.type === "match")
     .map((b) => ({ left: [...b.left], right: [...b.right] }));
-  return { version: 1, quizlet, matching };
+  const cloze = blocks
+    .filter((b): b is Extract<ScenarioBlock, { type: "cloze" }> => b.type === "cloze")
+    .map((b) => ({ text: b.text, answers: [...b.answers] }));
+  return { version: 1, quizlet, matching, cloze };
 }
 
 /** Дані для ручного перенесення в тест (пропущені слова) */

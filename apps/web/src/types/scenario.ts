@@ -18,14 +18,6 @@ export type ScenarioBlock =
       type: "cards";
       items: { title: string; body: string }[];
     }
-  /** Стрілка між секціями теорії */
-  | {
-      id: string;
-      type: "connector";
-      fromId: string;
-      toId: string;
-      label?: string;
-    }
   /** Зіставлення лівий / правий стовпчик (як на робочому аркуші) */
   | {
       id: string;
@@ -82,8 +74,6 @@ export function defaultBlock(type: ScenarioBlock["type"]): ScenarioBlock {
           { title: "Термін 2", body: "Визначення…" },
         ],
       };
-    case "connector":
-      return { id, type: "connector", fromId: "", toId: "", label: "" };
     case "match":
       return {
         id,
@@ -104,7 +94,10 @@ export function defaultBlock(type: ScenarioBlock["type"]): ScenarioBlock {
 
 /** Нормалізація блоків після імпорту старого JSON */
 export function normalizeScenarioBlocks(blocks: ScenarioBlock[]): ScenarioBlock[] {
-  return blocks.map((b) => {
+  const withoutLegacy = blocks.filter(
+    (b) => (b as { type: string }).type !== "connector",
+  ) as ScenarioBlock[];
+  return withoutLegacy.map((b) => {
     if (b.type === "cloze" && !b.distractors) {
       return { ...b, distractors: [] };
     }
