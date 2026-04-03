@@ -29,6 +29,9 @@ export type ScenarioDocument = {
   version: 1;
   title: string;
   blocks: ScenarioBlock[];
+  /** Після публікації на сервер */
+  publishedModuleId?: string;
+  courseId?: string;
 };
 
 export function newBlockId(): string {

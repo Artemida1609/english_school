@@ -1,14 +1,31 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { defaultBlock, type ScenarioBlock, type ScenarioDocument } from "../types/scenario";
+import { writeConstructorPreview } from "../types/constructorPreview";
+import { coursesApi, type Course } from "../api/courses";
+import { constructorApi } from "../api/constructor";
 import {
   blocksToHtml,
+  buildTestQuestionsFromBlocks,
   documentToJson,
   extractClozeTestPayload,
   parseScenarioJson,
 } from "../utils/scenarioExport";
 
 const LS_KEY = "moduleConstructorDraft";
+
+/** Текст уроку «Вправи» при публікації на сервер */
+const TASK_FOR_PUBLISH = "## Вправа\n\nЗакріпіть матеріал з теорії та пройдіть тест нижче.";
+
+function formatSavedTime(d: Date): string {
+  return d.toLocaleString("uk-UA", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function moveItem<T>(arr: T[], from: number, to: number): T[] {
   if (to < 0 || to >= arr.length) return arr;
@@ -19,33 +36,95 @@ function moveItem<T>(arr: T[], from: number, to: number): T[] {
 }
 
 export function ModuleConstructorPage() {
+  const navigate = useNavigate();
   const [title, setTitle] = useState("Новий модуль");
   const [blocks, setBlocks] = useState<ScenarioBlock[]>([defaultBlock("text")]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseId, setCourseId] = useState("");
+  const [publishedModuleId, setPublishedModuleId] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const skipNextAutosave = useRef(false);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 2200);
+  }, []);
+
+  const persistDraft = useCallback(
+    (opts?: { silent?: boolean }) => {
+      const doc: ScenarioDocument = {
+        version: 1,
+        title,
+        blocks,
+        ...(publishedModuleId ? { publishedModuleId } : {}),
+        ...(courseId ? { courseId } : {}),
+      };
+      try {
+        localStorage.setItem(LS_KEY, documentToJson(doc));
+        setLastSavedAt(new Date());
+        if (!opts?.silent) {
+          showToast("Чернетку збережено в браузері");
+        }
+      } catch {
+        showToast("Не вдалося зберегти (пам’ять браузера)");
+      }
+    },
+    [title, blocks, publishedModuleId, courseId, showToast],
+  );
 
   useEffect(() => {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return;
     const doc = parseScenarioJson(raw);
     if (doc) {
+      skipNextAutosave.current = true;
       setTitle(doc.title);
       setBlocks(doc.blocks.length ? doc.blocks : [defaultBlock("text")]);
+      if (doc.publishedModuleId) setPublishedModuleId(doc.publishedModuleId);
+      if (doc.courseId) setCourseId(doc.courseId);
+      setLastSavedAt(new Date());
     }
   }, []);
 
   useEffect(() => {
-    const doc: ScenarioDocument = { version: 1, title, blocks };
+    coursesApi
+      .getCourses()
+      .then((list) => setCourses(list))
+      .catch(() => setCourses([]));
+  }, []);
+
+  useEffect(() => {
+    if (courseId || courses.length === 0) return;
+    const preferred =
+      courses.find((c) => c.id === "course-level-1-business-english") ?? courses[0];
+    setCourseId(preferred.id);
+  }, [courses, courseId]);
+
+  useEffect(() => {
+    if (skipNextAutosave.current) {
+      skipNextAutosave.current = false;
+      return;
+    }
     const t = window.setTimeout(() => {
-      localStorage.setItem(LS_KEY, documentToJson(doc));
+      const doc: ScenarioDocument = {
+        version: 1,
+        title,
+        blocks,
+        ...(publishedModuleId ? { publishedModuleId } : {}),
+        ...(courseId ? { courseId } : {}),
+      };
+      try {
+        localStorage.setItem(LS_KEY, documentToJson(doc));
+        setLastSavedAt(new Date());
+      } catch {
+        /* ignore silent autosave errors */
+      }
     }, 400);
     return () => clearTimeout(t);
-  }, [title, blocks]);
-
-  const showToast = useCallback((msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 2200);
-  }, []);
+  }, [title, blocks, publishedModuleId, courseId]);
 
   const htmlExport = useMemo(() => blocksToHtml(blocks), [blocks]);
   const testPayload = useMemo(() => extractClozeTestPayload(blocks), [blocks]);
@@ -102,7 +181,72 @@ export function ModuleConstructorPage() {
     }
     setTitle(doc.title);
     setBlocks(doc.blocks.length ? doc.blocks : [defaultBlock("text")]);
+    setPublishedModuleId(doc.publishedModuleId ?? null);
+    setCourseId(doc.courseId ?? "");
     showToast("Імпортовано");
+  };
+
+  const openModulePreview = () => {
+    writeConstructorPreview({
+      title: title.trim() || "Перегляд",
+      theoryHtml: htmlExport,
+      taskMarkdown: TASK_FOR_PUBLISH,
+      testQuestions: buildTestQuestionsFromBlocks(blocks),
+    });
+    navigate("/constructor/preview");
+  };
+
+  const publishToServer = async () => {
+    if (!title.trim()) {
+      showToast("Вкажіть назву модуля");
+      return;
+    }
+    if (!courseId) {
+      showToast("Оберіть курс або дочекайтесь завантаження списку");
+      return;
+    }
+    const testQuestions = buildTestQuestionsFromBlocks(blocks);
+    const body = {
+      title: title.trim(),
+      description: "Створено в конструкторі модулів",
+      theoryHtml: htmlExport,
+      taskMarkdown: TASK_FOR_PUBLISH,
+      ...(testQuestions.length ? { testQuestions } : {}),
+    };
+    setPublishing(true);
+    try {
+      let moduleIdAfter = publishedModuleId;
+      if (publishedModuleId) {
+        await constructorApi.sync(publishedModuleId, body);
+        showToast("Модуль оновлено на сервері");
+      } else {
+        const mod = await constructorApi.publish(courseId, body);
+        moduleIdAfter = mod.id;
+        setPublishedModuleId(mod.id);
+        showToast("Модуль збережено на сервері");
+      }
+      if (moduleIdAfter) {
+        try {
+          localStorage.setItem(
+            LS_KEY,
+            documentToJson({
+              version: 1,
+              title,
+              blocks,
+              publishedModuleId: moduleIdAfter,
+              courseId,
+            }),
+          );
+          setLastSavedAt(new Date());
+        } catch {
+          /* ignore */
+        }
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Помилка збереження");
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
@@ -114,9 +258,98 @@ export function ModuleConstructorPage() {
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
             Збирайте сценарій уроку: текст, таблиці, картки, конектори між секціями та блоки з пропусками для тесту.
-            Експортуйте HTML у контент уроку та JSON для пропусків.
           </p>
         </header>
+
+        <div className="mb-6 rounded-2xl border border-sky-200/80 bg-sky-50/90 p-4 text-sm text-slate-700 dark:border-sky-500/25 dark:bg-sky-950/40 dark:text-slate-300">
+          <p className="font-bold text-sky-900 dark:text-sky-100">Як зберегти</p>
+          <ul className="mt-2 list-inside list-disc space-y-1.5">
+            <li>
+              <strong>На сервер</strong> — оберіть курс і натисніть «Зберегти на сервері». Створються уроки «Теорія», «Вправи» та
+              «Тест» (якщо є блоки з пропусками). Повторне натискання оновлює той самий модуль.
+            </li>
+            <li>
+              <strong>Перегляд</strong> — «Як виглядатиме модуль» відкриває повноекранний перегляд без збереження прогресу.
+            </li>
+            <li>
+              <strong>Чернетка в браузері</strong> — додатково зберігається локально (авто або кнопка «Зберегти чернетку»).
+            </li>
+            <li>
+              Можна вручну скопіювати <strong>HTML</strong> / <strong>JSON</strong> або <strong>Завантажити JSON</strong>.
+            </li>
+          </ul>
+        </div>
+
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-4 dark:border-emerald-500/20 dark:bg-emerald-950/20">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+            <label className="flex min-w-[200px] flex-1 flex-col gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                Курс на сервері
+              </span>
+              <select
+                value={courseId}
+                onChange={(e) => setCourseId(e.target.value)}
+                disabled={courses.length === 0}
+                className="rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-emerald-800 dark:bg-slate-900 dark:text-white disabled:opacity-50"
+              >
+                {courses.length === 0 ? (
+                  <option value="">Завантаження курсів…</option>
+                ) : (
+                  courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={openModulePreview}
+                className="rounded-xl border-2 border-violet-400 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-900 shadow-sm hover:bg-violet-100 dark:border-violet-500 dark:bg-violet-950/50 dark:text-violet-100 dark:hover:bg-violet-900/40"
+              >
+                Як виглядатиме модуль
+              </button>
+              <button
+                type="button"
+                onClick={() => void publishToServer()}
+                disabled={publishing || !courseId}
+                className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white shadow hover:bg-emerald-500 disabled:opacity-50"
+              >
+                {publishing ? "Збереження…" : publishedModuleId ? "Оновити на сервері" : "Зберегти на сервері"}
+              </button>
+            </div>
+          </div>
+          {publishedModuleId && (
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              Модуль на сервері:{" "}
+              <Link
+                to={`/course/modules/${publishedModuleId}`}
+                className="font-bold text-emerald-600 underline hover:text-emerald-500 dark:text-emerald-400"
+              >
+                відкрити в додатку (як студент)
+              </Link>
+            </p>
+          )}
+        </div>
+
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => persistDraft()}
+              className="rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-bold text-white shadow hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-white"
+            >
+              Зберегти чернетку
+            </button>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {lastSavedAt
+                ? `Останнє збереження: ${formatSavedTime(lastSavedAt)}`
+                : "Ще не зберігалось у цьому сеансі"}
+            </span>
+          </div>
+        </div>
 
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           <label className="flex flex-1 flex-col gap-1 min-w-[200px]">
@@ -143,16 +376,22 @@ export function ModuleConstructorPage() {
         <div className="mb-4 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => copyText(htmlExport, "HTML скопійовано")}
+            onClick={() => copyText(htmlExport, "HTML скопійовано в буфер")}
             className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow hover:bg-emerald-500"
           >
-            Копіювати HTML
+            Копіювати HTML (для уроку)
           </button>
           <button
             type="button"
             onClick={() =>
               copyText(
-                documentToJson({ version: 1, title, blocks }),
+                documentToJson({
+                  version: 1,
+                  title,
+                  blocks,
+                  ...(publishedModuleId ? { publishedModuleId } : {}),
+                  ...(courseId ? { courseId } : {}),
+                }),
                 "JSON сценарію скопійовано",
               )
             }
@@ -169,6 +408,32 @@ export function ModuleConstructorPage() {
             disabled={!testPayload.length}
           >
             JSON пропусків ({testPayload.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const blob = new Blob([
+                documentToJson({
+                  version: 1,
+                  title,
+                  blocks,
+                  ...(publishedModuleId ? { publishedModuleId } : {}),
+                  ...(courseId ? { courseId } : {}),
+                }),
+              ], {
+                type: "application/json;charset=utf-8",
+              });
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(blob);
+              const safe = title.replace(/[^\w\u0400-\u04FF\-]+/g, "_").slice(0, 40) || "scenario";
+              a.download = `${safe}.json`;
+              a.click();
+              URL.revokeObjectURL(a.href);
+              showToast("Файл JSON завантажено");
+            }}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+          >
+            Завантажити JSON
           </button>
           <button
             type="button"

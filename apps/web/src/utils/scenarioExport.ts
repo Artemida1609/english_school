@@ -134,3 +134,54 @@ export function parseScenarioJson(raw: string): ScenarioDocument | null {
   }
   return null;
 }
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Питання для тесту (MCQ) з блоків cloze — для API та прев’ю */
+export function buildTestQuestionsFromBlocks(
+  blocks: ScenarioBlock[],
+): { questionText: string; answers: { text: string; isCorrect: boolean }[] }[] {
+  const clozeBlocks = blocks.filter(
+    (b): b is Extract<ScenarioBlock, { type: "cloze" }> => b.type === "cloze",
+  );
+  const pool = clozeBlocks.flatMap((b) => b.answers.map((x) => x.trim()).filter(Boolean));
+  const fillers = ["is", "are", "was", "were", "have", "has", "do", "does", "did"];
+  const out: { questionText: string; answers: { text: string; isCorrect: boolean }[] }[] = [];
+
+  for (const b of clozeBlocks) {
+    const parts = b.text.split("___");
+    const answers = b.answers.map((x) => x.trim());
+    const numGaps = Math.max(0, parts.length - 1);
+    for (let j = 0; j < numGaps; j++) {
+      const correct = answers[j];
+      if (!correct) continue;
+      const before = parts.slice(0, j + 1).join(" ___ ");
+      const after = parts.slice(j + 1).join(" ___ ");
+      const questionText = `${before} ______ ${after}`.replace(/\s+/g, " ").trim();
+      const wrongPool = pool.filter((x) => x.toLowerCase() !== correct.toLowerCase());
+      const wrongs: string[] = [];
+      for (const w of wrongPool) {
+        if (wrongs.length >= 3) break;
+        if (!wrongs.includes(w)) wrongs.push(w);
+      }
+      let fi = 0;
+      while (wrongs.length < 3) {
+        wrongs.push(fillers[fi % fillers.length]);
+        fi++;
+      }
+      const opts = shuffle([
+        { text: correct, isCorrect: true },
+        ...wrongs.slice(0, 3).map((t) => ({ text: t, isCorrect: false as boolean })),
+      ]);
+      out.push({ questionText, answers: opts });
+    }
+  }
+  return out;
+}
