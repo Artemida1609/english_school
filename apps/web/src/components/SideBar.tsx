@@ -1,11 +1,21 @@
 // SideBar.tsx
+import { useMemo } from "react"
+import { useSelector } from "react-redux"
 import { NavLink } from "react-router-dom"
+import { LayoutTemplate } from "lucide-react"
 import { ChatsIcon } from "../icons/ChatsIcon"
 import { CoursesIcon } from "../icons/CoursesIcon"
 import { SettingsIcon } from "../icons/SettingsIcon"
+import type { RootState } from "../store"
 // import { StoreIcon } from "../icons/StoreIcon"
 
-const navItems = [
+const constructorItem = {
+  name: "Конструктор",
+  href: "/constructor",
+  icon: <LayoutTemplate className="w-6 h-6" strokeWidth={1.8} />,
+}
+
+const baseNavItems = [
   {
     name: "Головна",
     href: "/",
@@ -34,6 +44,18 @@ const navItems = [
 ]
 
 export const SideBar = () => {
+  const role = useSelector((s: RootState) => s.auth.user?.role)
+  const navItems = useMemo(() => {
+    if (role === "TEACHER" || role === "ADMIN") {
+      const items = [...baseNavItems]
+      const courseIdx = items.findIndex((i) => i.href === "/course")
+      const insertAt = courseIdx >= 0 ? courseIdx + 1 : items.length - 1
+      items.splice(insertAt, 0, constructorItem)
+      return items
+    }
+    return baseNavItems
+  }, [role])
+
   return (
     <aside className="
       fixed z-40

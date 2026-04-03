@@ -24,6 +24,8 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { AuthGuard } from "./components/AuthGuard";
 import { ProfilePage } from "./pages/ProfilePage";
 import { MainHomePage } from "./pages/MainHomePage";
+import { StaffGuard } from "./components/StaffGuard";
+import { ModuleConstructorPage } from "./pages/ModuleConstructorPage";
 
 export const App = () => {
   const { theme, setTheme } = useThemeStore();
@@ -74,6 +76,9 @@ export const App = () => {
               element={<SubscriptionSettings />}
             />
             {/* <Route path="/store" element={<StorePage />} /> */}
+            <Route element={<StaffGuard />}>
+              <Route path="/constructor" element={<ModuleConstructorPage />} />
+            </Route>
           </Route>
 
           <Route element={<ModuleLayout />}>
