@@ -383,6 +383,11 @@ export const ModulePage = () => {
 
   // ─── Progress state ────────────────────────────────────────
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
+  const [moduleProgressSummary, setModuleProgressSummary] = useState<{
+    completed: number;
+    total: number;
+    percentage: number;
+  } | null>(null);
   const videoMarkedRef = useRef(false);
   const theoryMarkedRef = useRef(false);
 
@@ -656,32 +661,48 @@ export const ModulePage = () => {
     setVocabLoading(false);
   }, [detailTheory, detailTask, detailTest, detailVideo, module?.vocabulary]);
 
+  const refreshModuleProgress = useCallback(async () => {
+    if (!moduleId || isConstructorPreview) return;
+    try {
+      const data = await coursesApi.getModuleProgress(moduleId);
+      const completed = new Set(
+        data.lessons.filter((l) => l.progress?.completed).map((l) => l.id),
+      );
+      setCompletedLessons(completed);
+      setModuleProgressSummary({
+        completed: data.completedCount,
+        total: data.totalCount,
+        percentage: data.percentage,
+      });
+      if (data.lessons.find((l) => l.type === "VIDEO" && l.progress?.completed)) {
+        videoMarkedRef.current = true;
+      }
+      if (data.lessons.find((l) => l.type === "THEORY" && l.progress?.completed)) {
+        theoryMarkedRef.current = true;
+      }
+      if (data.percentage === 100) {
+        celebratedRef.current = true;
+      }
+    } catch (err) {
+      console.error("Failed to load module progress:", err);
+    }
+  }, [isConstructorPreview, moduleId]);
+
   // ─── Load existing progress ────────────────────────────────
   useEffect(() => {
-    if (!moduleId || isConstructorPreview) return;
-    coursesApi.getModuleProgress(moduleId)
-      .then((data) => {
-        const completed = new Set(
-          data.lessons.filter((l) => l.progress?.completed).map((l) => l.id)
-        );
-        setCompletedLessons(completed);
-        if (data.lessons.find((l) => l.type === "VIDEO" && l.progress?.completed)) videoMarkedRef.current = true;
-        if (data.lessons.find((l) => l.type === "THEORY" && l.progress?.completed)) theoryMarkedRef.current = true;
-        if (data.percentage === 100) celebratedRef.current = true;
-      })
-      .catch((err) => { console.error("Failed to load module progress:", err); });
-  }, [moduleId, isConstructorPreview]);
+    void refreshModuleProgress();
+  }, [refreshModuleProgress]);
 
   // ─── Save progress helper ──────────────────────────────────
   const markComplete = useCallback(async (lessonId: string | undefined) => {
     if (isConstructorPreview || !lessonId || completedLessons.has(lessonId)) return;
     try {
       await coursesApi.saveProgress({ lessonId, completed: true });
-      setCompletedLessons((prev) => new Set([...prev, lessonId]));
+      await refreshModuleProgress();
     } catch (err) {
       console.error("Failed to save progress:", err);
     }
-  }, [completedLessons, isConstructorPreview]);
+  }, [completedLessons, isConstructorPreview, refreshModuleProgress]);
 
   const taskContentRaw = useMemo(
     () => detailTask?.content ?? taskLesson?.content ?? "",
@@ -805,20 +826,22 @@ export const ModulePage = () => {
     { lesson: testLesson, type: "TEST", label: "Тест", tab: "test" as TabId },
   ], [videoLesson, theoryLesson, taskLesson, testLesson]);
 
-  const completedCount = lessonItems.filter(({ lesson }) => lesson && completedLessons.has(lesson.id)).length;
-  const totalCount = lessonItems.filter(({ lesson }) => !!lesson).length;
-  const progressPct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+  const fallbackCompletedCount = lessonItems.filter(({ lesson }) => lesson && completedLessons.has(lesson.id)).length;
+  const fallbackTotalCount = lessonItems.filter(({ lesson }) => !!lesson).length;
+  const completedCount = moduleProgressSummary?.completed ?? fallbackCompletedCount;
+  const totalCount = moduleProgressSummary?.total ?? fallbackTotalCount;
+  const progressPct = moduleProgressSummary?.percentage ?? (totalCount > 0 ? (completedCount / totalCount) * 100 : 0);
 
   // ─── Celebration trigger ───────────────────────────────────
   useEffect(() => {
-    if (totalCount > 0 && completedCount === totalCount && !celebratedRef.current) {
+    if (progressPct === 100 && totalCount > 0 && !celebratedRef.current) {
       celebratedRef.current = true;
       setTimeout(() => {
         setShowFireworks(true);
         setShowModal(true);
       }, 600);
     }
-  }, [completedCount, totalCount]);
+  }, [progressPct, totalCount]);
 
   const backHref = isConstructorPreview
     ? "/constructor"
@@ -1378,14 +1401,39 @@ export const ModulePage = () => {
                 {practiceSections.map((section, index) => (
                   <SidebarPracticeItem key={section.id} section={section} index={index} />
                 ))}
+                {hasVocabulary && (
+                  <button
+                    onClick={() => setTab("vocabulary")}
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-1.5 text-left transition-all duration-200 group ${activeTab === "vocabulary"
+                      ? "bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-400/30 dark:border-emerald-500/30"
+                      : "hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent"
+                      }`}
+                  >
+                    <div className={`w-1 h-8 rounded-full transition-all duration-200 ${activeTab === "vocabulary" ? "bg-emerald-500" : "bg-transparent group-hover:bg-slate-300 dark:group-hover:bg-white/20"}`} />
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 border transition-all duration-300 ${activeTab === "vocabulary"
+                      ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+                      : "bg-slate-100 dark:bg-white/5 border-slate-200/80 dark:border-white/10"
+                      }`}>
+                      🗂
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[10px] font-black uppercase tracking-wider mb-0.5 ${activeTab === "vocabulary" ? "text-emerald-500 dark:text-emerald-400" : "text-slate-400 dark:text-white/35"}`}>
+                        Вправа {practiceSections.length + 1}
+                      </p>
+                      <p className={`text-sm font-bold truncate ${activeTab === "vocabulary" ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-white/60"}`}>
+                        Словник ({moduleVocabulary.length})
+                      </p>
+                    </div>
+                  </button>
+                )}
               </div>
             )}
             {hasTaskContent && practiceSections.length === 0 && (
               <SidebarLessonItem lesson={taskLesson} label="Вправи" icon="✏️" tab="exercises" />
             )}
             {hasTestContent && <SidebarLessonItem lesson={testLesson} label="Тест" icon="📝" tab="test" />}
-            {/* Vocabulary item — shows only if vocabulary exists */}
-            <SidebarVocabItem />
+            {/* Vocabulary item — shows only if vocabulary exists and not nested in exercises */}
+            {(!hasTaskContent || practiceSections.length === 0) && <SidebarVocabItem />}
           </nav>
         </aside>
 
