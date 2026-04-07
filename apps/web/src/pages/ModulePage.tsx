@@ -718,6 +718,9 @@ export const ModulePage = () => {
   );
   const practiceSections = useMemo(() => normalizedPractice?.sections ?? [], [normalizedPractice]);
   const hasSectionedPractice = practiceSections.length > 0;
+  const isConstructorBasedModule = isConstructorPreview || Boolean(module?.constructorJson);
+  const nestVocabularyIntoExercises =
+    hasVocabulary && hasSectionedPractice && isConstructorBasedModule;
   const [completedPracticeSections, setCompletedPracticeSections] = useState<Set<string>>(new Set());
   const [activePracticeSectionId, setActivePracticeSectionId] = useState<string | null>(null);
 
@@ -1401,7 +1404,7 @@ export const ModulePage = () => {
                 {practiceSections.map((section, index) => (
                   <SidebarPracticeItem key={section.id} section={section} index={index} />
                 ))}
-                {hasVocabulary && (
+                {nestVocabularyIntoExercises && (
                   <button
                     onClick={() => setTab("vocabulary")}
                     className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-1.5 text-left transition-all duration-200 group ${activeTab === "vocabulary"
@@ -1432,8 +1435,8 @@ export const ModulePage = () => {
               <SidebarLessonItem lesson={taskLesson} label="Вправи" icon="✏️" tab="exercises" />
             )}
             {hasTestContent && <SidebarLessonItem lesson={testLesson} label="Тест" icon="📝" tab="test" />}
-            {/* Vocabulary item — shows only if vocabulary exists and not nested in exercises */}
-            {(!hasTaskContent || practiceSections.length === 0) && <SidebarVocabItem />}
+            {/* Vocabulary item — shown separately unless nested inside constructor exercises */}
+            {!nestVocabularyIntoExercises && <SidebarVocabItem />}
           </nav>
         </aside>
 
