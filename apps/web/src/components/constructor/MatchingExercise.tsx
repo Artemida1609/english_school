@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
 function shuffle<T>(arr: T[]): T[] {
@@ -15,13 +15,19 @@ type Props = {
   right: string[];
   /** Унікальний id для кольору ліній у кількох вправах */
   exerciseIndex: number;
+  completed?: boolean;
+  onComplete?: () => void;
 };
 
 /**
  * Зіставлення: клік ліворуч, потім праворуч. Лінії між колонками.
  * Правильна пара: left[i] ↔ right[i] (оригінальний індекс).
  */
-export function MatchingExercise({ left, right, exerciseIndex }: Props) {
+export function MatchingExercise({ left, right, exerciseIndex, completed = false, onComplete }: Props) {
+  const solvedPairs = useMemo(
+    () => Object.fromEntries(left.map((_, index) => [index, index])) as Record<number, number>,
+    [left],
+  );
   const rightShuffled = useMemo(
     () => shuffle(right.map((text, origIndex) => ({ text, origIndex }))),
     [right],
@@ -29,12 +35,13 @@ export function MatchingExercise({ left, right, exerciseIndex }: Props) {
 
   const [pendingLeft, setPendingLeft] = useState<number | null>(null);
   /** leftIndex -> origIndex правого стовпчика */
-  const [pairs, setPairs] = useState<Record<number, number>>({});
-  const [checked, setChecked] = useState(false);
+  const [pairs, setPairs] = useState<Record<number, number>>(() => (completed ? solvedPairs : {}));
+  const [checked, setChecked] = useState(completed);
 
   const leftRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const rightRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const completionNotifiedRef = useRef(false);
 
   const [lineSvg, setLineSvg] = useState<{ x1: number; y1: number; x2: number; y2: number }[]>([]);
 
@@ -73,7 +80,7 @@ export function MatchingExercise({ left, right, exerciseIndex }: Props) {
   }, [updateLines]);
 
   const onLeftClick = (i: number) => {
-    if (checked) return;
+    if (checked || completed) return;
     if (pairs[i] !== undefined) {
       const next = { ...pairs };
       delete next[i];
@@ -85,7 +92,7 @@ export function MatchingExercise({ left, right, exerciseIndex }: Props) {
   };
 
   const onRightClick = (displayIndex: number) => {
-    if (checked || pendingLeft === null) return;
+    if (checked || completed || pendingLeft === null) return;
     const orig = rightShuffled[displayIndex].origIndex;
     setPairs((prev) => ({ ...prev, [pendingLeft]: orig }));
     setPendingLeft(null);
@@ -95,13 +102,26 @@ export function MatchingExercise({ left, right, exerciseIndex }: Props) {
     left.length > 0 && left.every((_, i) => pairs[i] !== undefined) && Object.keys(pairs).length === left.length;
 
   const correctCount = useMemo(() => {
-    if (!checked) return 0;
+    if (!(checked || completed)) return 0;
     let n = 0;
     for (let i = 0; i < left.length; i++) {
       if (pairs[i] === i) n += 1;
     }
     return n;
-  }, [checked, pairs, left.length]);
+  }, [checked, completed, pairs, left.length]);
+
+  useEffect(() => {
+    if (completed || !checked || left.length === 0) return;
+    const fullyCorrect = Object.keys(pairs).length === left.length && correctCount === left.length;
+    if (fullyCorrect && !completionNotifiedRef.current) {
+      completionNotifiedRef.current = true;
+      onComplete?.();
+      return;
+    }
+    if (!fullyCorrect) {
+      completionNotifiedRef.current = false;
+    }
+  }, [checked, completed, correctCount, left.length, onComplete, pairs]);
 
   const colors = ["#10b981", "#8b5cf6", "#f59e0b", "#3b82f6", "#ec4899"];
 
@@ -193,7 +213,7 @@ export function MatchingExercise({ left, right, exerciseIndex }: Props) {
             updateLines();
             setChecked(true);
           }}
-          disabled={!allPaired || checked}
+          disabled={!allPaired || checked || completed}
           className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white disabled:opacity-40"
         >
           Перевірити зіставлення

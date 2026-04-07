@@ -7,7 +7,12 @@ import { coursesApi, type Lesson, type LessonDetail, type Module, type Vocabular
 import type { RootState } from "../store";
 import { apiFetch } from "../api/client";
 import { CONSTRUCTOR_PREVIEW_MODULE_ID, readConstructorPreview } from "../types/constructorPreview";
-import { appendPracticeToTaskMarkdown, parsePracticeFromTaskContent } from "../utils/constructorPractice";
+import {
+  appendPracticeToTaskMarkdown,
+  normalizeConstructorPracticePayload,
+  parsePracticeFromTaskContent,
+  type ConstructorPracticeSection,
+} from "../utils/constructorPractice";
 import { QuizletCards } from "../components/constructor/QuizletCards";
 import { MatchingExercise } from "../components/constructor/MatchingExercise";
 // ─── Tabs ──────────────────────────────────────────────────────
@@ -487,7 +492,12 @@ export const ModulePage = () => {
         setModule(null);
         return;
       }
-      const practice = pv.practice ?? { version: 1 as const, quizlet: [], matching: [] };
+      const practice = normalizeConstructorPracticePayload(pv.practice) ?? {
+        version: 2 as const,
+        quizlet: [],
+        matching: [],
+        sections: [],
+      };
       const taskBody = appendPracticeToTaskMarkdown(pv.taskMarkdown, practice);
       const lessons: Lesson[] = [
         {
@@ -681,6 +691,70 @@ export const ModulePage = () => {
     () => parsePracticeFromTaskContent(taskContentRaw),
     [taskContentRaw],
   );
+  const normalizedPractice = useMemo(
+    () => normalizeConstructorPracticePayload(constructorPractice),
+    [constructorPractice],
+  );
+  const practiceSections = useMemo(() => normalizedPractice?.sections ?? [], [normalizedPractice]);
+  const hasSectionedPractice = practiceSections.length > 0;
+  const [completedPracticeSections, setCompletedPracticeSections] = useState<Set<string>>(new Set());
+  const [activePracticeSectionId, setActivePracticeSectionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!practiceSections.length) {
+      setActivePracticeSectionId(null);
+      setCompletedPracticeSections(new Set());
+      return;
+    }
+
+    setActivePracticeSectionId((current) => {
+      if (current && practiceSections.some((section) => section.id === current)) {
+        return current;
+      }
+      return practiceSections[0]?.id ?? null;
+    });
+
+    if (taskLesson?.id && completedLessons.has(taskLesson.id)) {
+      setCompletedPracticeSections(new Set(practiceSections.map((section) => section.id)));
+      return;
+    }
+
+    setCompletedPracticeSections((prev) => {
+      const next = new Set<string>();
+      for (const section of practiceSections) {
+        if (prev.has(section.id)) {
+          next.add(section.id);
+        }
+      }
+      return next;
+    });
+  }, [completedLessons, practiceSections, taskLesson?.id]);
+
+  const selectedPracticeSection = useMemo(
+    () => practiceSections.find((section) => section.id === activePracticeSectionId) ?? practiceSections[0] ?? null,
+    [activePracticeSectionId, practiceSections],
+  );
+  const allPracticeSectionsComplete = hasSectionedPractice
+    ? practiceSections.every((section) => completedPracticeSections.has(section.id))
+    : false;
+
+  const handlePracticeSectionComplete = useCallback((sectionId: string) => {
+    setCompletedPracticeSections((prev) => {
+      if (prev.has(sectionId)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(sectionId);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!hasSectionedPractice || !taskLesson?.id || !practiceSections.length) return;
+    if (allPracticeSectionsComplete && !completedLessons.has(taskLesson.id)) {
+      void markComplete(taskLesson.id);
+    }
+  }, [allPracticeSectionsComplete, completedLessons, hasSectionedPractice, markComplete, practiceSections.length, taskLesson?.id]);
 
   // ─── Auto-mark video on tab ────────────────────────────────
   useEffect(() => {
@@ -715,7 +789,9 @@ export const ModulePage = () => {
   const handleCheck = async () => {
     if (answeredQuestions !== totalQuestions) return;
     setShowResult(true);
-    if (taskLesson?.id) await markComplete(taskLesson.id);
+    if (!hasSectionedPractice && isAllCorrect && taskLesson?.id) {
+      await markComplete(taskLesson.id);
+    }
     if (isAllCorrect && testLesson?.id) {
       await markComplete(testLesson.id);
     }
@@ -751,9 +827,9 @@ export const ModulePage = () => {
       : "/course";
 
   // ─── Sidebar lesson item ───────────────────────────────────
-  const SidebarItem = ({
+  const SidebarLessonItem = ({
     lesson, label, icon, tab,
-  }: { lesson: Lesson | undefined; type: string; label: string; icon: string; tab: TabId }) => {
+  }: { lesson: Lesson | undefined; label: string; icon: string; tab: TabId }) => {
     if (!lesson) return null;
     const highlight = activeTab === tab;
     const done = completedLessons.has(lesson.id);
@@ -783,6 +859,52 @@ export const ModulePage = () => {
           </p>
           <p className={`text-sm font-bold truncate ${highlight ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-white/60"}`}>
             {lesson.title}
+          </p>
+        </div>
+        {done && <span className="text-[10px] font-black text-emerald-500 dark:text-emerald-400 shrink-0">✓</span>}
+      </button>
+    );
+  };
+
+  const SidebarPracticeItem = ({
+    section,
+    index,
+  }: {
+    section: ConstructorPracticeSection;
+    index: number;
+  }) => {
+    const highlight = activeTab === "exercises" && selectedPracticeSection?.id === section.id;
+    const done = completedPracticeSections.has(section.id);
+    const icon = section.type === "cards" ? "🗂" : "🔗";
+
+    return (
+      <button
+        onClick={() => {
+          setActivePracticeSectionId(section.id);
+          setTab("exercises");
+        }}
+        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-1.5 text-left transition-all duration-200 group ${highlight
+          ? "bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-400/30 dark:border-emerald-500/30"
+          : "hover:bg-slate-100/80 dark:hover:bg-white/5 border border-transparent"
+          }`}
+      >
+        <div className={`w-1 h-8 rounded-full transition-all duration-200 ${highlight ? "bg-emerald-500" : "bg-transparent group-hover:bg-slate-300 dark:group-hover:bg-white/20"}`} />
+        <motion.div
+          animate={done ? { scale: [1, 1.15, 1] } : {}}
+          transition={{ duration: 0.35 }}
+          className={`w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 border transition-all duration-300 ${done
+            ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+            : "bg-slate-100 dark:bg-white/5 border-slate-200/80 dark:border-white/10"
+            }`}
+        >
+          {done ? <CheckIcon /> : icon}
+        </motion.div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-[10px] font-black uppercase tracking-wider mb-0.5 ${highlight ? "text-emerald-500 dark:text-emerald-400" : "text-slate-400 dark:text-white/35"}`}>
+            Вправа {index + 1}
+          </p>
+          <p className={`text-sm font-bold truncate ${highlight ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-white/60"}`}>
+            {section.title}
           </p>
         </div>
         {done && <span className="text-[10px] font-black text-emerald-500 dark:text-emerald-400 shrink-0">✓</span>}
@@ -974,11 +1096,20 @@ export const ModulePage = () => {
 
       {activeTab === "exercises" && (
         <motion.div key="exercises" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-8">
-          <section className="relative rounded-[24px] md:rounded-[28px] overflow-hidden border border-amber-200/50 dark:border-amber-500/20 bg-gradient-to-br from-amber-50/90 to-white/90 dark:from-amber-950/30 dark:to-[#06121D]/90 backdrop-blur-xl p-6 sm:p-8 shadow-lg">
+          <section className="relative rounded-[24px] md:rounded-[28px] overflow-hidden border border-slate-200/80 dark:border-white/10 bg-white/95 dark:bg-[#06121D]/95 backdrop-blur-xl p-6 sm:p-8 shadow-lg">
             <div className="flex items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <span className="text-2xl" aria-hidden>✏️</span>
-                <h2 className="text-lg font-black uppercase tracking-widest text-amber-800 dark:text-amber-200">Практика</h2>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-black uppercase tracking-widest text-slate-900 dark:text-white truncate">
+                    {selectedPracticeSection?.title ?? "Практика"}
+                  </h2>
+                  {selectedPracticeSection && (
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-white/45 uppercase tracking-widest">
+                      Секція {practiceSections.findIndex((section) => section.id === selectedPracticeSection.id) + 1}
+                    </p>
+                  )}
+                </div>
               </div>
               <AnimatePresence>
                 {taskLesson && completedLessons.has(taskLesson.id) && (
@@ -995,22 +1126,54 @@ export const ModulePage = () => {
                     {renderMarkdownLike(taskMdForRender)}
                   </div>
                 ) : null}
-                {constructorPractice && constructorPractice.quizlet.length > 0 && (
-                  <QuizletCards
-                    items={constructorPractice.quizlet.map((item) => ({
-                      title: item.term,
-                      body: item.definition,
-                    }))}
-                  />
+                {hasSectionedPractice && selectedPracticeSection ? (
+                  <div className="space-y-6">
+                    {selectedPracticeSection.type === "cards" ? (
+                      <QuizletCards
+                        key={`${selectedPracticeSection.id}-${completedPracticeSections.has(selectedPracticeSection.id) ? "done" : "todo"}`}
+                        items={selectedPracticeSection.items.map((item) => ({
+                          title: item.term,
+                          body: item.definition,
+                          transcription: item.transcription,
+                          category: item.category,
+                        }))}
+                        completed={completedPracticeSections.has(selectedPracticeSection.id)}
+                        onComplete={() => handlePracticeSectionComplete(selectedPracticeSection.id)}
+                      />
+                    ) : (
+                      <MatchingExercise
+                        key={`${selectedPracticeSection.id}-${completedPracticeSections.has(selectedPracticeSection.id) ? "done" : "todo"}`}
+                        left={selectedPracticeSection.left}
+                        right={selectedPracticeSection.right}
+                        exerciseIndex={practiceSections.findIndex((section) => section.id === selectedPracticeSection.id)}
+                        completed={completedPracticeSections.has(selectedPracticeSection.id)}
+                        onComplete={() => handlePracticeSectionComplete(selectedPracticeSection.id)}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {constructorPractice && constructorPractice.quizlet.length > 0 && (
+                      <QuizletCards
+                        key="legacy-quizlet"
+                        items={constructorPractice.quizlet.map((item) => ({
+                          title: item.term,
+                          body: item.definition,
+                          transcription: item.transcription,
+                          category: item.category,
+                        }))}
+                      />
+                    )}
+                    {(constructorPractice?.matching ?? []).map((m, idx) => (
+                      <MatchingExercise
+                        key={idx}
+                        left={m.left}
+                        right={m.right}
+                        exerciseIndex={idx}
+                      />
+                    ))}
+                  </>
                 )}
-                {(constructorPractice?.matching ?? []).map((m, idx) => (
-                  <MatchingExercise
-                    key={idx}
-                    left={m.left}
-                    right={m.right}
-                    exerciseIndex={idx}
-                  />
-                ))}
               </>
             ) : taskLesson ? (
               <p className="text-sm text-slate-500 dark:text-white/50">Контент вправи з'явиться незабаром.</p>
@@ -1022,7 +1185,6 @@ export const ModulePage = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
-                  if (taskLesson?.id) void markComplete(taskLesson.id);
                   setTab("test");
                 }}
                 className="mt-8 w-full py-3.5 bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white text-[13px] font-black tracking-widest uppercase rounded-2xl hover:shadow-[0_0_20px_rgba(139,92,246,0.45)] transition-shadow border border-violet-400/50"
@@ -1206,10 +1368,22 @@ export const ModulePage = () => {
             </div>
           </div>
           <nav className="flex-1 px-3 py-4 overflow-y-auto">
-            {hasVideo && <SidebarItem lesson={videoLesson} type="VIDEO" label="Відео" icon="▶" tab="video" />}
-            <SidebarItem lesson={theoryLesson} type="THEORY" label="Теорія" icon="📖" tab="theory" />
-            {hasTaskContent && <SidebarItem lesson={taskLesson} type="TASK" label="Вправи" icon="✏️" tab="exercises" />}
-            {hasTestContent && <SidebarItem lesson={testLesson} type="TEST" label="Тест" icon="📝" tab="test" />}
+            {hasVideo && <SidebarLessonItem lesson={videoLesson} label="Відео" icon="▶" tab="video" />}
+            <SidebarLessonItem lesson={theoryLesson} label="Теорія" icon="📖" tab="theory" />
+            {hasTaskContent && practiceSections.length > 0 && (
+              <div className="mb-3 rounded-2xl border border-slate-200/60 dark:border-white/5 bg-slate-50/80 dark:bg-white/3 px-2 py-2">
+                <p className="px-2 pb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-white/35">
+                  Вправи
+                </p>
+                {practiceSections.map((section, index) => (
+                  <SidebarPracticeItem key={section.id} section={section} index={index} />
+                ))}
+              </div>
+            )}
+            {hasTaskContent && practiceSections.length === 0 && (
+              <SidebarLessonItem lesson={taskLesson} label="Вправи" icon="✏️" tab="exercises" />
+            )}
+            {hasTestContent && <SidebarLessonItem lesson={testLesson} label="Тест" icon="📝" tab="test" />}
             {/* Vocabulary item — shows only if vocabulary exists */}
             <SidebarVocabItem />
           </nav>
@@ -1253,7 +1427,7 @@ export const ModulePage = () => {
                     : tab.id === "theory"
                       ? Boolean(theoryLesson && completedLessons.has(theoryLesson.id))
                       : tab.id === "exercises"
-                        ? Boolean(taskLesson && completedLessons.has(taskLesson.id))
+                        ? Boolean(hasSectionedPractice ? allPracticeSectionsComplete : taskLesson && completedLessons.has(taskLesson.id))
                         : tab.id === "test"
                           ? Boolean(testLesson && completedLessons.has(testLesson.id))
                           : false;
@@ -1281,7 +1455,7 @@ export const ModulePage = () => {
             <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               {activeTab === "video" && (videoLesson?.title ?? "Відео")}
               {activeTab === "theory" && (theoryLesson?.title ?? "Теорія")}
-              {activeTab === "exercises" && (taskLesson?.title ?? "Вправи")}
+              {activeTab === "exercises" && (selectedPracticeSection?.title ?? taskLesson?.title ?? "Вправи")}
               {activeTab === "test" && (testLesson?.title ?? "Тест")}
               {activeTab === "vocabulary" && `Словник модуля · ${moduleVocabulary.length} слів`}
             </h2>

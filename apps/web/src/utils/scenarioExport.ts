@@ -73,18 +73,50 @@ export function blocksToHtml(blocks: ScenarioBlock[]): string {
 }
 
 export function buildPracticeFromBlocks(blocks: ScenarioBlock[]): ConstructorPracticePayload {
-  const quizlet = blocks
-    .filter((b): b is Extract<ScenarioBlock, { type: "cards" }> => b.type === "cards")
-    .flatMap((b) => b.items.map((it) => ({ 
-      term: it.title, 
-      definition: it.body,
-      transcription: it.transcription,
-      category: it.category,
-    })));
-  const matching = blocks
-    .filter((b): b is Extract<ScenarioBlock, { type: "match" }> => b.type === "match")
-    .map((b) => ({ left: [...b.left], right: [...b.right] }));
-  return { version: 1, quizlet, matching };
+  const cardBlocks = blocks.filter((b): b is Extract<ScenarioBlock, { type: "cards" }> => b.type === "cards");
+  const matchBlocks = blocks.filter((b): b is Extract<ScenarioBlock, { type: "match" }> => b.type === "match");
+  const quizlet = cardBlocks.flatMap((b) => b.items.map((it) => ({
+    term: it.title,
+    definition: it.body,
+    transcription: it.transcription,
+    category: it.category,
+  })));
+  const matching = matchBlocks.map((b) => ({ left: [...b.left], right: [...b.right] }));
+  const sections: ConstructorPracticePayload["sections"] = [];
+  let cardsIndex = 0;
+  let matchIndex = 0;
+  const totalCards = cardBlocks.length;
+  const totalMatches = matchBlocks.length;
+
+  for (const block of blocks) {
+    if (block.type === "cards") {
+      const currentIndex = cardsIndex++;
+      sections.push({
+        id: `practice-cards-${block.id}`,
+        type: "cards",
+        title: totalCards === 1 ? "Картки" : `Картки ${currentIndex + 1}`,
+        items: block.items.map((it) => ({
+          term: it.title,
+          definition: it.body,
+          transcription: it.transcription,
+          category: it.category,
+        })),
+      });
+      continue;
+    }
+    if (block.type === "match") {
+      const currentIndex = matchIndex++;
+      sections.push({
+        id: `practice-match-${block.id}`,
+        type: "match",
+        title: totalMatches === 1 ? "Зіставлення" : `Зіставлення ${currentIndex + 1}`,
+        left: [...block.left],
+        right: [...block.right],
+      });
+    }
+  }
+
+  return { version: 2, quizlet, matching, sections };
 }
 
 /** Дані для ручного перенесення в тест (пропущені слова) */

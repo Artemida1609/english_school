@@ -11,7 +11,7 @@
  *   <QuizletCards items={constructorPractice.quizlet} />
  */
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface QuizletItem {
@@ -23,13 +23,18 @@ export interface QuizletItem {
 
 interface QuizletCardsProps {
   items: QuizletItem[];
+  completed?: boolean;
+  onComplete?: () => void;
 }
 
-export function QuizletCards({ items }: QuizletCardsProps) {
+export function QuizletCards({ items, completed = false, onComplete }: QuizletCardsProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [known, setKnown] = useState<Set<number>>(new Set());
+  const [known, setKnown] = useState<Set<number>>(() => (
+    completed ? new Set(items.map((_, index) => index)) : new Set<number>()
+  ));
+  const completionNotifiedRef = useRef(false);
 
   // ── Categories ──────────────────────────────────────────────
   const categories = useMemo(() => {
@@ -46,10 +51,23 @@ export function QuizletCards({ items }: QuizletCardsProps) {
 
   const current = filtered[currentIndex];
   const total = filtered.length;
-  const knownCount = filtered.filter((_, i) => known.has(
+  const visibleKnownCount = filtered.filter((_, i) => known.has(
     items.indexOf(filtered[i])
   )).length;
   const progress = total > 0 ? ((currentIndex + 1) / total) * 100 : 0;
+  const allKnown = items.length > 0 && known.size === items.length;
+
+  useEffect(() => {
+    if (completed || items.length === 0) return;
+    if (allKnown && !completionNotifiedRef.current) {
+      completionNotifiedRef.current = true;
+      onComplete?.();
+      return;
+    }
+    if (!allKnown) {
+      completionNotifiedRef.current = false;
+    }
+  }, [allKnown, completed, items.length, onComplete]);
 
   const goNext = () => {
     if (currentIndex >= total - 1) return;
@@ -64,6 +82,7 @@ export function QuizletCards({ items }: QuizletCardsProps) {
   };
 
   const markKnown = () => {
+    if (completed) return;
     const globalIdx = items.indexOf(current);
     setKnown((prev) => {
       const next = new Set(prev);
@@ -83,8 +102,8 @@ export function QuizletCards({ items }: QuizletCardsProps) {
   };
 
   const markAllKnown = () => {
-    const allIdxs = filtered.map((item) => items.indexOf(item));
-    setKnown(new Set(allIdxs));
+    if (completed) return;
+    setKnown(new Set(items.map((_, index) => index)));
     setCurrentIndex(total - 1);
     setFlipped(false);
   };
@@ -108,7 +127,7 @@ export function QuizletCards({ items }: QuizletCardsProps) {
             Флеш-картки 🗂
           </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            {knownCount} / {total} вивчено
+            {visibleKnownCount} / {total} вивчено
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -276,7 +295,7 @@ export function QuizletCards({ items }: QuizletCardsProps) {
               🎉 Всі картки переглянуто!
             </p>
             <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-              Вивчено: {knownCount} з {total}
+              Вивчено: {visibleKnownCount} з {total}
             </p>
           </motion.div>
         )}
