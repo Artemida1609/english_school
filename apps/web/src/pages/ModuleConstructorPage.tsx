@@ -19,6 +19,7 @@ import {
   parseScenarioJson,
 } from "../utils/scenarioExport";
 import { RichTextEditor } from "../components/constructor/RichTextEditor";
+import { ModulePreviewPanel } from "../components/constructor/ModulePreviewPanel";
 
 const LS_KEY = "moduleConstructorDraft";
 
@@ -94,6 +95,7 @@ export function ModuleConstructorPage() {
   const [courseBusy, setCourseBusy] = useState(false);
   const [courseDialog, setCourseDialog] = useState<CourseDialogState | null>(null);
   const [modulePublishStage, setModulePublishStage] = useState(1);
+  const [showHelp, setShowHelp] = useState(false);
   const skipNextAutosave = useRef(false);
   const lastFetchedConstructorModuleRef = useRef<string | null>(null);
 
@@ -118,7 +120,7 @@ export function ModuleConstructorPage() {
           showToast("Чернетку збережено в браузері");
         }
       } catch {
-        showToast("Не вдалося зберегти (пам’ять браузера)");
+        showToast("Не вдалося зберегти (пам'ять браузера)");
       }
     },
     [title, blocks, publishedModuleId, courseId, showToast],
@@ -225,7 +227,7 @@ export function ModuleConstructorPage() {
           showToast(
             result.fromStoredJson
               ? "Сценарій завантажено з сервера"
-              : "Відновлено з уроків (збережіть модуль, щоб з’явився повний JSON конструктора)",
+              : "Відновлено з уроків (збережіть модуль, щоб з'явився повний JSON конструктора)",
           );
         } else {
           showToast("У модулі немає даних для конструктора");
@@ -253,7 +255,7 @@ export function ModuleConstructorPage() {
     ) {
       rows.push({
         id: publishedModuleId,
-        title: `Прив’язаний модуль (${publishedModuleId.slice(0, 8)}…)`,
+        title: `Прив'язаний модуль (${publishedModuleId.slice(0, 8)}…)`,
       });
     }
     return rows;
@@ -575,233 +577,271 @@ export function ModuleConstructorPage() {
   };
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-[#030812] pb-24">
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <header className="mb-8">
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white md:text-3xl">
-            Конструктор модулів
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
-            Збирайте сценарій уроку: текст, таблиці, картки, зіставлення з лініями та пропуски для питань тесту.
-          </p>
-        </header>
+    <div className="min-h-full pb-24 relative overflow-x-hidden bg-gradient-to-br from-slate-50 via-white to-emerald-50/40 dark:from-[#030812] dark:via-[#081020] dark:to-[#071a14]">
+      {/* decorative orbs */}
+      <div className="pointer-events-none fixed -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-emerald-400/10 dark:bg-emerald-500/8 blur-[140px]" />
+      <div className="pointer-events-none fixed bottom-0 -left-32 w-96 h-96 rounded-full bg-teal-300/10 dark:bg-teal-600/8 blur-[120px]" />
 
-        <div className="mb-6 rounded-2xl border border-sky-200/80 bg-sky-50/90 p-4 text-sm text-slate-700 dark:border-sky-500/25 dark:bg-sky-950/40 dark:text-slate-300">
-          <p className="font-bold text-sky-900 dark:text-sky-100">Як зберегти</p>
-          <ul className="mt-2 list-inside list-disc space-y-1.5">
-            <li>
-              <strong>На сервер</strong> — оберіть <strong>курс</strong> (усі курси, включно з неопублікованими) і{" "}
-              <strong>модуль</strong>: або «Новий модуль», або існуючий у цьому курсі для оновлення. Далі «Зберегти на сервері».
-              Під списком курсу: <strong>Новий курс</strong>, <strong>Редагувати курс</strong>, <strong>Видалити курс</strong> (лише
-              для викладача / адміна).
-              Щоб <strong>створити ще один новий запис</strong> у тому ж курсі, оберіть знову «Новий модуль» у другому списку або
-              натисніть «Новий модуль».
-            </li>
-            <li>
-              <strong>Видалити модуль</strong> з курсу можна кнопкою «Видалити з сервера» (лише для поточного прив’язаного модуля).
-            </li>
-            <li>
-              <strong>Перегляд</strong> — той самий екран, що й у студента (ModulePage): теорія, практика з картками та зіставленням; блок «Пропуски» формує лише питання тесту. Прогрес не зберігається.
-            </li>
-            <li>
-              <strong>Чернетка в браузері</strong> — додатково зберігається локально (авто або кнопка «Зберегти чернетку»).
-            </li>
-            <li>
-              Можна вручну скопіювати <strong>HTML</strong> / <strong>JSON</strong> або <strong>Завантажити JSON</strong>.
-            </li>
-          </ul>
-        </div>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10 relative z-10">
 
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-4 dark:border-emerald-500/20 dark:bg-emerald-950/20">
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
-            <label className="flex min-w-[200px] flex-1 flex-col gap-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-                Курс на сервері
-              </span>
-              <select
-                value={courseId}
-                onChange={(e) => setCourseId(e.target.value)}
-                disabled={courses.length === 0}
-                className="rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-emerald-800 dark:bg-slate-900 dark:text-white disabled:opacity-50"
-              >
-                {courses.length === 0 ? (
-                  <option value="">Завантаження курсів…</option>
-                ) : (
-                  courses.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.title}
-                      {c.isPublished === false ? " (не опубліковано)" : ""}
-                    </option>
-                  ))
-                )}
-              </select>
-              <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
-                Для викладачів показуються всі курси, не лише опубліковані в каталозі.
-              </span>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={openCreateCourseDialog}
-                  disabled={courseBusy}
-                  className="rounded-lg border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-xs font-black text-white shadow-sm hover:bg-emerald-500 disabled:opacity-40 dark:border-emerald-500 dark:bg-emerald-700 dark:hover:bg-emerald-600"
-                >
-                  + Новий курс
-                </button>
-                <button
-                  type="button"
-                  onClick={openEditCourseDialog}
-                  disabled={courseBusy || !courseId}
-                  className="rounded-lg border border-emerald-400 bg-white px-3 py-1.5 text-xs font-bold text-emerald-900 hover:bg-emerald-50 disabled:opacity-40 dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-100 dark:hover:bg-emerald-900/40"
-                >
-                  Редагувати курс
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void deleteCourseFromServer()}
-                  disabled={courseBusy || !courseId}
-                  className="rounded-lg border border-rose-400 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-900 hover:bg-rose-100 disabled:opacity-40 dark:border-rose-600 dark:bg-rose-950/40 dark:text-rose-100 dark:hover:bg-rose-900/40"
-                >
-                  Видалити курс
-                </button>
-              </div>
-            </label>
-            <label className="flex min-w-[200px] flex-1 flex-col gap-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-                Модуль для збереження
-              </span>
-              <select
-                value={publishedModuleId ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setPublishedModuleId(v ? v : null);
-                  if (!v) setModulePublishStage(1);
-                }}
-                disabled={!courseId}
-                className="rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-emerald-800 dark:bg-slate-900 dark:text-white disabled:opacity-50"
-              >
-                <option value="">
-                  Новий модуль (наступне збереження створить запис у курсі)
-                </option>
-                {moduleSelectRows.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.title}
-                  </option>
-                ))}
-              </select>
-              <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
-                Оберіть існуючий модуль — теорія та практика підтягнуться з сервера. Збережіть чернетку перед
-                зміною, якщо потрібно не втратити поточні правки.
-              </span>
-            </label>
-            <label className="flex min-w-[140px] flex-col gap-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-                Етап курсу (1–5)
-              </span>
-              <select
-                value={modulePublishStage}
-                onChange={(e) => setModulePublishStage(Number(e.target.value))}
-                disabled={!courseId}
-                className="rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-emerald-800 dark:bg-slate-900 dark:text-white disabled:opacity-50"
-              >
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <option key={n} value={n}>
-                    Етап {n}
-                  </option>
-                ))}
-              </select>
-              <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
-                У курсі лише п’ять етапів; модуль відображається на сторінці курсу в обраному етапі.
-              </span>
-            </label>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={openModulePreview}
-                className="rounded-xl border-2 border-violet-400 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-900 shadow-sm hover:bg-violet-100 dark:border-violet-500 dark:bg-violet-950/50 dark:text-violet-100 dark:hover:bg-violet-900/40"
-              >
-                Як виглядатиме модуль
-              </button>
-              <button
-                type="button"
-                onClick={startNewServerModule}
-                disabled={!publishedModuleId}
-                className="rounded-xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-900 hover:bg-sky-100 disabled:opacity-40 dark:border-sky-600 dark:bg-sky-950/40 dark:text-sky-100 dark:hover:bg-sky-900/50"
-              >
-                Новий модуль
-              </button>
-              <button
-                type="button"
-                onClick={() => void deleteModuleFromServer()}
-                disabled={publishing || !publishedModuleId}
-                className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-900 hover:bg-rose-100 disabled:opacity-40 dark:border-rose-700 dark:bg-rose-950/40 dark:text-rose-100 dark:hover:bg-rose-900/40"
-              >
-                Видалити з сервера
-              </button>
-              <button
-                type="button"
-                onClick={() => void publishToServer()}
-                disabled={publishing || !courseId}
-                className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white shadow hover:bg-emerald-500 disabled:opacity-50"
-              >
-                {publishing ? "Збереження…" : publishedModuleId ? "Оновити на сервері" : "Зберегти на сервері"}
-              </button>
+        {/* ─── HERO HEADER ─── */}
+        <motion.header
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="mb-8"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.22em] font-black text-emerald-600 dark:text-emerald-400 mb-1.5">
+                Адмін · Конструктор
+              </p>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight text-slate-900 dark:text-white">
+                Конструктор{" "}
+                <span className="bg-gradient-to-r from-emerald-500 to-teal-400 bg-clip-text text-transparent">
+                  модулів
+                </span>
+              </h1>
+              <p className="mt-2 text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-lg leading-relaxed">
+                Текст, таблиці, картки, зіставлення та тестові пропуски — все в одному редакторі.
+              </p>
             </div>
-          </div>
-          {publishedModuleId && (
-            <p className="text-xs text-slate-600 dark:text-slate-400">
-              Модуль на сервері:{" "}
-              <Link
-                to={`/course/modules/${publishedModuleId}`}
-                className="font-bold text-emerald-600 underline hover:text-emerald-500 dark:text-emerald-400"
-              >
-                відкрити в додатку (як студент)
-              </Link>
-            </p>
-          )}
-        </div>
-
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => persistDraft()}
-              className="rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-bold text-white shadow hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-white"
+              onClick={() => setShowHelp(v => !v)}
+              className="self-start sm:self-auto inline-flex items-center gap-2 rounded-xl border border-sky-200 dark:border-sky-800/50 bg-white/80 dark:bg-sky-950/40 backdrop-blur px-4 py-2.5 text-xs font-bold text-sky-700 dark:text-sky-300 shadow-sm hover:shadow-md transition-all"
             >
-              Зберегти чернетку
+              <span>💡</span>{showHelp ? "Сховати" : "Інструкція"}
             </button>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {lastSavedAt
-                ? `Останнє збереження: ${formatSavedTime(lastSavedAt)}`
-                : "Ще не зберігалось у цьому сеансі"}
-            </span>
           </div>
+        </motion.header>
+
+        {/* ─── COLLAPSIBLE HELP ─── */}
+        <AnimatePresence initial={false}>
+          {showHelp && (
+            <motion.div
+              key="help"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.28 }}
+              className="overflow-hidden mb-6"
+            >
+              <div className="rounded-2xl border border-sky-200/60 dark:border-sky-700/30 bg-white/70 dark:bg-sky-950/25 backdrop-blur-xl p-5 text-sm text-slate-600 dark:text-slate-300 shadow-sm">
+                <p className="font-black text-sky-800 dark:text-sky-200 mb-3">📋 Інструкція</p>
+                <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1.5">
+                  {[
+                    ["①", "На сервер", " — оберіть курс та модуль, натисніть «Зберегти на сервері"],
+                    ["②", "Новий модуль", " — оберіть «Новий модуль» або натисніть відповідну кнопку"],
+                    ["③", "Перегляд", " — як студент бачить: теорія, практика, тест"],
+                    ["④", "Чернетка", " — авто-збереження в браузері + ручна кнопка"],
+                    ["⑤", "HTML / JSON", " — копіювати або завантажити файл"],
+                    ["⑥", "Видалити", " — модуль/курс — дія незворотна"],
+                  ].map(([n, b, t]) => (
+                    <div key={n} className="flex gap-2">
+                      <span className="text-emerald-500 font-bold shrink-0">{n}</span>
+                      <span><strong>{b}</strong>{t}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ─── COURSE / MODULE PANEL ─── */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }} className="mb-6">
+          <div className="flex flex-col gap-4 rounded-2xl border border-emerald-200/60 dark:border-emerald-700/30 bg-white/80 dark:bg-emerald-950/20 backdrop-blur-xl p-5 shadow-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+              <label className="flex min-w-[200px] flex-1 flex-col gap-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                  Курс на сервері
+                </span>
+                <select
+                  value={courseId}
+                  onChange={(e) => setCourseId(e.target.value)}
+                  disabled={courses.length === 0}
+                  className="rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-emerald-800 dark:bg-slate-900 dark:text-white disabled:opacity-50"
+                >
+                  {courses.length === 0 ? (
+                    <option value="">Завантаження курсів…</option>
+                  ) : (
+                    courses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                        {c.isPublished === false ? " (не опубліковано)" : ""}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
+                  Для викладачів показуються всі курси, не лише опубліковані в каталозі.
+                </span>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={openCreateCourseDialog}
+                    disabled={courseBusy}
+                    className="rounded-lg border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-xs font-black text-white shadow-sm hover:bg-emerald-500 disabled:opacity-40 dark:border-emerald-500 dark:bg-emerald-700 dark:hover:bg-emerald-600"
+                  >
+                    + Новий курс
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openEditCourseDialog}
+                    disabled={courseBusy || !courseId}
+                    className="rounded-lg border border-emerald-400 bg-white px-3 py-1.5 text-xs font-bold text-emerald-900 hover:bg-emerald-50 disabled:opacity-40 dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-100 dark:hover:bg-emerald-900/40"
+                  >
+                    Редагувати курс
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void deleteCourseFromServer()}
+                    disabled={courseBusy || !courseId}
+                    className="rounded-lg border border-rose-400 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-900 hover:bg-rose-100 disabled:opacity-40 dark:border-rose-600 dark:bg-rose-950/40 dark:text-rose-100 dark:hover:bg-rose-900/40"
+                  >
+                    Видалити курс
+                  </button>
+                </div>
+              </label>
+              <label className="flex min-w-[200px] flex-1 flex-col gap-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                  Модуль для збереження
+                </span>
+                <select
+                  value={publishedModuleId ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setPublishedModuleId(v ? v : null);
+                    if (!v) setModulePublishStage(1);
+                  }}
+                  disabled={!courseId}
+                  className="rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-emerald-800 dark:bg-slate-900 dark:text-white disabled:opacity-50"
+                >
+                  <option value="">
+                    Новий модуль (наступне збереження створить запис у курсі)
+                  </option>
+                  {moduleSelectRows.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.title}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
+                  Оберіть існуючий модуль — теорія та практика підтягнуться з сервера. Збережіть чернетку перед
+                  зміною, якщо потрібно не втратити поточні правки.
+                </span>
+              </label>
+              <label className="flex min-w-[140px] flex-col gap-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                  Етап курсу (1–5)
+                </span>
+                <select
+                  value={modulePublishStage}
+                  onChange={(e) => setModulePublishStage(Number(e.target.value))}
+                  disabled={!courseId}
+                  className="rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-emerald-800 dark:bg-slate-900 dark:text-white disabled:opacity-50"
+                >
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>
+                      Етап {n}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
+                  У курсі лише п'ять етапів; модуль відображається на сторінці курсу в обраному етапі.
+                </span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={openModulePreview}
+                  className="rounded-xl border-2 border-violet-400 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-900 shadow-sm hover:bg-violet-100 dark:border-violet-500 dark:bg-violet-950/50 dark:text-violet-100 dark:hover:bg-violet-900/40"
+                >
+                  Як виглядатиме модуль
+                </button>
+                <button
+                  type="button"
+                  onClick={startNewServerModule}
+                  disabled={!publishedModuleId}
+                  className="rounded-xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-900 hover:bg-sky-100 disabled:opacity-40 dark:border-sky-600 dark:bg-sky-950/40 dark:text-sky-100 dark:hover:bg-sky-900/50"
+                >
+                  Новий модуль
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void deleteModuleFromServer()}
+                  disabled={publishing || !publishedModuleId}
+                  className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-900 hover:bg-rose-100 disabled:opacity-40 dark:border-rose-700 dark:bg-rose-950/40 dark:text-rose-100 dark:hover:bg-rose-900/40"
+                >
+                  Видалити з сервера
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void publishToServer()}
+                  disabled={publishing || !courseId}
+                  className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white shadow hover:bg-emerald-500 disabled:opacity-50"
+                >
+                  {publishing ? "Збереження…" : publishedModuleId ? "Оновити на сервері" : "Зберегти на сервері"}
+                </button>
+              </div>
+            </div>
+            {publishedModuleId && (
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                Модуль на сервері:{" "}
+                <Link
+                  to={`/course/modules/${publishedModuleId}`}
+                  className="font-bold text-emerald-600 underline hover:text-emerald-500 dark:text-emerald-400"
+                >
+                  відкрити в додатку (як студент)
+                </Link>
+              </p>
+            )}
+          </div>
+        </motion.div>
+
+        {/* ─── DRAFT BAR ─── */}
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200/70 dark:border-slate-700/40 bg-white/60 dark:bg-slate-900/40 backdrop-blur px-4 py-3">
+          <button
+            type="button"
+            onClick={() => persistDraft()}
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-800 dark:bg-slate-200 px-4 py-2 text-sm font-bold text-white dark:text-slate-900 shadow-sm hover:bg-slate-700 dark:hover:bg-white transition-colors"
+          >
+            <span>💾</span> Зберегти чернетку
+          </button>
+          <span className="text-xs text-slate-400 dark:text-slate-500">
+            {lastSavedAt ? `Збережено: ${formatSavedTime(lastSavedAt)}` : "Ще не збережено"}
+          </span>
         </div>
 
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-          <label className="flex flex-1 flex-col gap-1 min-w-[200px]">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Назва сценарію</span>
+        {/* ─── SCENARIO TITLE + BLOCK TYPES ─── */}
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <label className="flex flex-1 flex-col gap-1.5 min-w-[220px]">
+            <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Назва сценарію</span>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:text-white"
+              className="rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/50 transition"
+              placeholder="Назва модуля…"
             />
           </label>
           <div className="flex flex-wrap gap-2">
-            <ToolBtn onClick={() => addBlock("text")} label="Текст" />
-            <ToolBtn onClick={() => addBlock("table")} label="Таблиця" />
-            <ToolBtn onClick={() => addBlock("cards")} label="Картки" />
-            <ToolBtn onClick={() => addBlock("match")} label="Зіставлення" />
-            <ToolBtn onClick={() => addBlock("cloze")} label="Пропуски (тест)" />
+            <ToolBtn onClick={() => addBlock("text")} label="Текст" icon="📝" />
+            <ToolBtn onClick={() => addBlock("table")} label="Таблиця" icon="📊" />
+            <ToolBtn onClick={() => addBlock("cards")} label="Картки" icon="🃏" />
+            <ToolBtn onClick={() => addBlock("match")} label="Зіставлення" icon="🔗" />
+            <ToolBtn onClick={() => addBlock("cloze")} label="Пропуски" icon="✏️" />
           </div>
         </div>
 
-        <div className="mb-4 flex flex-wrap gap-2">
+        {/* ─── EXPORT TOOLBAR ─── */}
+        <div className="mb-5 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => copyText(htmlExport, "HTML скопійовано в буфер")}
-            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow hover:bg-emerald-500"
+            className="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors"
           >
-            Копіювати HTML (для уроку)
+            📋 Копіювати HTML
           </button>
           <button
             type="button"
@@ -817,19 +857,19 @@ export function ModuleConstructorPage() {
                 "JSON сценарію скопійовано",
               )
             }
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
+            className="rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-white shadow-sm transition-colors"
           >
-            Копіювати JSON
+            { } Копіювати JSON
           </button>
           <button
             type="button"
             onClick={() =>
               copyText(JSON.stringify(testPayload, null, 2), "JSON тесту скопійовано")
             }
-            className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900 dark:border-amber-600/50 dark:bg-amber-950/50 dark:text-amber-100"
+            className="rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800 dark:text-amber-200 shadow-sm transition-colors disabled:opacity-40"
             disabled={!testPayload.length}
           >
-            JSON пропусків ({testPayload.length})
+            🧩 Пропуски ({testPayload.length})
           </button>
           <button
             type="button"
@@ -847,98 +887,87 @@ export function ModuleConstructorPage() {
               });
               const a = document.createElement("a");
               a.href = URL.createObjectURL(blob);
-              const safe = title.replace(/[^\w\u0400-\u04FF\-]+/g, "_").slice(0, 40) || "scenario";
+              const safe = title.replace(/[^\w\u0400-\u04FF-]+/g, "_").slice(0, 40) || "scenario";
               a.download = `${safe}.json`;
               a.click();
               URL.revokeObjectURL(a.href);
               showToast("Файл JSON завантажено");
             }}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+            className="rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-sm transition-colors"
           >
-            Завантажити JSON
+            ⬇ Завантажити JSON
           </button>
           <button
             type="button"
             onClick={importJson}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:text-slate-300"
+            className="rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 transition-colors"
           >
-            Імпорт JSON
+            ⬆ Імпорт JSON
           </button>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_minmax(280px,380px)]">
-          <div className="space-y-4">
+        {/* ─── MAIN EDITOR GRID ─── */}
+        <div className="grid gap-6 lg:grid-cols-[1fr_minmax(300px,360px)]">
+          <div className="space-y-3">
             <AnimatePresence initial={false}>
               {blocks.map((b, index) => (
                 <motion.div
                   key={b.id}
                   layout
-                  initial={{ opacity: 0, y: 8 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/60"
+                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="rounded-2xl border border-slate-200/80 dark:border-slate-700/60 bg-white/90 dark:bg-slate-900/70 backdrop-blur shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2 dark:border-slate-700">
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-700/60 px-4 py-2.5">
                     <button
                       type="button"
                       onClick={() => setExpandedId((id) => (id === b.id ? null : b.id))}
-                      className="flex flex-1 items-center gap-2 text-left text-sm font-bold text-slate-800 dark:text-slate-200"
+                      className="flex flex-1 items-center gap-2.5 text-left"
                     >
-                      <span className="text-slate-400">#{index + 1}</span>
-                      {blockTitle(b)}
+                      <span className="inline-flex w-6 h-6 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-[10px] font-black text-emerald-700 dark:text-emerald-300 shrink-0">{index + 1}</span>
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{blockTitle(b)}</span>
+                      <span className="ml-auto text-slate-300 dark:text-slate-600 text-xs">{expandedId === b.id ? "▲" : "▼"}</span>
                     </button>
-                    <div className="flex shrink-0 gap-1">
-                      <IconBtn
-                        aria-label="Вгору"
-                        onClick={() => setBlocks((prev) => moveItem(prev, index, index - 1))}
-                        disabled={index === 0}
-                      >
-                        ↑
-                      </IconBtn>
-                      <IconBtn
-                        aria-label="Вниз"
-                        onClick={() => setBlocks((prev) => moveItem(prev, index, index + 1))}
-                        disabled={index === blocks.length - 1}
-                      >
-                        ↓
-                      </IconBtn>
-                      <IconBtn
-                        aria-label="Видалити"
-                        onClick={() => removeBlock(b.id)}
-                        className="text-red-600 dark:text-red-400"
-                      >
-                        ×
-                      </IconBtn>
+                    <div className="flex shrink-0 gap-0.5">
+                      <IconBtn aria-label="Вгору" onClick={() => setBlocks((prev) => moveItem(prev, index, index - 1))} disabled={index === 0}>↑</IconBtn>
+                      <IconBtn aria-label="Вниз" onClick={() => setBlocks((prev) => moveItem(prev, index, index + 1))} disabled={index === blocks.length - 1}>↓</IconBtn>
+                      <IconBtn aria-label="Видалити" onClick={() => removeBlock(b.id)} className="text-rose-500 dark:text-rose-400">×</IconBtn>
                     </div>
                   </div>
-                  {expandedId === b.id && (
-                    <div className="p-4">
-                      <BlockFields block={b} onChange={(patch) => updateBlock(b.id, patch)} />
-                    </div>
-                  )}
+                  <AnimatePresence>
+                    {expandedId === b.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-4">
+                          <BlockFields block={b} onChange={(patch) => updateBlock(b.id, patch)} />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               ))}
             </AnimatePresence>
           </div>
 
-          <aside className="lg:sticky lg:top-24 h-fit space-y-3">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-500">Перегляд</h2>
-            <div
-              className="max-h-[70vh] overflow-auto rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-inner dark:border-slate-700 dark:bg-slate-950"
-              dangerouslySetInnerHTML={{ __html: htmlExport }}
-            />
-            {testPayload.length > 0 && (
-              <pre className="max-h-40 overflow-auto rounded-xl bg-slate-900 p-3 text-xs text-emerald-200">
-                {JSON.stringify(testPayload, null, 2)}
-              </pre>
-            )}
-          </aside>
+          <ModulePreviewPanel
+            title={title}
+            htmlExport={htmlExport}
+            blocks={blocks}
+            testPayload={testPayload}
+          />
         </div>
       </div>
 
       {courseDialog && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="course-dialog-title"
@@ -947,7 +976,7 @@ export function ModuleConstructorPage() {
           }}
         >
           <div
-            className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-600 dark:bg-slate-900"
+            className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl border border-slate-200/80 dark:border-slate-600/50 bg-white dark:bg-slate-900 p-6 shadow-2xl"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <h2
@@ -1081,9 +1110,14 @@ export function ModuleConstructorPage() {
       )}
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg md:bottom-8">
+        <motion.div
+          initial={{ opacity: 0, y: 12, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 8 }}
+          className="fixed bottom-24 md:bottom-8 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/95 dark:bg-white/10 backdrop-blur border border-white/10 px-5 py-2.5 text-sm font-semibold text-white shadow-xl"
+        >
           {toast}
-        </div>
+        </motion.div>
       )}
     </div>
   );
@@ -1110,10 +1144,12 @@ function blockTitle(b: ScenarioBlock): string {
 
 function ToolBtn({
   label,
+  icon,
   onClick,
   disabled,
 }: {
   label: string;
+  icon?: string;
   onClick: () => void;
   disabled?: boolean;
 }) {
@@ -1122,9 +1158,10 @@ function ToolBtn({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-900 disabled:opacity-40 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-100"
+      className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 px-3 py-2 text-xs font-bold text-emerald-800 dark:text-emerald-200 disabled:opacity-40 transition-colors shadow-sm"
     >
-      + {label}
+      {icon && <span>{icon}</span>}
+      <span>+ {label}</span>
     </button>
   );
 }
@@ -1148,7 +1185,7 @@ function IconBtn({
       aria-label={aria}
       disabled={disabled}
       onClick={onClick}
-      className={`rounded-lg px-2 py-1 text-sm font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-30 dark:text-slate-400 dark:hover:bg-slate-800 ${className}`}
+      className={`rounded-lg px-2 py-1 text-sm font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-25 transition-colors ${className}`}
     >
       {children}
     </button>
@@ -1264,62 +1301,152 @@ function BlockFields({
     }
     case "cards":
       return (
-        <div className="space-y-3">
+        <div className="space-y-4">
+
           {block.items.map((it, i) => (
-            <div key={i} className="rounded-xl border border-slate-100 p-3 dark:border-slate-700">
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                Термін (лицева сторона)
-              </p>
-              <input
-                value={it.title}
-                placeholder="Термін"
-                onChange={(e) => {
-                  const items = block.items.map((x, j) =>
-                    j === i ? { ...x, title: e.target.value } : x,
-                  );
-                  onChange({ items });
-                }}
-                className="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 font-bold dark:border-slate-600 dark:bg-slate-800"
-              />
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                Визначення (зворотна сторона)
-              </p>
-              <textarea
-                value={it.body}
-                placeholder="Визначення"
-                onChange={(e) => {
-                  const items = block.items.map((x, j) =>
-                    j === i ? { ...x, body: e.target.value } : x,
-                  );
-                  onChange({ items });
-                }}
-                rows={2}
-                className="w-full rounded-lg border border-slate-200 px-2 py-1 dark:border-slate-600 dark:bg-slate-800"
-              />
+            <div
+              key={i}
+              className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 p-4 space-y-3 relative group"
+            >
+              {/* ── Card number badge ── */}
+              <div className="flex items-center justify-between mb-1">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-[10px] font-black text-emerald-700 dark:text-emerald-300">
+                  {i + 1}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const items = block.items.filter((_, j) => j !== i);
+                    onChange({ items: items.length ? items : [{ title: "", body: "", transcription: "", category: "" }] });
+                  }}
+                  className="opacity-0 group-hover:opacity-100 rounded-lg px-2 py-1 text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all"
+                  aria-label="Видалити картку"
+                >
+                  × Видалити
+                </button>
+              </div>
+
+              {/* ── Row 1: Term + Transcription ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    Термін / Слово (лицева сторона)
+                  </span>
+                  <input
+                    value={it.title}
+                    placeholder="напр. to be responsible for"
+                    onChange={(e) => {
+                      const items = block.items.map((x, j) =>
+                        j === i ? { ...x, title: e.target.value } : x,
+                      );
+                      onChange({ items });
+                    }}
+                    className="rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    Транскрипція (необов'язково)
+                  </span>
+                  <input
+                    value={(it as { transcription?: string }).transcription ?? ""}
+                    placeholder="напр. /tə bi rɪˈspɒnsəbl fɔːr/"
+                    onChange={(e) => {
+                      const items = block.items.map((x, j) =>
+                        j === i ? { ...x, transcription: e.target.value } : x,
+                      );
+                      onChange({ items });
+                    }}
+                    className="rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-mono text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
+                  />
+                </label>
+              </div>
+
+              {/* ── Row 2: Translation + Category ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    Переклад / Визначення (зворотна сторона)
+                  </span>
+                  <textarea
+                    value={it.body}
+                    placeholder="напр. відповідати за щось"
+                    onChange={(e) => {
+                      const items = block.items.map((x, j) =>
+                        j === i ? { ...x, body: e.target.value } : x,
+                      );
+                      onChange({ items });
+                    }}
+                    rows={2}
+                    className="rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition resize-none"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    Категорія (фільтр, необов'язково)
+                  </span>
+                  <input
+                    value={(it as { category?: string }).category ?? ""}
+                    placeholder="напр. To Be Collocations"
+                    onChange={(e) => {
+                      const items = block.items.map((x, j) =>
+                        j === i ? { ...x, category: e.target.value } : x,
+                      );
+                      onChange({ items });
+                    }}
+                    className="rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition"
+                  />
+                  <span className="text-[10px] text-slate-400">
+                    Однакова категорія = одна вкладка-фільтр у словнику
+                  </span>
+                </label>
+              </div>
             </div>
           ))}
+
+          {/* ── Add card button ── */}
           <button
             type="button"
-            onClick={() => onChange({ items: [...block.items, { title: "Нова", body: "" }] })}
-            className="text-xs font-bold text-emerald-600"
+            onClick={() =>
+              onChange({
+                items: [
+                  ...block.items,
+                  { title: "", body: "", transcription: "", category: "" },
+                ],
+              })
+            }
+            className="inline-flex items-center gap-2 rounded-xl border border-dashed border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2.5 text-xs font-black text-emerald-700 dark:text-emerald-300 transition-colors w-full justify-center"
           >
-            + картка
+            + Додати картку
           </button>
+
+          {/* ── Category hint ── */}
+          {block.items.some((it) => (it as { category?: string }).category) && (
+            <div className="rounded-xl border border-sky-200 dark:border-sky-700/40 bg-sky-50 dark:bg-sky-950/30 px-4 py-3 text-xs text-sky-700 dark:text-sky-300 font-medium">
+              💡 Категорії, знайдені в картках:{" "}
+              <strong>
+                {Array.from(
+                  new Set(
+                    block.items
+                      .map((it) => (it as { category?: string }).category)
+                      .filter(Boolean),
+                  ),
+                ).join(", ")}
+              </strong>
+              {" "}— стануть вкладками-фільтрами у студента.
+            </div>
+          )}
         </div>
       );
     case "match": {
       const setSide = (side: "left" | "right", lines: string[]) => {
         onChange(side === "left" ? { left: lines } : { right: lines });
       };
-      const LineEditor = ({
-        label,
-        lines,
-        onLines,
-      }: {
-        label: string;
-        lines: string[];
-        onLines: (next: string[]) => void;
-      }) => (
+      const renderLineEditor = (
+        label: string,
+        lines: string[],
+        onLines: (next: string[]) => void,
+      ) => (
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-500">{label}</label>
           <p className="text-[11px] text-slate-500">
@@ -1358,8 +1485,8 @@ function BlockFields({
       );
       return (
         <div className="grid gap-6 md:grid-cols-2">
-          <LineEditor label="Лівий стовпчик" lines={block.left} onLines={(l) => setSide("left", l)} />
-          <LineEditor label="Правий стовпчик" lines={block.right} onLines={(r) => setSide("right", r)} />
+          {renderLineEditor("Лівий стовпчик", block.left, (l) => setSide("left", l))}
+          {renderLineEditor("Правий стовпчик", block.right, (r) => setSide("right", r))}
         </div>
       );
     }

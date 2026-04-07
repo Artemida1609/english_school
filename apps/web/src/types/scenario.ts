@@ -1,38 +1,41 @@
 export type ScenarioBlock =
   | {
-      id: string;
-      type: "text";
-      /** HTML з редактора або простий текст (див. richText) */
-      body: string;
-      /** false = розбивка по рядках як раніше; true/undefined = body як HTML */
-      richText?: boolean;
-    }
+    id: string;
+    type: "text";
+    /** HTML з редактора або простий текст (див. richText) */
+    body: string;
+    /** false = розбивка по рядках як раніше; true/undefined = body як HTML */
+    richText?: boolean;
+  }
   | {
-      id: string;
-      type: "table";
-      headers: string[];
-      rows: string[][];
-    }
+    id: string;
+    type: "table";
+    headers: string[];
+    rows: string[][];
+  }
   | {
-      id: string;
-      type: "cards";
-      items: { title: string; body: string }[];
-    }
+    id: string;
+    type: "cards";
+    items: {
+      title: string; body: string;
+      transcription?: string; category?: string;
+    }[];
+  }
   /** Зіставлення лівий / правий стовпчик (як на робочому аркуші) */
   | {
-      id: string;
-      type: "match";
-      left: string[];
-      right: string[];
-    }
+    id: string;
+    type: "match";
+    left: string[];
+    right: string[];
+  }
   | {
-      id: string;
-      type: "cloze";
-      text: string;
-      answers: string[];
-      /** Хибні варіанти для тесту (MCQ) */
-      distractors?: string[];
-    };
+    id: string;
+    type: "cloze";
+    text: string;
+    answers: string[];
+    /** Хибні варіанти для тесту (MCQ) */
+    distractors?: string[];
+  };
 
 export type ScenarioDocument = {
   version: 1;
@@ -70,8 +73,7 @@ export function defaultBlock(type: ScenarioBlock["type"]): ScenarioBlock {
         id,
         type: "cards",
         items: [
-          { title: "Термін 1", body: "Визначення…" },
-          { title: "Термін 2", body: "Визначення…" },
+          { title: "Новий термін", body: "", transcription: "", category: "" },
         ],
       };
     case "match":

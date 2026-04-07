@@ -330,13 +330,19 @@ export const CourseDetailPage = () => {
         }
         setCourse(await coursesApi.getCourseById(targetId));
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load");
+        console.error(e);
+        if (courseId) {
+          // Якщо курс за ID не знайдено, повертаємось на загальний роут
+          navigate("/course", { replace: true });
+        } else {
+          setError(e instanceof Error ? e.message : "Failed to load");
+        }
       } finally {
         setLoading(false);
       }
     };
     fetchCourse();
-  }, [courseId]);
+  }, [courseId, navigate]);
 
   useEffect(() => {
     if (!course?.id) return;

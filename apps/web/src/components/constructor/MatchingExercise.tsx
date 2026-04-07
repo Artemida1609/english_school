@@ -62,6 +62,7 @@ export function MatchingExercise({ left, right, exerciseIndex }: Props) {
   }, [pairs, rightShuffled]);
 
   useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     updateLines();
   }, [updateLines, pairs, pendingLeft]);
 
@@ -129,22 +130,6 @@ export function MatchingExercise({ left, right, exerciseIndex }: Props) {
               strokeLinecap="round"
             />
           ))}
-          {pendingLeft !== null && leftRefs.current[pendingLeft] && wrapRef.current && (
-            <circle
-              cx={
-                leftRefs.current[pendingLeft]!.getBoundingClientRect().right -
-                wrapRef.current.getBoundingClientRect().left
-              }
-              cy={
-                leftRefs.current[pendingLeft]!.getBoundingClientRect().top +
-                leftRefs.current[pendingLeft]!.getBoundingClientRect().height / 2 -
-                wrapRef.current.getBoundingClientRect().top
-              }
-              r={6}
-              fill="#10b981"
-              className="animate-pulse"
-            />
-          )}
         </svg>
         <div className="flex-1 space-y-2 z-10">
           {left.map((text, i) => {

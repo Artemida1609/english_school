@@ -14,7 +14,7 @@ export default defineConfig({
       "/socket.io": {
         target: "http://localhost:4001",
         changeOrigin: true,
-        ws: true, // ← важливо для WebSocket
+        ws: true,
         secure: false,
       },
     },

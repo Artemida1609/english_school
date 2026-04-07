@@ -50,7 +50,7 @@ export const ChatsPage = () => {
       dispatch(fetchMessages(resolvedRoomId));
     }
     dispatch(clearUnread(resolvedRoomId));
-  }, [resolvedRoomId, dispatch]);
+  }, [resolvedRoomId, dispatch, messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

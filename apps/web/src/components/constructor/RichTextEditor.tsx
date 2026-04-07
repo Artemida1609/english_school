@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 import { useCallback, useEffect, useRef } from "react";
 
 type Props = {

@@ -75,7 +75,12 @@ export function blocksToHtml(blocks: ScenarioBlock[]): string {
 export function buildPracticeFromBlocks(blocks: ScenarioBlock[]): ConstructorPracticePayload {
   const quizlet = blocks
     .filter((b): b is Extract<ScenarioBlock, { type: "cards" }> => b.type === "cards")
-    .flatMap((b) => b.items.map((it) => ({ term: it.title, definition: it.body })));
+    .flatMap((b) => b.items.map((it) => ({ 
+      term: it.title, 
+      definition: it.body,
+      transcription: it.transcription,
+      category: it.category,
+    })));
   const matching = blocks
     .filter((b): b is Extract<ScenarioBlock, { type: "match" }> => b.type === "match")
     .map((b) => ({ left: [...b.left], right: [...b.right] }));

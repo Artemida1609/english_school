@@ -23,8 +23,9 @@ export const StreakCard = () => {
         setStreakDays(data.currentStreak || 0);
 
         const activeDayNumbers = new Set<number>();
-        const currentMonth = today.getMonth();
-        const currentYear = today.getFullYear();
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
 
         (data.activityDates || []).forEach((dateStr: string) => {
           const date = new Date(dateStr);

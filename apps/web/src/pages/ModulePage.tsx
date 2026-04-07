@@ -160,7 +160,15 @@ function FlashcardsSection({ vocabulary }: { vocabulary: VocabularyItem[] }) {
   };
   const markKnown = () => {
     if (!current) return;
-    setKnown(prev => { const s = new Set(prev); s.has(current.id) ? s.delete(current.id) : s.add(current.id); return s; });
+    setKnown((prev) => {
+      const s = new Set(prev);
+      if (s.has(current.id)) {
+        s.delete(current.id);
+      } else {
+        s.add(current.id);
+      }
+      return s;
+    });
   };
   const markAllKnown = () => {
     setKnown(new Set(filtered.map((item) => item.id)));
@@ -988,7 +996,12 @@ export const ModulePage = () => {
                   </div>
                 ) : null}
                 {constructorPractice && constructorPractice.quizlet.length > 0 && (
-                  <QuizletCards items={constructorPractice.quizlet} />
+                  <QuizletCards
+                    items={constructorPractice.quizlet.map((item) => ({
+                      title: item.term,
+                      body: item.definition,
+                    }))}
+                  />
                 )}
                 {(constructorPractice?.matching ?? []).map((m, idx) => (
                   <MatchingExercise

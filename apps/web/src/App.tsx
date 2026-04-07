@@ -32,7 +32,7 @@ export const App = () => {
   // Ініціалізуємо тему один раз при монтуванні
   useEffect(() => {
     setTheme(theme);
-  }, []);
+  }, [setTheme, theme]);
 
   // Ініціалізуємо мову зі збереженого стану
   useEffect(() => {

@@ -43,6 +43,12 @@ interface ServerRoom {
   created_at: string;
 }
 
+type ServerMessageLike = ServerMessage & {
+  createdAt?: string;
+  userId?: string;
+  text?: string;
+};
+
 interface ChatState {
   rooms: Room[];
   messages: Record<string, Message[]>;
@@ -164,7 +170,7 @@ const chatSlice = createSlice({
       .addCase(fetchMessages.fulfilled, (state, action) => {
         state.messagesLoading = false;
         state.messages[action.payload.roomId] = action.payload.messages.map(
-          (m: any) => {
+          (m: ServerMessageLike) => {
             const timeString = new Date(m.created_at || m.createdAt || Date.now()).toLocaleTimeString("uk", {
               hour: "2-digit",
               minute: "2-digit",
