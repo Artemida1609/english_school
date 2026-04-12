@@ -15,7 +15,7 @@ import {
   buildPracticeFromBlocks,
   buildTestQuestionsFromBlocks,
   documentToJson,
-  extractClozeTestPayload,
+  extractClozeExercisePayload,
   parseScenarioJson,
 } from "../utils/scenarioExport";
 import { RichTextEditor } from "../components/constructor/RichTextEditor";
@@ -24,7 +24,7 @@ import { ModulePreviewPanel } from "../components/constructor/ModulePreviewPanel
 const LS_KEY = "moduleConstructorDraft";
 
 /** Текст уроку «Вправи» при публікації на сервер */
-const TASK_FOR_PUBLISH = "## Вправа\n\nЗакріпіть матеріал з теорії та пройдіть тест нижче.";
+const TASK_FOR_PUBLISH = "## Вправа\n\nЗакріпіть матеріал з теорії та виконайте вправи нижче.";
 
 const COURSE_LEVEL_OPTIONS: { value: string; label: string }[] = [
   { value: "BEGINNER", label: "Початковий (A1)" },
@@ -92,6 +92,7 @@ export function ModuleConstructorPage() {
   const [courseModules, setCourseModules] = useState<Module[]>([]);
   const [publishedModuleId, setPublishedModuleId] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
+  const [structureBusy, setStructureBusy] = useState(false);
   const [courseBusy, setCourseBusy] = useState(false);
   const [courseDialog, setCourseDialog] = useState<CourseDialogState | null>(null);
   const [modulePublishStage, setModulePublishStage] = useState(1);
@@ -261,6 +262,95 @@ export function ModuleConstructorPage() {
     return rows;
   }, [sortedCourseModules, publishedModuleId]);
 
+  const selectedCourse = useMemo(
+    () => courses.find((c) => c.id === courseId) ?? null,
+    [courses, courseId],
+  );
+
+  const stageTitles = useMemo(
+    () => (selectedCourse ? stageTitlesFromCourse(selectedCourse) : Array.from({ length: STAGE_SLOT_COUNT }, () => "")),
+    [selectedCourse],
+  );
+
+  const modulesByStage = useMemo(() => {
+    const grouped = Array.from({ length: STAGE_SLOT_COUNT }, () => [] as Module[]);
+    for (const mod of sortedCourseModules) {
+      const stage = Math.min(STAGE_SLOT_COUNT, Math.max(1, Math.round(mod.stage ?? 1)));
+      grouped[stage - 1].push(mod);
+    }
+    return grouped.map((stageModules) => [...stageModules].sort((a, b) => a.orderIndex - b.orderIndex));
+  }, [sortedCourseModules]);
+
+  const refreshCourseModules = useCallback(async () => {
+    if (!courseId) {
+      setCourseModules([]);
+      return;
+    }
+    try {
+      const c = await coursesApi.getCourseById(courseId);
+      setCourseModules(c.modules ?? []);
+    } catch {
+      setCourseModules([]);
+    }
+  }, [courseId]);
+
+  const reorderModuleWithinStage = useCallback(
+    async (moduleId: string, direction: -1 | 1) => {
+      const module = sortedCourseModules.find((item) => item.id === moduleId);
+      if (!module || !courseId) return;
+      const stage = Math.min(STAGE_SLOT_COUNT, Math.max(1, Math.round(module.stage ?? 1)));
+      const stageModules = modulesByStage[stage - 1] ?? [];
+      const index = stageModules.findIndex((item) => item.id === moduleId);
+      const targetIndex = index + direction;
+      if (index < 0 || targetIndex < 0 || targetIndex >= stageModules.length) return;
+
+      const nextOrder = moveItem(stageModules, index, targetIndex);
+      setStructureBusy(true);
+      try {
+        await Promise.all(
+          nextOrder.map((item, orderIndex) =>
+            coursesApi.updateModule(item.id, { stage, orderIndex }),
+          ),
+        );
+        await refreshCourseModules();
+      } catch (e) {
+        showToast(e instanceof Error ? e.message : "Не вдалося змінити порядок модуля");
+      } finally {
+        setStructureBusy(false);
+      }
+    },
+    [courseId, modulesByStage, refreshCourseModules, showToast, sortedCourseModules],
+  );
+
+  const shiftStage = useCallback(
+    async (stage: number, direction: -1 | 1) => {
+      const targetStage = stage + direction;
+      if (targetStage < 1 || targetStage > STAGE_SLOT_COUNT || !selectedCourse || !courseId) return;
+
+      const nextTitles = [...stageTitles];
+      [nextTitles[stage - 1], nextTitles[targetStage - 1]] = [nextTitles[targetStage - 1], nextTitles[stage - 1]];
+
+      const sourceModules = modulesByStage[stage - 1] ?? [];
+      const targetModules = modulesByStage[targetStage - 1] ?? [];
+      setStructureBusy(true);
+      try {
+        await Promise.all([
+          ...sourceModules.map((item) => coursesApi.updateModule(item.id, { stage: targetStage })),
+          ...targetModules.map((item) => coursesApi.updateModule(item.id, { stage })),
+          coursesApi.updateStaffCourse(selectedCourse.id, {
+            stageTitles: packStageTitles(nextTitles) ?? null,
+          }),
+        ]);
+        await Promise.all([refreshCourseModules(), reloadCoursesCatalog()]);
+      } catch (e) {
+        showToast(e instanceof Error ? e.message : "Не вдалося змінити порядок рівнів");
+      } finally {
+        setStructureBusy(false);
+      }
+    },
+    [courseId, modulesByStage, refreshCourseModules, reloadCoursesCatalog, selectedCourse, stageTitles, showToast],
+  );
+
   useEffect(() => {
     if (skipNextAutosave.current) {
       skipNextAutosave.current = false;
@@ -285,7 +375,7 @@ export function ModuleConstructorPage() {
   }, [title, blocks, publishedModuleId, courseId]);
 
   const htmlExport = useMemo(() => blocksToHtml(blocks), [blocks]);
-  const testPayload = useMemo(() => extractClozeTestPayload(blocks), [blocks]);
+  const testPayload = useMemo(() => extractClozeExercisePayload(blocks), [blocks]);
 
   const addBlock = (type: ScenarioBlock["type"]) => {
     const nb: ScenarioBlock = defaultBlock(type);
@@ -603,7 +693,7 @@ export function ModuleConstructorPage() {
                 </span>
               </h1>
               <p className="mt-2 text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-lg leading-relaxed">
-                Текст, таблиці, картки, зіставлення та тестові пропуски — все в одному редакторі.
+                Текст, таблиці, картки, зіставлення та вправи з пропусками — все в одному редакторі.
               </p>
             </div>
             <button
@@ -786,6 +876,105 @@ export function ModuleConstructorPage() {
                 </button>
               </div>
             </div>
+            {courseId && (
+              <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/50 bg-slate-50/90 dark:bg-slate-950/40 p-4">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Структура курсу
+                    </p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      Можна міняти порядок модулів всередині рівня та переставляти рівні місцями.
+                    </p>
+                  </div>
+                  {structureBusy && (
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                      Оновлення…
+                    </span>
+                  )}
+                </div>
+                <div className="grid gap-3 xl:grid-cols-2">
+                  {modulesByStage.map((stageModules, stageIndex) => {
+                    const stageNum = stageIndex + 1;
+                    const stageLabel = stageTitles[stageIndex]?.trim();
+                    return (
+                      <section key={stageNum} className="rounded-2xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900/60 p-4 shadow-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
+                              Етап {stageNum}
+                            </p>
+                            <h4 className="text-sm font-black text-slate-900 dark:text-white mt-1">
+                              {stageLabel || `Рівень ${stageNum}`}
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                              {stageModules.length} модулів
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <button
+                              type="button"
+                              onClick={() => void shiftStage(stageNum, -1)}
+                              disabled={structureBusy || stageNum === 1}
+                              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 disabled:opacity-35 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                            >
+                              ↑ рівень
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void shiftStage(stageNum, 1)}
+                              disabled={structureBusy || stageNum === STAGE_SLOT_COUNT}
+                              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 disabled:opacity-35 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                            >
+                              ↓ рівень
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 space-y-2">
+                          {stageModules.length > 0 ? (
+                            stageModules.map((mod, index) => (
+                              <div key={mod.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 px-3 py-2.5">
+                                <div className="min-w-0">
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    #{index + 1}
+                                  </p>
+                                  <p className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">
+                                    {mod.title}
+                                  </p>
+                                </div>
+                                <div className="flex shrink-0 gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => void reorderModuleWithinStage(mod.id, -1)}
+                                    disabled={structureBusy || index === 0}
+                                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 disabled:opacity-35 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                                  >
+                                    ↑
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void reorderModuleWithinStage(mod.id, 1)}
+                                    disabled={structureBusy || index === stageModules.length - 1}
+                                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 disabled:opacity-35 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                                  >
+                                    ↓
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 px-3 py-3 text-sm text-slate-500 dark:text-slate-400">
+                              У цьому етапі ще немає модулів.
+                            </p>
+                          )}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {publishedModuleId && (
               <p className="text-xs text-slate-600 dark:text-slate-400">
                 Модуль на сервері:{" "}
@@ -859,12 +1048,12 @@ export function ModuleConstructorPage() {
             }
             className="rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-white shadow-sm transition-colors"
           >
-            { } Копіювати JSON
+            📄 Копіювати JSON
           </button>
           <button
             type="button"
             onClick={() =>
-              copyText(JSON.stringify(testPayload, null, 2), "JSON тесту скопійовано")
+              copyText(JSON.stringify(testPayload, null, 2), "JSON вправи скопійовано")
             }
             className="rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800 dark:text-amber-200 shadow-sm transition-colors disabled:opacity-40"
             disabled={!testPayload.length}
@@ -1134,7 +1323,7 @@ function blockTitle(b: ScenarioBlock): string {
     case "match":
       return "Зіставлення (лінії)";
     case "cloze":
-      return "Пропуски (питання тесту)";
+      return "Пропуски (вправа)";
     default: {
       const _ex: never = b;
       return _ex;

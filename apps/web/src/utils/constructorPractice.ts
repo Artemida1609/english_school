@@ -12,6 +12,12 @@ export type ConstructorPracticeMatching = {
   right: string[];
 };
 
+export type ConstructorPracticeCloze = {
+  text: string;
+  answers: string[];
+  distractors?: string[];
+};
+
 export type ConstructorPracticeSection =
   | {
     id: string;
@@ -25,6 +31,14 @@ export type ConstructorPracticeSection =
     title: string;
     left: string[];
     right: string[];
+  }
+  | {
+    id: string;
+    type: "cloze";
+    title: string;
+    text: string;
+    answers: string[];
+    distractors?: string[];
   };
 
 export type ConstructorPracticePayload = {
@@ -98,6 +112,22 @@ function normalizeSections(payload: Record<string, unknown>, quizlet: Constructo
           left: [...left],
           right: [...right],
         });
+        continue;
+      }
+      if (section.type === "cloze") {
+        const answers = Array.isArray(section.answers) ? section.answers.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+        const text = typeof section.text === "string" && section.text.trim() ? section.text : "";
+        if (!text || !answers.length) continue;
+        sections.push({
+          id: section.id,
+          type: "cloze",
+          title: typeof section.title === "string" && section.title.trim() ? section.title : `Пропуски ${index + 1}`,
+          text,
+          answers,
+          distractors: Array.isArray(section.distractors)
+            ? section.distractors.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+            : [],
+        });
       }
     }
 
@@ -145,6 +175,21 @@ export function normalizeConstructorPracticePayload(
     matching: sections.flatMap((section) => (section.type === "match" ? [{ left: [...section.left], right: [...section.right] }] : [])),
     sections,
   };
+}
+
+export function extractClozeExercisePayload(blocks: ScenarioBlock[]) {
+  return blocks
+    .filter((b): b is Extract<ScenarioBlock, { type: "cloze" }> => b.type === "cloze")
+    .map((b, i) => {
+      const gapCount = (b.text.match(/___/g) ?? []).length;
+      return {
+        order: i + 1,
+        questionText: b.text,
+        gaps: gapCount,
+        answers: [...b.answers],
+        distractors: [...(b.distractors ?? [])],
+      };
+    });
 }
 
 export function parsePracticeFromTaskContent(content: string | null | undefined): {

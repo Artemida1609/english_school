@@ -23,6 +23,13 @@ export interface Module {
   course?: { id: string; title: string };
 }
 
+export type ModuleUpdateBody = Partial<{
+  title: string;
+  description: string;
+  orderIndex: number;
+  stage: number;
+}>;
+
 export interface Course {
   id: string;
   title: string;
@@ -105,6 +112,8 @@ export const coursesApi = {
   getCourseById: (id: string) => apiFetch<Course>(`/api/courses/${id}`),
   getModuleById: (id: string) => apiFetch<Module>(`/api/modules/${id}`),
   getLessonById: (id: string) => apiFetch<LessonDetail>(`/api/lessons/${id}`),
+  updateModule: (id: string, body: ModuleUpdateBody) =>
+    apiFetch<Module>(`/api/modules/${id}`, { method: "PUT", body: JSON.stringify(body) }),
 
   /** TEACHER/ADMIN */
   createStaffCourse: (body: StaffCourseCreateBody) =>

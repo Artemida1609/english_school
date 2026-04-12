@@ -16,7 +16,7 @@
  *   />
  */
 
-import { useState, useMemo } from "react";
+import { Fragment, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ScenarioBlock } from "../../types/scenario";
 import {
@@ -175,6 +175,81 @@ function MiniMatchingExercise({ left, right }: { left: string[]; right: string[]
   );
 }
 
+function MiniClozeExercise({ text, answers }: { text: string; answers: string[] }) {
+  const parts = text.split("___");
+  const gapCount = Math.max(0, parts.length - 1);
+  const [values, setValues] = useState(() => Array.from({ length: gapCount }, () => ""));
+  const [checked, setChecked] = useState(false);
+
+  const normalizedAnswers = answers.map((answer) => answer.trim().toLowerCase());
+  const normalizedValues = values.map((value) => value.trim().toLowerCase());
+  const isSolved =
+    gapCount > 0 &&
+    normalizedAnswers.length >= gapCount &&
+    normalizedValues.every((value, index) => value && value === normalizedAnswers[index]);
+
+  return (
+    <div className="mt-4 rounded-2xl border border-emerald-200 dark:border-emerald-700/40 bg-white dark:bg-slate-900 p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Пропуски</p>
+        {checked && (
+          <span className={`text-[10px] font-black uppercase tracking-widest ${isSolved ? "text-emerald-600" : "text-rose-600"}`}>
+            {isSolved ? "Правильно" : "Потрібно ще раз"}
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-slate-800 dark:text-white leading-relaxed">
+        {parts.map((part, index) => (
+          <Fragment key={`${index}-${part}`}>
+            <span>{part}</span>
+            {index < gapCount && (
+              <input
+                value={values[index] ?? ""}
+                onChange={(e) => {
+                  const next = [...values];
+                  next[index] = e.target.value;
+                  setValues(next);
+                }}
+                disabled={checked}
+                placeholder="Відповідь"
+                className={`min-w-[90px] rounded-xl border px-3 py-2 text-sm font-black outline-none transition-colors ${
+                  checked
+                    ? normalizedValues[index] === normalizedAnswers[index]
+                      ? "border-emerald-400 bg-emerald-50 text-emerald-800 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-200"
+                      : "border-rose-400 bg-rose-50 text-rose-800 dark:border-rose-500/50 dark:bg-rose-500/10 dark:text-rose-200"
+                    : "border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                }`}
+              />
+            )}
+          </Fragment>
+        ))}
+      </div>
+
+      {checked && !isSolved && (
+        <p className="mt-3 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+          Правильні відповіді: {answers.join(", ")}
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={() => {
+          if (!checked) setChecked(true);
+          else {
+            setChecked(false);
+            setValues(Array.from({ length: gapCount }, () => ""));
+          }
+        }}
+        disabled={!checked && values.some((value) => !value.trim())}
+        className="mt-3 w-full rounded-xl bg-emerald-500 px-3 py-2 text-[11px] font-black uppercase tracking-widest text-white disabled:opacity-40"
+      >
+        {!checked ? "Перевірити" : "Спробувати ще раз"}
+      </button>
+    </div>
+  );
+}
+
 // ─── Mini Test ──────────────────────────────────────────────────
 function MiniTest({ questions }: { questions: TestQuestion[] }) {
   const [selected, setSelected] = useState<Record<number, number>>({});
@@ -182,7 +257,7 @@ function MiniTest({ questions }: { questions: TestQuestion[] }) {
 
   if (!questions.length) return (
     <p className="text-xs text-slate-500 dark:text-slate-400 py-4 text-center">
-      Тест з'явиться після додавання блоків «Пропуски».
+      Тест для цього модуля ще не налаштовано.
     </p>
   );
 
@@ -307,7 +382,7 @@ export function ModulePreviewPanel({
   const practice = useMemo(() => buildPracticeFromBlocks(blocks), [blocks]);
   const testQuestions = useMemo(() => buildTestQuestionsFromBlocks(blocks), [blocks]);
 
-  const hasExercises = (practice.quizlet.length > 0 || practice.matching.length > 0);
+  const hasExercises = practice.sections.length > 0;
   const hasTest = testQuestions.length > 0;
   const hasTheory = htmlExport.trim().length > 0;
 
@@ -433,23 +508,26 @@ export function ModulePreviewPanel({
                       </h4>
                     </div>
                     <p className="text-[11px] text-amber-700 dark:text-amber-300 font-medium mb-3 opacity-80">
-                      ## Вправа{"\n"}Закріпіть матеріал з теорії та пройдіть тест нижче.
+                      ## Вправа{"\n"}Закріпіть матеріал з теорії та виконайте вправи нижче.
                     </p>
 
-                    {/* Quizlet cards */}
-                    {practice.quizlet.length > 0 && (
-                      <MiniQuizletCards
-                        items={practice.quizlet.map((item) => ({
-                          title: item.term,
-                          body: item.definition,
-                        }))}
-                      />
-                    )}
-
-                    {/* Matching exercises */}
-                    {practice.matching.map((m, i) => (
-                      <MiniMatchingExercise key={i} left={m.left} right={m.right} />
-                    ))}
+                    {practice.sections.map((section) => {
+                      if (section.type === "cards") {
+                        return (
+                          <MiniQuizletCards
+                            key={section.id}
+                            items={section.items.map((item) => ({
+                              title: item.term,
+                              body: item.definition,
+                            }))}
+                          />
+                        );
+                      }
+                      if (section.type === "match") {
+                        return <MiniMatchingExercise key={section.id} left={section.left} right={section.right} />;
+                      }
+                      return <MiniClozeExercise key={section.id} text={section.text} answers={section.answers} />;
+                    })}
 
                     {hasTest && (
                       <motion.button
@@ -498,11 +576,11 @@ export function ModulePreviewPanel({
         </div>
       </div>
 
-      {/* Cloze test payload (collapsed, like before) */}
+      {/* Cloze exercise payload (collapsed, like before) */}
       {(testPayload as unknown[]).length > 0 && (
         <details className="mt-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
           <summary className="cursor-pointer px-3 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 select-none">
-            🧩 JSON тесту ({(testPayload as unknown[]).length})
+            🧩 JSON вправи ({(testPayload as unknown[]).length})
           </summary>
           <pre className="max-h-40 overflow-auto bg-slate-900 p-3 text-xs text-emerald-300 m-0">
             {JSON.stringify(testPayload, null, 2)}
