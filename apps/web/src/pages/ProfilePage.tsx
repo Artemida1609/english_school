@@ -83,12 +83,7 @@ export const ProfilePage = () => {
       .catch(() => setServerAvatar(null));
 
     // Load streak from activity calendar
-    fetch("/api/progress/activity-calendar", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then((res) => res.json())
+    apiFetch<{ currentStreak?: number }>("/api/progress/activity-calendar")
       .then((data) => {
         setStreak(data.currentStreak ?? 0);
       })

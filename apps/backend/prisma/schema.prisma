@@ -28,11 +28,12 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  profile      UserProfile?
-  progress     UserProgress[]
-  messages     Message[]
-  enrollments  Enrollment[]
-  storePurchases StorePurchase[]
+  profile          UserProfile?
+  progress         UserProgress[]
+  messages         Message[]
+  enrollments      Enrollment[]
+  storePurchases   StorePurchase[]
+  chatMemberships  ChatRoomMember[]
 
   @@map("users")
 }
@@ -203,12 +204,26 @@ enum RoomType {
 model ChatRoom {
   id        String   @id @default(cuid())
   name      String
-  type      RoomType @default(PUBLIC)
+  type      RoomType @default(GROUP)
   createdAt DateTime @default(now()) @map("created_at")
 
   messages Message[]
+  members  ChatRoomMember[]
 
   @@map("chat_rooms")
+}
+
+model ChatRoomMember {
+  id       String   @id @default(cuid())
+  roomId   String   @map("room_id")
+  userId   String   @map("user_id")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@map("chat_room_members")
 }
 
 model Message {

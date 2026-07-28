@@ -3,8 +3,7 @@ import {
   createAsyncThunk,
   type PayloadAction,
 } from "@reduxjs/toolkit";
-
-import { apiFetch } from "../api/client";
+import { chatApi, type ChatRoomDto } from "../api/chat";
 
 export interface Message {
   id: string;
@@ -18,6 +17,7 @@ export interface Message {
 export interface Room {
   id: string;
   name: string;
+  type: "PRIVATE" | "GROUP" | "PUBLIC" | string;
   subtitle?: string;
   icon: string;
   bg: string;
@@ -25,35 +25,16 @@ export interface Room {
   time?: string;
   unread: number;
   online: boolean;
+  members: Array<{ id: string; name: string; email: string; role: string }>;
+  memberCount: number;
 }
-
-interface ServerMessage {
-  id: string;
-  message: string;
-  user_id: string;
-  room_id: string;
-  created_at: string;
-  user?: { id: string; name?: string };
-}
-
-interface ServerRoom {
-  id: string;
-  name: string;
-  type: string;
-  created_at: string;
-}
-
-type ServerMessageLike = ServerMessage & {
-  createdAt?: string;
-  userId?: string;
-  text?: string;
-};
 
 interface ChatState {
   rooms: Room[];
   messages: Record<string, Message[]>;
   roomsLoading: boolean;
   messagesLoading: boolean;
+  creatingRoom: boolean;
   error: string | null;
 }
 
@@ -62,38 +43,61 @@ const initialState: ChatState = {
   messages: {},
   roomsLoading: false,
   messagesLoading: false,
+  creatingRoom: false,
   error: null,
 };
 
-// const API_URL = import.meta.env.DEV 
-//   ? ""  // ← локально: відносний URL, проксіюється через vite
-//   : (import.meta.env.VITE_API_URL ?? "https://english-school-1izu.onrender.com");
-
-// const API_URL = "";
-
-
-// іконки та кольори для кімнат
-const ROOM_STYLES: Record<
-  string,
-  { icon: string; bg: string; subtitle: string }
-> = {
+const ROOM_STYLES: Record<string, { icon: string; bg: string; subtitle: string }> = {
   PRIVATE: {
-    icon: "👩‍🏫",
+    icon: "💬",
     bg: "from-emerald-400 to-teal-500",
-    subtitle: "Твій особистий вчитель",
+    subtitle: "Приватний чат",
   },
   GROUP: {
     icon: "👥",
     bg: "from-violet-400 to-purple-500",
-    subtitle: "Спільнота студентів",
+    subtitle: "Група",
+  },
+  PUBLIC: {
+    icon: "🌐",
+    bg: "from-sky-400 to-blue-500",
+    subtitle: "Публічний чат",
   },
 };
+
+function mapServerRoom(r: ChatRoomDto): Room {
+  const style = ROOM_STYLES[r.type] ?? ROOM_STYLES.GROUP;
+  const time = r.lastMessageAt
+    ? new Date(r.lastMessageAt).toLocaleTimeString("uk", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "";
+  return {
+    id: r.id,
+    name: r.name,
+    type: r.type,
+    subtitle:
+      r.type === "PRIVATE"
+        ? r.members.find((m) => m.role === "TEACHER" || m.role === "ADMIN")?.email
+          ?? style.subtitle
+        : `${r.memberCount || r.members.length} учасників`,
+    icon: style.icon,
+    bg: style.bg,
+    lastMessage: r.lastMessage || "",
+    time,
+    unread: 0,
+    online: r.type === "PRIVATE",
+    members: r.members ?? [],
+    memberCount: r.memberCount ?? r.members?.length ?? 0,
+  };
+}
 
 export const fetchRooms = createAsyncThunk(
   "chat/fetchRooms",
   async (_, { rejectWithValue }) => {
     try {
-      return await apiFetch<ServerRoom[]>("/api/chat/rooms");
+      return await chatApi.getRooms();
     } catch (e) {
       return rejectWithValue(e instanceof Error ? e.message : "Failed to fetch rooms");
     }
@@ -104,10 +108,24 @@ export const fetchMessages = createAsyncThunk(
   "chat/fetchMessages",
   async (roomId: string, { rejectWithValue }) => {
     try {
-      const messages = await apiFetch<ServerMessage[]>(`/api/chat/rooms/${roomId}/messages`);
+      const messages = await chatApi.getMessages(roomId);
       return { roomId, messages };
     } catch (e) {
       return rejectWithValue(e instanceof Error ? e.message : "Failed to fetch messages");
+    }
+  },
+);
+
+export const createChatRoom = createAsyncThunk(
+  "chat/createRoom",
+  async (
+    body: Parameters<typeof chatApi.createRoom>[0],
+    { rejectWithValue },
+  ) => {
+    try {
+      return await chatApi.createRoom(body);
+    } catch (e) {
+      return rejectWithValue(e instanceof Error ? e.message : "Failed to create room");
     }
   },
 );
@@ -122,6 +140,7 @@ const chatSlice = createSlice({
     ) {
       const { roomId, message } = action.payload;
       if (!state.messages[roomId]) state.messages[roomId] = [];
+      if (state.messages[roomId].some((m) => m.id === message.id)) return;
       state.messages[roomId].push(message);
 
       const room = state.rooms.find((r) => r.id === roomId);
@@ -144,20 +163,11 @@ const chatSlice = createSlice({
       })
       .addCase(fetchRooms.fulfilled, (state, action) => {
         state.roomsLoading = false;
-        // перетворюємо ServerRoom → Room
+        const prevUnread = new Map(state.rooms.map((r) => [r.id, r.unread]));
         state.rooms = action.payload.map((r) => {
-          const style = ROOM_STYLES[r.type] ?? ROOM_STYLES.GROUP;
-          return {
-            id: r.id,
-            name: r.name,
-            subtitle: style.subtitle,
-            icon: style.icon,
-            bg: style.bg,
-            lastMessage: "",
-            time: "",
-            unread: 0,
-            online: r.type === "PRIVATE",
-          };
+          const mapped = mapServerRoom(r);
+          mapped.unread = prevUnread.get(r.id) ?? 0;
+          return mapped;
         });
       })
       .addCase(fetchRooms.rejected, (state, action) => {
@@ -169,27 +179,41 @@ const chatSlice = createSlice({
       })
       .addCase(fetchMessages.fulfilled, (state, action) => {
         state.messagesLoading = false;
-        state.messages[action.payload.roomId] = action.payload.messages.map(
-          (m: ServerMessageLike) => {
-            const timeString = new Date(m.created_at || m.createdAt || Date.now()).toLocaleTimeString("uk", {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            const actualUserId = m.user?.id || m.user_id || m.userId;
-            
-            return {
-              id: m.id,
-              text: m.message || m.text || "",
-              mine: false, // determined in component via currentUser
-              time: timeString === "Invalid Date" ? "" : timeString,
-              userId: actualUserId,
-              userName: m.user?.name || "Unknown",
-            };
-          }
-        );
+        state.messages[action.payload.roomId] = action.payload.messages.map((m) => {
+          const created = (m as { createdAt?: string; created_at?: string }).createdAt
+            ?? (m as { created_at?: string }).created_at
+            ?? Date.now();
+          const timeString = new Date(created).toLocaleTimeString("uk", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          return {
+            id: m.id,
+            text: m.message || "",
+            mine: false,
+            time: timeString === "Invalid Date" ? "" : timeString,
+            userId: m.user?.id || m.userId,
+            userName: m.user?.name || "Unknown",
+          };
+        });
       })
       .addCase(fetchMessages.rejected, (state, action) => {
         state.messagesLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(createChatRoom.pending, (state) => {
+        state.creatingRoom = true;
+        state.error = null;
+      })
+      .addCase(createChatRoom.fulfilled, (state, action) => {
+        state.creatingRoom = false;
+        const mapped = mapServerRoom(action.payload);
+        const idx = state.rooms.findIndex((r) => r.id === mapped.id);
+        if (idx >= 0) state.rooms[idx] = { ...mapped, unread: state.rooms[idx].unread };
+        else state.rooms.unshift(mapped);
+      })
+      .addCase(createChatRoom.rejected, (state, action) => {
+        state.creatingRoom = false;
         state.error = action.payload as string;
       });
   },

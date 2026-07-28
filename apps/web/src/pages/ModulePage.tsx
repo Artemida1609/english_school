@@ -211,7 +211,17 @@ function FireworksCanvas({ onDone }: { onDone: () => void }) {
 }
 
 // ─── Completion Modal ──────────────────────────────────────────
-function CompletionModal({ onClose }: { onClose: () => void }) {
+function CompletionModal({
+  onClose,
+  onContinue,
+  continueLabel,
+  summary,
+}: {
+  onClose: () => void;
+  onContinue: () => void;
+  continueLabel: string;
+  summary: string;
+}) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[99] flex items-center justify-center px-6" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
@@ -225,15 +235,21 @@ function CompletionModal({ onClose }: { onClose: () => void }) {
         <motion.div animate={{ rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.2, 1] }} transition={{ duration: 0.6, delay: 0.3 }} className="text-6xl mb-4">🏆</motion.div>
         <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-2xl font-black text-slate-900 dark:text-white mb-2">Вітаємо! 🎉</motion.h2>
         <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="text-slate-600 dark:text-slate-400 font-medium mb-2">Ви успішно завершили модуль!</motion.p>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="text-sm text-emerald-600 dark:text-emerald-400 font-black mb-6 uppercase tracking-wider">+15 XP зараховано ✨</motion.p>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="text-sm text-emerald-600 dark:text-emerald-400 font-black mb-2 uppercase tracking-wider">{summary}</motion.p>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }} className="text-xs text-slate-500 dark:text-white/45 font-semibold mb-6">Прогрес збережено, можна рухатися далі.</motion.p>
         <div className="flex justify-center gap-2 mb-6">
           {[0, 1, 2].map((i) => (
             <motion.span key={i} initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.4 + i * 0.15, type: "spring", stiffness: 300 }} className="text-3xl">⭐</motion.span>
           ))}
         </div>
-        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={onClose} className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-sm uppercase tracking-widest rounded-2xl shadow-[0_0_24px_rgba(16,185,129,0.4)] border border-emerald-400/50">
-          Продовжити 🚀
-        </motion.button>
+        <div className="flex flex-col gap-3">
+          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={onContinue} className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-sm uppercase tracking-widest rounded-2xl shadow-[0_0_24px_rgba(16,185,129,0.4)] border border-emerald-400/50">
+            {continueLabel}
+          </motion.button>
+          <button onClick={onClose} className="w-full py-3 rounded-2xl border border-slate-200 dark:border-white/10 text-sm font-bold text-slate-600 dark:text-white/70 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+            Залишитися на модулі
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -485,6 +501,7 @@ export const ModulePage = () => {
   // ─── Vocabulary aggregated from all lessons ────────────────
   const [moduleVocabulary, setModuleVocabulary] = useState<VocabularyItem[]>([]);
   const [vocabLoading, setVocabLoading] = useState(true);
+  const [course, setCourse] = useState<{ id: string; title: string; modules?: Array<{ id: string; title: string; orderIndex: number; stage?: number }> } | null>(null);
 
   // ─── Progress state ────────────────────────────────────────
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
@@ -534,6 +551,20 @@ export const ModulePage = () => {
   const theoryLesson = useMemo(() => sortedLessons.find((l) => l.type === "THEORY"), [sortedLessons]);
   const taskLesson = useMemo(() => sortedLessons.find((l) => l.type === "TASK"), [sortedLessons]);
   const testLesson = useMemo(() => sortedLessons.find((l) => l.type === "TEST"), [sortedLessons]);
+  const courseModules = useMemo(
+    () =>
+      [...(course?.modules ?? [])].sort((a, b) => {
+        const stageDiff = (a.stage ?? 1) - (b.stage ?? 1);
+        if (stageDiff !== 0) return stageDiff;
+        return a.orderIndex - b.orderIndex;
+      }),
+    [course?.modules],
+  );
+  const currentModuleIndex = useMemo(
+    () => courseModules.findIndex((item) => item.id === module?.id),
+    [courseModules, module?.id],
+  );
+  const nextModule = currentModuleIndex >= 0 ? courseModules[currentModuleIndex + 1] ?? null : null;
 
   const hasVideo = useMemo(() => {
     const url = detailVideo?.videoUrl ?? videoLesson?.videoUrl;
@@ -700,6 +731,39 @@ export const ModulePage = () => {
       cancelled = true;
     };
   }, [moduleId, isConstructorPreview]);
+
+  useEffect(() => {
+    if (!module?.course?.id || isConstructorPreview) {
+      setCourse(null);
+      return;
+    }
+
+    let cancelled = false;
+    const loadCourse = async () => {
+      try {
+        const data = await coursesApi.getCourseById(module.course!.id);
+        if (!cancelled) {
+          setCourse({
+            id: data.id,
+            title: data.title,
+            modules: data.modules?.map((item) => ({
+              id: item.id,
+              title: item.title,
+              orderIndex: item.orderIndex,
+              stage: item.stage,
+            })),
+          });
+        }
+      } catch {
+        if (!cancelled) setCourse(null);
+      }
+    };
+
+    void loadCourse();
+    return () => {
+      cancelled = true;
+    };
+  }, [isConstructorPreview, module?.course?.id]);
 
   // ─── Load unlock state ─────────────────────────────────────
   useEffect(() => {
@@ -876,7 +940,18 @@ export const ModulePage = () => {
       next.add(sectionId);
       return next;
     });
-  }, []);
+
+    const completedNow = new Set(completedPracticeSections);
+    completedNow.add(sectionId);
+    const nextSection = practiceSections.find((section) => !completedNow.has(section.id)) ?? null;
+
+    if (nextSection) {
+      setActivePracticeSectionId(nextSection.id);
+      setTab("exercises");
+    } else if (hasTestContent) {
+      setTab("test");
+    }
+  }, [completedPracticeSections, hasTestContent, practiceSections, setTab]);
 
   useEffect(() => {
     if (!hasSectionedPractice || !taskLesson?.id || !practiceSections.length) return;
@@ -956,6 +1031,27 @@ export const ModulePage = () => {
     : returnStage
       ? `/course?stage=${returnStage}`
       : "/course";
+
+  const handleContinueFromCompletion = useCallback(() => {
+    setShowModal(false);
+    setShowFireworks(false);
+    if (nextModule?.id) {
+      navigate(`/course/modules/${nextModule.id}`);
+      return;
+    }
+    navigate(backHref);
+  }, [backHref, navigate, nextModule?.id]);
+
+  const completionSummary = useMemo(() => {
+    if (!moduleProgressSummary) return `Модуль завершено`;
+    return `${moduleProgressSummary.completed} / ${moduleProgressSummary.total} уроків завершено`;
+  }, [moduleProgressSummary]);
+
+  const continueLabel = nextModule
+    ? `Перейти до наступного модуля: ${nextModule.title}`
+    : course
+      ? `Повернутися до курсу: ${course.title}`
+      : "Повернутися до курсу";
 
   // ─── Sidebar lesson item ───────────────────────────────────
   const SidebarLessonItem = ({
@@ -1328,16 +1424,22 @@ export const ModulePage = () => {
             ) : (
               <p className="text-sm text-slate-500 dark:text-white/40">Текстових вправ для цього модуля немає.</p>
             )}
-            {hasTestContent && (
+                {hasTestContent && (
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
-                  setTab("test");
+                      const nextSection = practiceSections.find((section) => !completedPracticeSections.has(section.id)) ?? null;
+                      if (nextSection) {
+                        setActivePracticeSectionId(nextSection.id);
+                        setTab("exercises");
+                        return;
+                      }
+                      setTab("test");
                 }}
                 className="mt-8 w-full py-3.5 bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white text-[13px] font-black tracking-widest uppercase rounded-2xl hover:shadow-[0_0_20px_rgba(139,92,246,0.45)] transition-shadow border border-violet-400/50"
               >
-                Тест →
+                {practiceSections.some((section) => !completedPracticeSections.has(section.id)) ? "Наступна вправа →" : "Тест →"}
               </motion.button>
             )}
           </section>
@@ -1445,6 +1547,18 @@ export const ModulePage = () => {
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {showResult && isAllCorrect && progressPct === 100 && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleContinueFromCompletion}
+                    className="w-full mt-5 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[14px] font-black uppercase tracking-widest rounded-2xl hover:shadow-[0_0_24px_rgba(16,185,129,0.5)] transition-all border border-emerald-400/50"
+                  >
+                    {continueLabel}
+                  </motion.button>
+                )}
+
                 <motion.button
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => {
@@ -1478,7 +1592,7 @@ export const ModulePage = () => {
   return (
     <>
       {showFireworks && <FireworksCanvas onDone={() => setShowFireworks(false)} />}
-      <AnimatePresence>{showModal && <CompletionModal onClose={() => setShowModal(false)} />}</AnimatePresence>
+      <AnimatePresence>{showModal && <CompletionModal onClose={() => setShowModal(false)} onContinue={handleContinueFromCompletion} continueLabel={continueLabel} summary={completionSummary} />}</AnimatePresence>
 
       <div className="flex flex-col md:flex-row h-full min-h-full bg-slate-50 dark:bg-[#030812] overflow-hidden relative text-slate-900 dark:text-white md:rounded-[36px] border border-slate-200/50 dark:border-white/5 shadow-2xl transition-colors duration-500">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-300/30 dark:bg-emerald-600/20 blur-[130px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none" />

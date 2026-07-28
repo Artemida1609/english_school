@@ -1,3 +1,5 @@
+import type { ScenarioBlock } from "../types/scenario";
+
 export const CONSTRUCTOR_PRACTICE_MARKER = "___CONSTRUCTOR_PRACTICE_V1___";
 
 export type ConstructorPracticeCard = {

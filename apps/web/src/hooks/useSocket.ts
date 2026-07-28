@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
+
 type MessagePayload = {
   text: string;
   userId?: string;
   time?: string;
   mine?: boolean;
-  userName: string,
+  userName: string;
+  id?: string;
 };
 
-// const SOCKET_URL =
-//   import.meta.env.VITE_API_URL ?? "https://english-school-1izu.onrender.com";
-// const SOCKET_URL = "";
-
-const SOCKET_URL = import.meta.env.VITE_API_URL ?? "https://english-school-1izu.onrender.com";
-
+/** DEV: same origin → Vite proxies /socket.io to backend. PROD: API host. */
+const SOCKET_URL = import.meta.env.DEV
+  ? ""
+  : (import.meta.env.VITE_API_URL ?? "https://english-school-1izu.onrender.com");
 
 export const useSocket = (roomId: string | number) => {
   const socketRef = useRef<Socket | null>(null);
@@ -21,15 +21,13 @@ export const useSocket = (roomId: string | number) => {
   const callbackRef = useRef<((data: MessagePayload) => void) | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken"); // ← виправлено
-    console.log("SOCKET URL:", SOCKET_URL); // ← лог для перевірки
-    console.log("SOCKET TOKEN:", token); // ← лог для перевірки
+    const token = localStorage.getItem("accessToken");
     if (!token || !roomId) return;
 
     const socket = io(SOCKET_URL, {
       auth: { token },
       path: "/socket.io",
-      transports: ["websocket", "polling"], // ← додай
+      transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -38,18 +36,15 @@ export const useSocket = (roomId: string | number) => {
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log("SOCKET CONNECTED ✅");
       setIsConnected(true);
       socket.emit("join_room", String(roomId));
     });
 
-    socket.on("connect_error", (err) => {
-      console.log("SOCKET ERROR:", err.message); // ← покаже причину
+    socket.on("connect_error", () => {
       setIsConnected(false);
     });
 
     socket.on("disconnect", () => {
-      console.log("SOCKET DISCONNECTED");
       setIsConnected(false);
     });
 
@@ -62,6 +57,7 @@ export const useSocket = (roomId: string | number) => {
         user: { id: string; name: string };
       }) => {
         callbackRef.current?.({
+          id: data.id,
           text: data.message,
           userId: data.user?.id,
           userName: data.user?.name,
@@ -82,7 +78,6 @@ export const useSocket = (roomId: string | number) => {
 
   const sendMessage = useCallback(
     (text: string) => {
-      console.log("SENDING:", { roomId: String(roomId), message: text });
       socketRef.current?.emit("send_message", {
         roomId: String(roomId),
         message: text,

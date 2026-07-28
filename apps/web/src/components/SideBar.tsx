@@ -30,16 +30,16 @@ const baseNavItems = [
   { name: "Налаштування", href: "/settings", icon: <SettingsIcon /> },
   { name: "Чати",    href: "/chats",    icon: <ChatsIcon /> },
   { name: "Курс",  href: "/course",  icon: <CoursesIcon /> },
-  {
-    name: "Профіль",
-    href: "/profile",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M4.5 20c1.8-3.7 4.5-5.5 7.5-5.5s5.7 1.8 7.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    ),
-  },
+  // {
+  //   name: "Профіль",
+  //   href: "/profile",
+  //   icon: (
+  //     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+  //       <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.8" />
+  //       <path d="M4.5 20c1.8-3.7 4.5-5.5 7.5-5.5s5.7 1.8 7.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  //     </svg>
+  //   ),
+  // },
   // { name: "Store",    href: "/store",    icon: <StoreIcon /> },
 ]
 

@@ -5,18 +5,45 @@ import { prisma } from '../config/prisma'
 interface AuthenticatedSocket extends Socket {
   userId?: string
   userName?: string
+  userRole?: string
+}
+
+async function isRoomMember(roomId: string, userId: string): Promise<boolean> {
+  const member = await prisma.chatRoomMember.findUnique({
+    where: { roomId_userId: { roomId, userId } },
+  })
+  return Boolean(member)
+}
+
+async function canAccessRoom(roomId: string, userId: string, role?: string): Promise<boolean> {
+  if (role === 'TEACHER' || role === 'ADMIN') return true
+  return isRoomMember(roomId, userId)
 }
 
 export const setupSockets = (io: Server): void => {
-  io.use((socket: AuthenticatedSocket, next) => {
+  io.use(async (socket: AuthenticatedSocket, next) => {
     const token = socket.handshake.auth.token
     if (!token) return next(new Error('Authentication required'))
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-        id: string; name: string; email: string
+      const secret = process.env.JWT_SECRET || process.env.JWT_SECRET_KEY
+      if (!secret) return next(new Error('Server misconfigured'))
+
+      const decoded = jwt.verify(token, secret) as {
+        id: string
+        name?: string
+        email?: string
+        role?: string
       }
-      socket.userId = decoded.id
-      socket.userName = decoded.name || decoded.email
+
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.id },
+        select: { id: true, name: true, email: true, role: true },
+      })
+      if (!user) return next(new Error('User not found'))
+
+      socket.userId = user.id
+      socket.userName = user.name || decoded.name || user.email
+      socket.userRole = user.role
       next()
     } catch {
       next(new Error('Invalid token'))
@@ -28,9 +55,14 @@ export const setupSockets = (io: Server): void => {
 
     socket.on('join_room', async (roomId: string) => {
       try {
+        if (!socket.userId) return
         const room = await prisma.chatRoom.findUnique({ where: { id: roomId } })
         if (!room) {
           socket.emit('error', { message: 'Room not found' })
+          return
+        }
+        if (!(await canAccessRoom(roomId, socket.userId, socket.userRole))) {
+          socket.emit('error', { message: 'Not a member of this room' })
           return
         }
         socket.join(roomId)
@@ -54,12 +86,17 @@ export const setupSockets = (io: Server): void => {
     socket.on('send_message', async (data: { roomId: string; message: string }) => {
       try {
         const { roomId, message } = data
-        if (!message?.trim()) return
+        if (!socket.userId || !message?.trim()) return
+
+        if (!(await canAccessRoom(roomId, socket.userId, socket.userRole))) {
+          socket.emit('error', { message: 'Not a member of this room' })
+          return
+        }
 
         const saved = await prisma.message.create({
           data: {
             roomId,
-            userId: socket.userId!,
+            userId: socket.userId,
             message: message.trim(),
           },
           include: {

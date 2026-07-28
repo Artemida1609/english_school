@@ -61,6 +61,27 @@ export const login = createAsyncThunk(
   }
 );
 
+export const hydrateSession = createAsyncThunk(
+  "auth/hydrateSession",
+  async (_, { rejectWithValue }) => {
+    try {
+      const [me, token] = await Promise.all([
+        apiFetch<{ id: string; email: string; name: string; role: User["role"] }>("/api/auth/me"),
+        Promise.resolve(localStorage.getItem("accessToken")),
+      ]);
+
+      return {
+        user: me,
+        token,
+        refreshToken: localStorage.getItem("refreshToken") ?? "",
+        avatar: localStorage.getItem("avatar"),
+      } as AuthPayload;
+    } catch (e: unknown) {
+      return rejectWithValue(e instanceof Error ? e.message : "Session restore failed");
+    }
+  }
+);
+
 export const register = createAsyncThunk(
   "auth/register",
   async (
@@ -158,9 +179,12 @@ const authSlice = createSlice({
       .addCase(login.rejected, handleRejected)
       .addCase(register.pending, handlePending)
       .addCase(register.fulfilled, handleFulfilled)
-      .addCase(register.rejected, handleRejected);
+      .addCase(register.rejected, handleRejected)
+      .addCase(hydrateSession.pending, handlePending)
+      .addCase(hydrateSession.fulfilled, handleFulfilled)
+      .addCase(hydrateSession.rejected, handleRejected);
   },
 });
 
-export const { logout, clearError, setAvatar } = authSlice.actions;
+    export const { logout, clearError, setAvatar } = authSlice.actions;
 export default authSlice.reducer;

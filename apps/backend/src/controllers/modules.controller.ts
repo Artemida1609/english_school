@@ -71,19 +71,46 @@ export const createModule = async (req: AuthRequest, res: Response): Promise<voi
   }
 }
 
+function clampCourseStage(n: unknown): number {
+  const x = typeof n === 'number' ? n : Number(n)
+  if (!Number.isFinite(x)) return 1
+  return Math.min(5, Math.max(1, Math.round(x)))
+}
+
 // PUT /api/modules/:id
 export const updateModule = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { title, description, orderIndex } = req.body
+    const { title, description, orderIndex, stage } = req.body
     const id = getParam(req, 'id')
     if (!id) {
       res.status(400).json({ message: 'Module ID required' })
       return
     }
 
+    const data: {
+      title?: string
+      description?: string | null
+      orderIndex?: number
+      stage?: number
+    } = {}
+
+    if (typeof title === 'string') data.title = title
+    if (description !== undefined) data.description = description
+    if (typeof orderIndex === 'number' && Number.isFinite(orderIndex)) {
+      data.orderIndex = orderIndex
+    }
+    if (stage !== undefined && stage !== null && stage !== '') {
+      data.stage = clampCourseStage(stage)
+    }
+
+    if (Object.keys(data).length === 0) {
+      res.status(400).json({ message: 'No fields to update' })
+      return
+    }
+
     const module = await prisma.module.update({
       where: { id },
-      data: { title, description, orderIndex },
+      data,
     })
 
     res.json(module)

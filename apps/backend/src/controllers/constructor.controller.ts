@@ -25,9 +25,12 @@ function clampCourseStage(n: unknown): number {
   return Math.min(5, Math.max(1, Math.round(x)))
 }
 
+const EMPTY_THEORY_PLACEHOLDER =
+  '<p class="text-slate-500">Практичний модуль — теорія відсутня.</p>'
+
 function validateConstructorBody(body: ConstructorBody): string | null {
   if (!body.title?.trim()) return 'Title is required'
-  if (!body.theoryHtml?.trim()) return 'theoryHtml is required'
+  if (body.theoryHtml == null) return 'theoryHtml is required'
   if (body.scenarioJson != null && body.scenarioJson.length > 2_500_000) {
     return 'scenarioJson is too large'
   }
@@ -50,12 +53,13 @@ async function createLessonsForModule(
   startOrder: number,
 ): Promise<void> {
   let oi = startOrder
+  const theoryContent = data.theoryHtml?.trim() || EMPTY_THEORY_PLACEHOLDER
   await tx.lesson.create({
     data: {
       moduleId,
       title: 'Теорія',
       type: 'THEORY',
-      content: data.theoryHtml,
+      content: theoryContent,
       orderIndex: oi++,
     },
   })

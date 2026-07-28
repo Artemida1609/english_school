@@ -68,7 +68,44 @@ async function legacyBlocksFromModuleLessons(
     const rawTask = await resolveLessonContent(task);
     if (!rawTask) continue;
     const { practice } = parsePracticeFromTaskContent(rawTask);
-    if (practice?.quizlet?.length) {
+    if (!practice) continue;
+
+    if (practice.sections?.length) {
+      for (const section of practice.sections) {
+        if (section.type === "cards") {
+          blocks.push({
+            id: newBlockId(),
+            type: "cards",
+            items: section.items.map((q) => ({
+              title: q.term,
+              body: q.definition,
+            })),
+          });
+          continue;
+        }
+        if (section.type === "match") {
+          blocks.push({
+            id: newBlockId(),
+            type: "match",
+            left: [...section.left],
+            right: [...section.right],
+          });
+          continue;
+        }
+        if (section.type === "cloze") {
+          blocks.push({
+            id: newBlockId(),
+            type: "cloze",
+            text: section.text,
+            answers: [...section.answers],
+            distractors: [...(section.distractors ?? [])],
+          });
+        }
+      }
+      continue;
+    }
+
+    if (practice.quizlet?.length) {
       blocks.push({
         id: newBlockId(),
         type: "cards",
@@ -78,7 +115,7 @@ async function legacyBlocksFromModuleLessons(
         })),
       });
     }
-    if (practice?.matching?.length) {
+    if (practice.matching?.length) {
       for (const m of practice.matching) {
         blocks.push({
           id: newBlockId(),

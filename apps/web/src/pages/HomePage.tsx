@@ -130,11 +130,7 @@ export const HomePage = () => {
         setAccuracy(statsRes.accuracy || 0);
 
         // Load activity calendar for streak
-        await fetch('/api/progress/activity-calendar', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-        }).then((r) => r.json());
+        await apiFetch<{ currentStreak?: number }>('/api/progress/activity-calendar');
         // Streak rendering is handled by StreakCard component
       } catch {
         // Fallback

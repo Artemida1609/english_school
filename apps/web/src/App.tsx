@@ -19,15 +19,19 @@ import {
 import i18n from "./i18n";
 import { useThemeStore } from "./store/themeStore";
 import { useEffect } from "react";
+import { useDispatch } from "react-redux";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { AuthGuard } from "./components/AuthGuard";
 import { ProfilePage } from "./pages/ProfilePage";
-import { MainHomePage } from "./pages/MainHomePage";
+// import { MainHomePage } from "./pages/MainHomePage";
 import { StaffGuard } from "./components/StaffGuard";
 import { ModuleConstructorPage } from "./pages/ModuleConstructorPage";
+import { hydrateSession } from "./store/authSlice";
+import type { AppDispatch } from "./store";
 export const App = () => {
   const { theme, setTheme } = useThemeStore();
+  const dispatch = useDispatch<AppDispatch>();
 
   // Ініціалізуємо тему один раз при монтуванні
   useEffect(() => {
@@ -47,6 +51,18 @@ export const App = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const hasStoredAuth = Boolean(
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("refreshToken") ||
+      localStorage.getItem("user")
+    );
+
+    if (hasStoredAuth) {
+      void dispatch(hydrateSession());
+    }
+  }, [dispatch]);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -55,9 +71,9 @@ export const App = () => {
 
         <Route element={<AuthGuard />}>
           <Route element={<MainLayout />}>
-            <Route path="/" element={<MainHomePage />} />
+            <Route path="/" element={<HomePage />} />
+            {/* <Route path="/" element={<MainHomePage />} /> */}
             <Route path="/course" element={<CourseDetailPage />} />
-            <Route path="/profile" element={<HomePage />} />
             <Route path="/profile-settings" element={<ProfilePage />} />
             <Route path="/chats" element={<ChatsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
