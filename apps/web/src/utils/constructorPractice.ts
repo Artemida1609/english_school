@@ -41,6 +41,40 @@ export type ConstructorPracticeSection =
     text: string;
     answers: string[];
     distractors?: string[];
+  }
+  | {
+    id: string;
+    type: "openCloze";
+    title: string;
+    text: string;
+    answers: string[];
+  }
+  | {
+    id: string;
+    type: "letterOrder";
+    title: string;
+    paragraphs: string[];
+  }
+  | {
+    id: string;
+    type: "wordBank";
+    title: string;
+    items: {
+      id: string;
+      text: string;
+      answers: string[];
+    }[];
+    distractors?: string[];
+  }
+  | {
+    id: string;
+    type: "multiSelect";
+    title: string;
+    questions: {
+      id: string;
+      questionText: string;
+      options: { text: string; isCorrect: boolean }[];
+    }[];
   };
 
 export type ConstructorPracticePayload = {
@@ -129,6 +163,97 @@ function normalizeSections(payload: Record<string, unknown>, quizlet: Constructo
           distractors: Array.isArray(section.distractors)
             ? section.distractors.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
             : [],
+        });
+        continue;
+      }
+      if (section.type === "letterOrder") {
+        const paragraphs = Array.isArray(section.paragraphs)
+          ? section.paragraphs.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+          : [];
+        if (paragraphs.length < 2) continue;
+        sections.push({
+          id: section.id,
+          type: "letterOrder",
+          title: typeof section.title === "string" && section.title.trim() ? section.title : `Лист ${index + 1}`,
+          paragraphs: [...paragraphs],
+        });
+        continue;
+      }
+      if (section.type === "openCloze") {
+        const answers = Array.isArray(section.answers)
+          ? section.answers.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+          : [];
+        const text = typeof section.text === "string" && section.text.trim() ? section.text : "";
+        if (!text || !answers.length) continue;
+        sections.push({
+          id: section.id,
+          type: "openCloze",
+          title: typeof section.title === "string" && section.title.trim() ? section.title : `Відкриті пропуски ${index + 1}`,
+          text,
+          answers,
+        });
+        continue;
+      }
+      if (section.type === "wordBank") {
+        const rawItems = Array.isArray(section.items) ? section.items : [];
+        const items = rawItems
+          .map((item, itemIdx) => {
+            if (!isRecord(item)) return null;
+            const text = typeof item.text === "string" && item.text.trim() ? item.text : "";
+            const answers = Array.isArray(item.answers)
+              ? item.answers.filter((a): a is string => typeof a === "string" && a.trim().length > 0)
+              : [];
+            if (!text || !answers.length) return null;
+            return {
+              id: typeof item.id === "string" && item.id ? item.id : `wb-item-${itemIdx}`,
+              text,
+              answers,
+            };
+          })
+          .filter((item): item is { id: string; text: string; answers: string[] } => item !== null);
+        if (!items.length) continue;
+        const distractors = Array.isArray(section.distractors)
+          ? section.distractors.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+          : [];
+        sections.push({
+          id: section.id,
+          type: "wordBank",
+          title: typeof section.title === "string" && section.title.trim() ? section.title : `Слова у пропуски ${index + 1}`,
+          items,
+          distractors,
+        });
+        continue;
+      }
+      if (section.type === "multiSelect") {
+        const rawQuestions = Array.isArray(section.questions) ? section.questions : [];
+        const questions = rawQuestions
+          .map((q, qIdx) => {
+            if (!isRecord(q)) return null;
+            const questionText = typeof q.questionText === "string" && q.questionText.trim() ? q.questionText : "";
+            const options = Array.isArray(q.options)
+              ? q.options
+                  .map((opt) => {
+                    if (!isRecord(opt)) return null;
+                    const text = typeof opt.text === "string" && opt.text.trim() ? opt.text : "";
+                    if (!text) return null;
+                    return { text, isCorrect: Boolean(opt.isCorrect) };
+                  })
+                  .filter((opt): opt is { text: string; isCorrect: boolean } => opt !== null)
+              : [];
+            if (!questionText || !options.length) return null;
+            return {
+              id: typeof q.id === "string" && q.id ? q.id : `ms-q-${qIdx}`,
+              questionText,
+              options,
+            };
+          })
+          .filter((q): q is { id: string; questionText: string; options: { text: string; isCorrect: boolean }[] } => q !== null);
+        if (!questions.length) continue;
+        sections.push({
+          id: section.id,
+          type: "multiSelect",
+          title: typeof section.title === "string" && section.title.trim() ? section.title : `Множинний вибір ${index + 1}`,
+          questions,
         });
       }
     }

@@ -25,7 +25,7 @@ export function blocksToHtml(blocks: ScenarioBlock[]): string {
   let sectionIndex = 0;
 
   for (const b of blocks) {
-    if (b.type === "cards" || b.type === "match" || b.type === "cloze") {
+    if (b.type === "cards" || b.type === "match" || b.type === "cloze" || b.type === "openCloze" || b.type === "letterOrder" || b.type === "quiz" || b.type === "wordBank" || b.type === "multiSelect") {
       continue;
     }
 
@@ -76,6 +76,10 @@ export function buildPracticeFromBlocks(blocks: ScenarioBlock[]): ConstructorPra
   const cardBlocks = blocks.filter((b): b is Extract<ScenarioBlock, { type: "cards" }> => b.type === "cards");
   const matchBlocks = blocks.filter((b): b is Extract<ScenarioBlock, { type: "match" }> => b.type === "match");
   const clozeBlocks = blocks.filter((b): b is Extract<ScenarioBlock, { type: "cloze" }> => b.type === "cloze");
+  const openClozeBlocks = blocks.filter((b): b is Extract<ScenarioBlock, { type: "openCloze" }> => b.type === "openCloze");
+  const letterOrderBlocks = blocks.filter(
+    (b): b is Extract<ScenarioBlock, { type: "letterOrder" }> => b.type === "letterOrder",
+  );
   const quizlet = cardBlocks.flatMap((b) => b.items.map((it) => ({
     term: it.title,
     definition: it.body,
@@ -86,8 +90,12 @@ export function buildPracticeFromBlocks(blocks: ScenarioBlock[]): ConstructorPra
   const sections: ConstructorPracticePayload["sections"] = [];
   let cardsIndex = 0;
   let matchIndex = 0;
+  let letterIndex = 0;
+  let openClozeIndex = 0;
   const totalCards = cardBlocks.length;
   const totalMatches = matchBlocks.length;
+  const totalLetters = letterOrderBlocks.length;
+  const totalOpenCloze = openClozeBlocks.length;
 
   for (const block of blocks) {
     if (block.type === "cards") {
@@ -126,6 +134,75 @@ export function buildPracticeFromBlocks(blocks: ScenarioBlock[]): ConstructorPra
         answers: [...block.answers],
         distractors: [...(block.distractors ?? [])],
       });
+      continue;
+    }
+    if (block.type === "openCloze") {
+      const answers = block.answers.map((a) => a.trim()).filter(Boolean);
+      const text = block.text.trim();
+      if (!text || !answers.length) continue;
+      const currentIndex = openClozeIndex++;
+      sections.push({
+        id: `practice-open-cloze-${block.id}`,
+        type: "openCloze",
+        title: totalOpenCloze === 1 ? "Відкриті пропуски" : `Відкриті пропуски ${currentIndex + 1}`,
+        text,
+        answers,
+      });
+      continue;
+    }
+    if (block.type === "letterOrder") {
+      const paragraphs = block.paragraphs.map((p) => p.trim()).filter(Boolean);
+      if (paragraphs.length < 2) continue;
+      const currentIndex = letterIndex++;
+      sections.push({
+        id: `practice-letter-${block.id}`,
+        type: "letterOrder",
+        title:
+          block.title?.trim() ||
+          (totalLetters === 1 ? "Лист" : `Лист ${currentIndex + 1}`),
+        paragraphs,
+      });
+      continue;
+    }
+    if (block.type === "wordBank") {
+      const items = block.items
+        .map((item, idx) => ({
+          id: item.id || `wb-item-${idx}`,
+          text: item.text.trim(),
+          answers: item.answers.map((a) => a.trim()).filter(Boolean),
+        }))
+        .filter((item) => item.text && item.answers.length);
+      if (!items.length) continue;
+      const wordBankCount = blocks.filter((b) => b.type === "wordBank").length;
+      const wordBankIndex = blocks.filter((b) => b.type === "wordBank").findIndex((b) => b.id === block.id);
+      sections.push({
+        id: `practice-wordbank-${block.id}`,
+        type: "wordBank",
+        title: block.title?.trim() || (wordBankCount === 1 ? "Слова у пропуски" : `Слова у пропуски ${wordBankIndex + 1}`),
+        items,
+        distractors: (block.distractors ?? []).map((d) => d.trim()).filter(Boolean),
+      });
+      continue;
+    }
+    if (block.type === "multiSelect") {
+      const questions = block.questions
+        .map((q, qIdx) => ({
+          id: q.id || `ms-q-${qIdx}`,
+          questionText: q.questionText.trim(),
+          options: q.options
+            .map((opt) => ({ text: opt.text.trim(), isCorrect: Boolean(opt.isCorrect) }))
+            .filter((opt) => opt.text.length > 0),
+        }))
+        .filter((q) => q.questionText && q.options.length > 0);
+      if (!questions.length) continue;
+      const msCount = blocks.filter((b) => b.type === "multiSelect").length;
+      const msIndex = blocks.filter((b) => b.type === "multiSelect").findIndex((b) => b.id === block.id);
+      sections.push({
+        id: `practice-multiselect-${block.id}`,
+        type: "multiSelect",
+        title: block.title?.trim() || (msCount === 1 ? "Множинний вибір" : `Множинний вибір ${msIndex + 1}`),
+        questions,
+      });
     }
   }
 
@@ -162,10 +239,24 @@ export function parseScenarioJson(raw: string): ScenarioDocument | null {
   return null;
 }
 
-/** Питання для тесту (MCQ) відключені: cloze тепер є вправою, а не тестом */
+/** Питання для вкладки «Тест» з блоків quiz */
 export function buildTestQuestionsFromBlocks(
   blocks: ScenarioBlock[],
 ): { questionText: string; answers: { text: string; isCorrect: boolean }[] }[] {
-  void blocks;
-  return [];
+  const out: { questionText: string; answers: { text: string; isCorrect: boolean }[] }[] = [];
+
+  for (const block of blocks) {
+    if (block.type !== "quiz") continue;
+    for (const q of block.questions) {
+      const questionText = q.questionText.trim();
+      const answers = q.answers
+        .map((a) => ({ text: a.text.trim(), isCorrect: a.isCorrect }))
+        .filter((a) => a.text.length > 0);
+      const correctCount = answers.filter((a) => a.isCorrect).length;
+      if (!questionText || answers.length < 2 || correctCount !== 1) continue;
+      out.push({ questionText, answers });
+    }
+  }
+
+  return out;
 }

@@ -100,6 +100,51 @@ async function legacyBlocksFromModuleLessons(
             answers: [...section.answers],
             distractors: [...(section.distractors ?? [])],
           });
+          continue;
+        }
+        if (section.type === "openCloze") {
+          blocks.push({
+            id: newBlockId(),
+            type: "openCloze",
+            text: section.text,
+            answers: [...section.answers],
+          });
+          continue;
+        }
+        if (section.type === "letterOrder") {
+          blocks.push({
+            id: newBlockId(),
+            type: "letterOrder",
+            title: section.title,
+            paragraphs: [...section.paragraphs],
+          });
+          continue;
+        }
+        if (section.type === "wordBank") {
+          blocks.push({
+            id: newBlockId(),
+            type: "wordBank",
+            title: section.title,
+            items: section.items.map((it) => ({
+              id: it.id || newBlockId(),
+              text: it.text,
+              answers: [...it.answers],
+            })),
+            distractors: [...(section.distractors ?? [])],
+          });
+          continue;
+        }
+        if (section.type === "multiSelect") {
+          blocks.push({
+            id: newBlockId(),
+            type: "multiSelect",
+            title: section.title,
+            questions: section.questions.map((q) => ({
+              id: q.id || newBlockId(),
+              questionText: q.questionText,
+              options: q.options.map((opt) => ({ text: opt.text, isCorrect: opt.isCorrect })),
+            })),
+          });
         }
       }
       continue;
@@ -132,22 +177,21 @@ async function legacyBlocksFromModuleLessons(
     try {
       const detail: LessonDetail = await coursesApi.getLessonById(testLesson.id);
       const questions = detail.tests?.[0]?.questions ?? [];
-      for (const q of questions) {
-        const correct = q.answers.find((a) => a.isCorrect);
-        if (!correct) continue;
-        const wrongs = q.answers.filter((a) => !a.isCorrect).map((a) => a.answerText.trim()).filter(Boolean);
-        let text = q.questionText.trim();
-        if (!/___|______/.test(text)) {
-          text = `${text} ___`;
-        } else {
-          text = text.replace(/_{4,}/g, "___");
-        }
+      const quizQuestions = questions.flatMap((q) => {
+        const answers = q.answers
+          .map((a) => ({ text: a.answerText.trim(), isCorrect: a.isCorrect }))
+          .filter((a) => a.text.length > 0);
+        const correctCount = answers.filter((a) => a.isCorrect).length;
+        const questionText = q.questionText.trim();
+        if (!questionText || answers.length < 2 || correctCount !== 1) return [];
+        return [{ questionText, answers }];
+      });
+      if (quizQuestions.length > 0) {
         blocks.push({
           id: newBlockId(),
-          type: "cloze",
-          text,
-          answers: [correct.answerText.trim()],
-          distractors: wrongs,
+          type: "quiz",
+          title: detail.tests?.[0]?.title?.trim() || "Тест",
+          questions: quizQuestions,
         });
       }
     } catch {

@@ -227,6 +227,17 @@ function StageModulesDropZone({
   );
 }
 
+const THEORY_TYPES = ["text", "table"];
+const PRACTICE_TYPES = ["cards", "match", "cloze", "openCloze", "letterOrder", "wordBank"];
+const TEST_TYPES = ["multiSelect", "quiz"];
+
+const getCategory = (type: string) => {
+  if (THEORY_TYPES.includes(type)) return "theory";
+  if (PRACTICE_TYPES.includes(type)) return "practice";
+  if (TEST_TYPES.includes(type)) return "test";
+  return "theory";
+};
+
 export function ModuleConstructorPage() {
   const navigate = useNavigate();
   const [title, setTitle] = useState("Новий модуль");
@@ -245,9 +256,18 @@ export function ModuleConstructorPage() {
   const [modulePublishStage, setModulePublishStage] = useState(1);
   const [showHelp, setShowHelp] = useState(false);
   const [activeDragModuleId, setActiveDragModuleId] = useState<string | null>(null);
+  const [activeDragBlockId, setActiveDragBlockId] = useState<string | null>(null);
   const skipNextAutosave = useRef(false);
   const lastFetchedConstructorModuleRef = useRef<string | null>(null);
   const structureDragSnapshotRef = useRef<Module[] | null>(null);
+
+  const blockSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+  );
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -646,9 +666,12 @@ export function ModuleConstructorPage() {
   const testPayload = useMemo(() => extractClozeExercisePayload(blocks), [blocks]);
 
   const addBlock = (type: ScenarioBlock["type"]) => {
-    const nb: ScenarioBlock = defaultBlock(type);
+    const nb = defaultBlock(type);
     setBlocks((prev) => [...prev, nb]);
     setExpandedId(nb.id);
+    setTimeout(() => {
+      document.getElementById(`block-${nb.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
   };
 
   const updateBlock = (id: string, patch: Partial<ScenarioBlock>) => {
@@ -1004,6 +1027,9 @@ export function ModuleConstructorPage() {
                     ["④", "Чернетка", " — авто-збереження в браузері + ручна кнопка"],
                     ["⑤", "HTML / JSON", " — копіювати або завантажити файл"],
                     ["⑥", "Видалити", " — модуль/курс — дія незворотна"],
+                    ["⑦", "Лист (порядок)", " — параграфи листа; студент розставляє їх drag-and-drop"],
+                    ["⑧", "Тестові завдання", " — питання з варіантами відповіді на вкладці «Тест»"],
+                    ["⑨", "Пропуски (відкриті)", " — студент вписує відповідь самостійно, без варіантів"],
                   ].map(([n, b, t]) => (
                     <div key={n} className="flex gap-2">
                       <span className="text-emerald-500 font-bold shrink-0">{n}</span>
@@ -1286,7 +1312,7 @@ export function ModuleConstructorPage() {
         </div>
 
         {/* ─── SCENARIO TITLE + BLOCK TYPES ─── */}
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
+        <div className="mb-5 flex flex-col gap-5 sm:flex-row sm:items-start">
           <label className="flex flex-1 flex-col gap-1.5 min-w-[220px]">
             <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Назва сценарію</span>
             <input
@@ -1296,12 +1322,32 @@ export function ModuleConstructorPage() {
               placeholder="Назва модуля…"
             />
           </label>
-          <div className="flex flex-wrap gap-2">
-            <ToolBtn onClick={() => addBlock("text")} label="Текст" icon="📝" />
-            <ToolBtn onClick={() => addBlock("table")} label="Таблиця" icon="📊" />
-            <ToolBtn onClick={() => addBlock("cards")} label="Картки" icon="🃏" />
-            <ToolBtn onClick={() => addBlock("match")} label="Зіставлення" icon="🔗" />
-            <ToolBtn onClick={() => addBlock("cloze")} label="Пропуски" icon="✏️" />
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">📖 Теорія</span>
+              <div className="flex flex-wrap gap-2">
+                <ToolBtn onClick={() => addBlock("text")} label="Текст" icon="📝" />
+                <ToolBtn onClick={() => addBlock("table")} label="Таблиця" icon="📊" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">✏️ Вправи</span>
+              <div className="flex flex-wrap gap-2">
+                <ToolBtn onClick={() => addBlock("cards")} label="Картки" icon="🃏" />
+                <ToolBtn onClick={() => addBlock("match")} label="Зіставлення" icon="🔗" />
+                <ToolBtn onClick={() => addBlock("cloze")} label="Пропуски" icon="✏️" />
+                <ToolBtn onClick={() => addBlock("openCloze")} label="Пропуски (відкриті)" icon="✍️" />
+                <ToolBtn onClick={() => addBlock("letterOrder")} label="Лист (порядок)" icon="✉️" />
+                <ToolBtn onClick={() => addBlock("wordBank")} label="Слова у пропуски" icon="🧩" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">📝 Тести</span>
+              <div className="flex flex-wrap gap-2">
+                <ToolBtn onClick={() => addBlock("multiSelect")} label="Множинний вибір" icon="☑️" />
+                <ToolBtn onClick={() => addBlock("quiz")} label="Тестові завдання" icon="📝" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1379,52 +1425,114 @@ export function ModuleConstructorPage() {
 
         {/* ─── MAIN EDITOR GRID ─── */}
         <div className="grid gap-6 lg:grid-cols-[1fr_minmax(300px,360px)]">
-          <div className="space-y-3">
-            <AnimatePresence initial={false}>
-              {blocks.map((b, index) => (
-                <motion.div
-                  key={b.id}
-                  layout
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="rounded-2xl border border-slate-200/80 dark:border-slate-700/60 bg-white/90 dark:bg-slate-900/70 backdrop-blur shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-700/60 px-4 py-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setExpandedId((id) => (id === b.id ? null : b.id))}
-                      className="flex flex-1 items-center gap-2.5 text-left"
-                    >
-                      <span className="inline-flex w-6 h-6 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-[10px] font-black text-emerald-700 dark:text-emerald-300 shrink-0">{index + 1}</span>
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{blockTitle(b)}</span>
-                      <span className="ml-auto text-slate-300 dark:text-slate-600 text-xs">{expandedId === b.id ? "▲" : "▼"}</span>
-                    </button>
-                    <div className="flex shrink-0 gap-0.5">
-                      <IconBtn aria-label="Вгору" onClick={() => setBlocks((prev) => moveItem(prev, index, index - 1))} disabled={index === 0}>↑</IconBtn>
-                      <IconBtn aria-label="Вниз" onClick={() => setBlocks((prev) => moveItem(prev, index, index + 1))} disabled={index === blocks.length - 1}>↓</IconBtn>
-                      <IconBtn aria-label="Видалити" onClick={() => removeBlock(b.id)} className="text-rose-500 dark:text-rose-400">×</IconBtn>
+          <div className="w-full">
+            <DndContext
+              sensors={blockSensors}
+              collisionDetection={closestCorners}
+              onDragStart={(e) => setActiveDragBlockId(e.active.id as string)}
+              onDragEnd={(event: DragEndEvent) => {
+                setActiveDragBlockId(null);
+                const { active, over } = event;
+                if (!over || active.id === over.id) return;
+                
+                const activeBlock = blocks.find((b) => b.id === active.id);
+                const overBlock = blocks.find((b) => b.id === over.id);
+                
+                if (activeBlock && overBlock && getCategory(activeBlock.type) === getCategory(overBlock.type)) {
+                  const oldIndex = blocks.findIndex((b) => b.id === active.id);
+                  const newIndex = blocks.findIndex((b) => b.id === over.id);
+                  setBlocks((prev) => arrayMove(prev, oldIndex, newIndex));
+                }
+              }}
+            >
+              {blocks.filter(b => getCategory(b.type) === "theory").length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-3 ml-2 flex items-center gap-2">
+                    <span className="text-base">📖</span> Теорія
+                  </h4>
+                  <SortableContext items={blocks.filter(b => getCategory(b.type) === "theory").map(b => b.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-3">
+                      {blocks.filter(b => getCategory(b.type) === "theory").map((b) => (
+                        <SortableBlockItem
+                          key={b.id}
+                          block={b}
+                          index={blocks.findIndex(x => x.id === b.id)}
+                          expanded={expandedId === b.id}
+                          onToggle={() => setExpandedId((id) => (id === b.id ? null : b.id))}
+                          onRemove={() => removeBlock(b.id)}
+                          onChange={(patch) => updateBlock(b.id, patch)}
+                        />
+                      ))}
                     </div>
-                  </div>
-                  <AnimatePresence>
-                    {expandedId === b.id && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="p-4">
-                          <BlockFields block={b} onChange={(patch) => updateBlock(b.id, patch)} />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                  </SortableContext>
+                </div>
+              )}
+
+              {blocks.filter(b => getCategory(b.type) === "practice").length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-3 ml-2 flex items-center gap-2">
+                    <span className="text-base">✏️</span> Вправи
+                  </h4>
+                  <SortableContext items={blocks.filter(b => getCategory(b.type) === "practice").map(b => b.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-3">
+                      {blocks.filter(b => getCategory(b.type) === "practice").map((b) => (
+                        <SortableBlockItem
+                          key={b.id}
+                          block={b}
+                          index={blocks.findIndex(x => x.id === b.id)}
+                          expanded={expandedId === b.id}
+                          onToggle={() => setExpandedId((id) => (id === b.id ? null : b.id))}
+                          onRemove={() => removeBlock(b.id)}
+                          onChange={(patch) => updateBlock(b.id, patch)}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </div>
+              )}
+
+              {blocks.filter(b => getCategory(b.type) === "test").length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-3 ml-2 flex items-center gap-2">
+                    <span className="text-base">📝</span> Тести
+                  </h4>
+                  <SortableContext items={blocks.filter(b => getCategory(b.type) === "test").map(b => b.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-3">
+                      {blocks.filter(b => getCategory(b.type) === "test").map((b) => (
+                        <SortableBlockItem
+                          key={b.id}
+                          block={b}
+                          index={blocks.findIndex(x => x.id === b.id)}
+                          expanded={expandedId === b.id}
+                          onToggle={() => setExpandedId((id) => (id === b.id ? null : b.id))}
+                          onRemove={() => removeBlock(b.id)}
+                          onChange={(patch) => updateBlock(b.id, patch)}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </div>
+              )}
+
+              <DragOverlay>
+                {activeDragBlockId ? (() => {
+                  const b = blocks.find(x => x.id === activeDragBlockId);
+                  if (!b) return null;
+                  const idx = blocks.findIndex(x => x.id === activeDragBlockId);
+                  return (
+                    <BlockCard
+                      block={b}
+                      index={idx}
+                      expanded={expandedId === b.id}
+                      onToggle={() => {}}
+                      onRemove={() => {}}
+                      onChange={() => {}}
+                      isOverlay
+                    />
+                  );
+                })() : null}
+              </DragOverlay>
+            </DndContext>
           </div>
 
           <ModulePreviewPanel
@@ -1605,7 +1713,17 @@ function blockTitle(b: ScenarioBlock): string {
     case "match":
       return "Зіставлення (лінії)";
     case "cloze":
-      return "Пропуски (вправа)";
+      return "Пропуски (варіанти)";
+    case "openCloze":
+      return "Пропуски (відкриті)";
+    case "letterOrder":
+      return "Лист — порядок параграфів";
+    case "wordBank":
+      return "Слова у пропуски (перетягування)";
+    case "multiSelect":
+      return "Множинний вибір (чекбокси)";
+    case "quiz":
+      return "Тестові завдання";
     default: {
       const _ex: never = b;
       return _ex;
@@ -1660,6 +1778,139 @@ function IconBtn({
     >
       {children}
     </button>
+  );
+}
+
+function BlockCard({
+  block,
+  index,
+  expanded,
+  onToggle,
+  onRemove,
+  onChange,
+  isOverlay = false,
+  dragListeners,
+  dragAttributes,
+  setNodeRef,
+  style,
+}: {
+  block: ScenarioBlock;
+  index: number;
+  expanded: boolean;
+  onToggle: () => void;
+  onRemove: () => void;
+  onChange: (patch: Partial<ScenarioBlock>) => void;
+  isOverlay?: boolean;
+  dragListeners?: any;
+  dragAttributes?: any;
+  setNodeRef?: (node: HTMLElement | null) => void;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      layout={!isOverlay}
+      initial={!isOverlay ? { opacity: 0, y: 10 } : undefined}
+      animate={!isOverlay ? { opacity: 1, y: 0 } : undefined}
+      exit={!isOverlay ? { opacity: 0, height: 0, marginBottom: 0 } : undefined}
+      transition={{ duration: 0.2 }}
+      className={`rounded-2xl border bg-white/90 dark:bg-slate-900/70 backdrop-blur shadow-sm hover:shadow-md transition-shadow relative ${
+        isOverlay ? "border-emerald-400 shadow-xl scale-[1.02] cursor-grabbing z-50" : "border-slate-200/80 dark:border-slate-700/60 z-10"
+      }`}
+      id={!isOverlay ? `block-${block.id}` : undefined}
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-700/60 px-4 py-2.5">
+        <button
+          type="button"
+          className={`text-slate-400 dark:text-slate-500 hover:text-emerald-500 transition-colors py-1 pr-2 ${isOverlay ? 'cursor-grabbing' : 'cursor-grab active:cursor-grabbing'}`}
+          {...dragAttributes}
+          {...dragListeners}
+          aria-label="Перетягнути блок"
+          title="Перетягнути"
+        >
+          ⋮⋮
+        </button>
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex flex-1 items-center gap-2.5 text-left"
+        >
+          <span className="inline-flex w-6 h-6 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-[10px] font-black text-emerald-700 dark:text-emerald-300 shrink-0">{index + 1}</span>
+          <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{blockTitle(block)}</span>
+          <span className="ml-auto text-slate-300 dark:text-slate-600 text-xs">{expanded ? "▲" : "▼"}</span>
+        </button>
+        <div className="flex shrink-0 gap-0.5 ml-2">
+          <IconBtn aria-label="Видалити" onClick={onRemove} className="text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50">×</IconBtn>
+        </div>
+      </div>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="p-4">
+              <BlockFields block={block} onChange={onChange} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function SortableBlockItem({
+  block,
+  index,
+  expanded,
+  onToggle,
+  onRemove,
+  onChange,
+}: {
+  block: ScenarioBlock;
+  index: number;
+  expanded: boolean;
+  onToggle: () => void;
+  onRemove: () => void;
+  onChange: (patch: Partial<ScenarioBlock>) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: block.id,
+  });
+
+  if (isDragging) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={{
+          transform: CSS.Transform.toString(transform),
+          transition,
+        }}
+        className="h-[68px] rounded-2xl border-2 border-dashed border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-900/20"
+      />
+    );
+  }
+
+  return (
+    <BlockCard
+      block={block}
+      index={index}
+      expanded={expanded}
+      onToggle={onToggle}
+      onRemove={onRemove}
+      onChange={onChange}
+      setNodeRef={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      dragAttributes={attributes}
+      dragListeners={listeners}
+    />
   );
 }
 
@@ -1962,15 +2213,13 @@ function BlockFields({
       );
     }
     case "cloze": {
-      const gapCount = (block.text.match(/___/g) ?? []).length;
       const distractors = block.distractors ?? [];
       return (
         <div className="space-y-3">
           <p className="text-xs text-slate-500">
-            З кожного пропуску будується питання з варіантами на вкладці <strong>Тест</strong> (не
-            показується у «Вправах»). Використовуйте{" "}
-            <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">___</code> як пропуск.
-            Кількість: {gapCount}
+            Використовуйте{" "}
+            <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">___</code> як пропуск у
+            реченні. Студент обирає відповідь зі списку (правильна + хибні варіанти).
           </p>
           <textarea
             value={block.text}
@@ -1995,7 +2244,7 @@ function BlockFields({
             className="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-600 dark:bg-slate-900"
           />
           <label className="text-xs font-bold text-slate-500">
-            Хибні варіанти для тесту (через кому; підмішуються до варіантів відповіді)
+            Хибні варіанти (через кому; показуються разом із правильною відповіддю)
           </label>
           <input
             value={distractors.join(", ")}
@@ -2012,6 +2261,530 @@ function BlockFields({
             placeholder="наприклад: go, going, went"
             className="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-600 dark:bg-slate-900"
           />
+        </div>
+      );
+    }
+    case "openCloze": {
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-slate-500">
+            Використовуйте{" "}
+            <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">___</code> як пропуск у
+            реченні. Студент <strong>самостійно вписує</strong> відповідь — без варіантів на вибір.
+          </p>
+          <textarea
+            value={block.text}
+            onChange={(e) => onChange({ text: e.target.value })}
+            rows={3}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-600 dark:bg-slate-900"
+          />
+          <label className="text-xs font-bold text-slate-500">Відповіді по порядку (через кому)</label>
+          <input
+            value={block.answers.join(", ")}
+            onChange={(e) => {
+              onChange({
+                answers: e.target.value.split(",").map((s) => s.trim()),
+              });
+            }}
+            onBlur={() => {
+              onChange({
+                answers: block.answers.map((s) => s.trim()).filter(Boolean),
+              });
+            }}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-600 dark:bg-slate-900"
+          />
+        </div>
+      );
+    }
+    case "letterOrder": {
+      const paragraphs = block.paragraphs.length ? block.paragraphs : [""];
+      const setParagraph = (index: number, value: string) => {
+        const next = [...paragraphs];
+        next[index] = value;
+        onChange({ paragraphs: next });
+      };
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-slate-500">
+            Введіть параграфи листа <strong>у правильному порядку</strong> (зверху — початок листа,
+            знизу — підпис). Студент побачить їх упереміш і має розставити правильно.
+          </p>
+          <label className="block">
+            <span className="text-xs font-bold text-slate-500">Назва вправи (необовʼязково)</span>
+            <input
+              value={block.title ?? ""}
+              onChange={(e) => onChange({ title: e.target.value })}
+              placeholder="Наприклад: Formal letter"
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+            />
+          </label>
+          <div className="space-y-2">
+            {paragraphs.map((para, i) => (
+              <div key={i} className="flex gap-2">
+                <span className="mt-2 w-6 shrink-0 text-[11px] font-black text-slate-400">{i + 1}.</span>
+                <textarea
+                  value={para}
+                  onChange={(e) => setParagraph(i, e.target.value)}
+                  rows={2}
+                  placeholder={`Параграф ${i + 1}`}
+                  className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+                />
+                <button
+                  type="button"
+                  onClick={() => onChange({ paragraphs: paragraphs.filter((_, j) => j !== i) })}
+                  className="shrink-0 rounded-lg px-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                  aria-label="Видалити параграф"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange({ paragraphs: [...paragraphs, ""] })}
+            className="text-xs font-bold text-emerald-600"
+          >
+            + параграф
+          </button>
+        </div>
+      );
+    }
+    case "quiz": {
+      const questions = block.questions.length
+        ? block.questions
+        : [{ questionText: "", answers: [{ text: "", isCorrect: true }, { text: "", isCorrect: false }] }];
+
+      const setQuestionText = (qi: number, value: string) => {
+        const next = questions.map((q, i) => (i === qi ? { ...q, questionText: value } : q));
+        onChange({ questions: next });
+      };
+
+      const setAnswerText = (qi: number, ai: number, value: string) => {
+        const next = questions.map((q, i) => {
+          if (i !== qi) return q;
+          const answers = q.answers.map((a, j) => (j === ai ? { ...a, text: value } : a));
+          return { ...q, answers };
+        });
+        onChange({ questions: next });
+      };
+
+      const setCorrectAnswer = (qi: number, ai: number) => {
+        const next = questions.map((q, i) => {
+          if (i !== qi) return q;
+          return {
+            ...q,
+            answers: q.answers.map((a, j) => ({ ...a, isCorrect: j === ai })),
+          };
+        });
+        onChange({ questions: next });
+      };
+
+      const addAnswer = (qi: number) => {
+        const next = questions.map((q, i) =>
+          i === qi ? { ...q, answers: [...q.answers, { text: "", isCorrect: false }] } : q,
+        );
+        onChange({ questions: next });
+      };
+
+      const removeAnswer = (qi: number, ai: number) => {
+        const next = questions.map((q, i) => {
+          if (i !== qi) return q;
+          const answers = q.answers.filter((_, j) => j !== ai);
+          if (!answers.some((a) => a.isCorrect) && answers.length > 0) {
+            answers[0] = { ...answers[0], isCorrect: true };
+          }
+          return { ...q, answers };
+        });
+        onChange({ questions: next });
+      };
+
+      const addQuestion = () => {
+        onChange({
+          questions: [
+            ...questions,
+            {
+              questionText: "",
+              answers: [
+                { text: "", isCorrect: true },
+                { text: "", isCorrect: false },
+              ],
+            },
+          ],
+        });
+      };
+
+      const removeQuestion = (qi: number) => {
+        onChange({ questions: questions.filter((_, i) => i !== qi) });
+      };
+
+      return (
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500">
+            Питання з варіантами відповіді зʼявляться на вкладці <strong>Тест</strong> у модулі.
+            Позначте одну правильну відповідь на кожне питання.
+          </p>
+          <label className="block">
+            <span className="text-xs font-bold text-slate-500">Назва тесту (необовʼязково)</span>
+            <input
+              value={block.title ?? ""}
+              onChange={(e) => onChange({ title: e.target.value })}
+              placeholder="Наприклад: Grammar check"
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+            />
+          </label>
+          {questions.map((q, qi) => (
+            <div
+              key={qi}
+              className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-4 space-y-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+                  Питання {qi + 1}
+                </span>
+                {questions.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeQuestion(qi)}
+                    className="text-xs font-bold text-red-600 hover:underline"
+                  >
+                    Видалити питання
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={q.questionText}
+                onChange={(e) => setQuestionText(qi, e.target.value)}
+                rows={2}
+                placeholder="Текст питання"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+              />
+              <div className="space-y-2">
+                <p className="text-[11px] font-bold text-slate-500">Варіанти відповіді</p>
+                {q.answers.map((ans, ai) => (
+                  <div key={ai} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name={`quiz-correct-${block.id}-${qi}`}
+                      checked={ans.isCorrect}
+                      onChange={() => setCorrectAnswer(qi, ai)}
+                      className="shrink-0"
+                      aria-label={`Правильна відповідь ${ai + 1}`}
+                    />
+                    <input
+                      value={ans.text}
+                      onChange={(e) => setAnswerText(qi, ai, e.target.value)}
+                      placeholder={`Варіант ${ai + 1}`}
+                      className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+                    />
+                    {q.answers.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => removeAnswer(qi, ai)}
+                        className="shrink-0 rounded-lg px-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                        aria-label="Видалити варіант"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => addAnswer(qi)}
+                className="text-xs font-bold text-emerald-600"
+              >
+                + варіант відповіді
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={addQuestion} className="text-xs font-bold text-emerald-600">
+            + питання
+          </button>
+        </div>
+      );
+    }
+    case "wordBank": {
+      const items = block.items.length
+        ? block.items
+        : [{ id: `wb-${Date.now()}-1`, text: "", answers: [] }];
+      const distractors = block.distractors ?? [];
+
+      const setItemText = (idx: number, text: string) => {
+        const next = [...items];
+        next[idx] = { ...next[idx], text };
+        onChange({ items: next });
+      };
+
+      const setItemAnswers = (idx: number, answersStr: string) => {
+        const answers = answersStr.split(",").map((s) => s.trim());
+        const next = [...items];
+        next[idx] = { ...next[idx], answers };
+        onChange({ items: next });
+      };
+
+      const addItem = () => {
+        onChange({
+          items: [
+            ...items,
+            { id: `wb-${Date.now()}-${items.length + 1}`, text: "", answers: [] },
+          ],
+        });
+      };
+
+      const removeItem = (idx: number) => {
+        onChange({ items: items.filter((_, i) => i !== idx) });
+      };
+
+      return (
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500">
+            Використовуйте <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">___</code> як пропуски в кожному реченні (1-2 шт). Студент бачитиме загальний банк слів і перетягуватиме їх у пропуски.
+          </p>
+          <label className="block">
+            <span className="text-xs font-bold text-slate-500">Назва вправи (необовʼязково)</span>
+            <input
+              value={block.title ?? ""}
+              onChange={(e) => onChange({ title: e.target.value })}
+              placeholder="Слова у пропуски"
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+            />
+          </label>
+
+          <div className="space-y-3">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Список речень</p>
+            {items.map((item, idx) => (
+              <div
+                key={item.id || idx}
+                className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-3.5 space-y-2.5"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-black text-slate-400">Речення {idx + 1}</span>
+                  {items.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(idx)}
+                      className="text-xs font-bold text-red-600 hover:underline"
+                    >
+                      Видалити
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={item.text}
+                  onChange={(e) => setItemText(idx, e.target.value)}
+                  rows={2}
+                  placeholder="Наприклад: She ___ to school and bought some ___."
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+                />
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500">
+                    Правильні відповіді для речення (через кому по порядку пропусків)
+                  </label>
+                  <input
+                    value={item.answers.join(", ")}
+                    onChange={(e) => setItemAnswers(idx, e.target.value)}
+                    placeholder="went, apples"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={addItem}
+            className="text-xs font-bold text-emerald-600 hover:underline"
+          >
+            + додати речення
+          </button>
+
+          <div>
+            <label className="text-xs font-bold text-slate-500 block mb-1">
+              Додаткові хибні слова в банк (через кому, не обовʼязково)
+            </label>
+            <input
+              value={distractors.join(", ")}
+              onChange={(e) => {
+                onChange({
+                  distractors: e.target.value.split(",").map((s) => s.trim()),
+                });
+              }}
+              onBlur={() => {
+                onChange({
+                  distractors: distractors.map((s) => s.trim()).filter(Boolean),
+                });
+              }}
+              placeholder="наприклад: running, dog"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+            />
+          </div>
+        </div>
+      );
+    }
+    case "multiSelect": {
+      const questions = block.questions.length
+        ? block.questions
+        : [
+            {
+              id: `msq-${Date.now()}-1`,
+              questionText: "",
+              options: [
+                { text: "", isCorrect: true },
+                { text: "", isCorrect: false },
+              ],
+            },
+          ];
+
+      const setQuestionText = (qi: number, value: string) => {
+        const next = questions.map((q, i) => (i === qi ? { ...q, questionText: value } : q));
+        onChange({ questions: next });
+      };
+
+      const setOptionText = (qi: number, oi: number, value: string) => {
+        const next = questions.map((q, i) => {
+          if (i !== qi) return q;
+          const options = q.options.map((opt, j) => (j === oi ? { ...opt, text: value } : opt));
+          return { ...q, options };
+        });
+        onChange({ questions: next });
+      };
+
+      const toggleOptionIsCorrect = (qi: number, oi: number) => {
+        const next = questions.map((q, i) => {
+          if (i !== qi) return q;
+          const options = q.options.map((opt, j) =>
+            j === oi ? { ...opt, isCorrect: !opt.isCorrect } : opt,
+          );
+          return { ...q, options };
+        });
+        onChange({ questions: next });
+      };
+
+      const addOption = (qi: number) => {
+        const next = questions.map((q, i) =>
+          i === qi ? { ...q, options: [...q.options, { text: "", isCorrect: false }] } : q,
+        );
+        onChange({ questions: next });
+      };
+
+      const removeOption = (qi: number, oi: number) => {
+        const next = questions.map((q, i) => {
+          if (i !== qi) return q;
+          return { ...q, options: q.options.filter((_, j) => j !== oi) };
+        });
+        onChange({ questions: next });
+      };
+
+      const addQuestion = () => {
+        onChange({
+          questions: [
+            ...questions,
+            {
+              id: `msq-${Date.now()}-${questions.length + 1}`,
+              questionText: "",
+              options: [
+                { text: "", isCorrect: true },
+                { text: "", isCorrect: false },
+              ],
+            },
+          ],
+        });
+      };
+
+      const removeQuestion = (qi: number) => {
+        onChange({ questions: questions.filter((_, i) => i !== qi) });
+      };
+
+      return (
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500">
+            Створіть завдання з <strong>кількома правильними відповідями</strong> (чекбоксами). Відмітьте прапорцями всі варіанти, які є правильними.
+          </p>
+          <label className="block">
+            <span className="text-xs font-bold text-slate-500">Назва блоку (необовʼязково)</span>
+            <input
+              value={block.title ?? ""}
+              onChange={(e) => onChange({ title: e.target.value })}
+              placeholder="Множинний вибір"
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+            />
+          </label>
+
+          <div className="space-y-4">
+            {questions.map((q, qi) => (
+              <div
+                key={q.id || qi}
+                className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-4 space-y-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+                    Питання / Завдання {qi + 1}
+                  </span>
+                  {questions.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeQuestion(qi)}
+                      className="text-xs font-bold text-red-600 hover:underline"
+                    >
+                      Видалити
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={q.questionText}
+                  onChange={(e) => setQuestionText(qi, e.target.value)}
+                  rows={2}
+                  placeholder="Текст питання або інструкція (наприклад: Choose all the openings that are appropriate...)"
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+                />
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold text-slate-500">
+                    Варіанти відповідей (відмітьте всі правильні прапорцями)
+                  </p>
+                  {q.options.map((opt, oi) => (
+                    <div key={oi} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={opt.isCorrect}
+                        onChange={() => toggleOptionIsCorrect(qi, oi)}
+                        className="shrink-0 w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
+                        title="Позначити як правильний варіант"
+                      />
+                      <input
+                        value={opt.text}
+                        onChange={(e) => setOptionText(qi, oi, e.target.value)}
+                        placeholder={`Варіант ${oi + 1}`}
+                        className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900"
+                      />
+                      {q.options.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => removeOption(qi, oi)}
+                          className="shrink-0 rounded-lg px-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => addOption(qi)}
+                  className="text-xs font-bold text-emerald-600"
+                >
+                  + варіант відповіді
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button type="button" onClick={addQuestion} className="text-xs font-bold text-emerald-600">
+            + додати питання
+          </button>
         </div>
       );
     }

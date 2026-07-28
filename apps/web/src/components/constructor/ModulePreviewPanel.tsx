@@ -16,13 +16,18 @@
  *   />
  */
 
-import { Fragment, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ScenarioBlock } from "../../types/scenario";
 import {
   buildPracticeFromBlocks,
   buildTestQuestionsFromBlocks,
 } from "../../utils/scenarioExport";
+import { LetterOrderExercise } from "./LetterOrderExercise";
+import { OpenClozeExercise } from "./OpenClozeExercise";
+import { ClozeMcqExercise } from "./ClozeMcqExercise";
+import { WordBankExercise } from "./WordBankExercise";
+import { MultiSelectExercise } from "./MultiSelectExercise";
 
 // ─── Types ─────────────────────────────────────────────────────
 type TabId = "theory" | "exercises" | "test";
@@ -175,77 +180,26 @@ function MiniMatchingExercise({ left, right }: { left: string[]; right: string[]
   );
 }
 
-function MiniClozeExercise({ text, answers }: { text: string; answers: string[] }) {
-  const parts = text.split("___");
-  const gapCount = Math.max(0, parts.length - 1);
-  const [values, setValues] = useState(() => Array.from({ length: gapCount }, () => ""));
-  const [checked, setChecked] = useState(false);
-
-  const normalizedAnswers = answers.map((answer) => answer.trim().toLowerCase());
-  const normalizedValues = values.map((value) => value.trim().toLowerCase());
-  const isSolved =
-    gapCount > 0 &&
-    normalizedAnswers.length >= gapCount &&
-    normalizedValues.every((value, index) => value && value === normalizedAnswers[index]);
-
+function MiniClozeExercise({ text, answers, distractors }: { text: string; answers: string[]; distractors?: string[] }) {
   return (
-    <div className="mt-4 rounded-2xl border border-emerald-200 dark:border-emerald-700/40 bg-white dark:bg-slate-900 p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Пропуски</p>
-        {checked && (
-          <span className={`text-[10px] font-black uppercase tracking-widest ${isSolved ? "text-emerald-600" : "text-rose-600"}`}>
-            {isSolved ? "Правильно" : "Потрібно ще раз"}
-          </span>
-        )}
-      </div>
+    <div className="mt-4">
+      <ClozeMcqExercise text={text} answers={answers} distractors={distractors} exerciseIndex={0} />
+    </div>
+  );
+}
 
-      <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-slate-800 dark:text-white leading-relaxed">
-        {parts.map((part, index) => (
-          <Fragment key={`${index}-${part}`}>
-            <span>{part}</span>
-            {index < gapCount && (
-              <input
-                value={values[index] ?? ""}
-                onChange={(e) => {
-                  const next = [...values];
-                  next[index] = e.target.value;
-                  setValues(next);
-                }}
-                disabled={checked}
-                placeholder="Відповідь"
-                className={`min-w-[90px] rounded-xl border px-3 py-2 text-sm font-black outline-none transition-colors ${
-                  checked
-                    ? normalizedValues[index] === normalizedAnswers[index]
-                      ? "border-emerald-400 bg-emerald-50 text-emerald-800 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-200"
-                      : "border-rose-400 bg-rose-50 text-rose-800 dark:border-rose-500/50 dark:bg-rose-500/10 dark:text-rose-200"
-                    : "border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                }`}
-              />
-            )}
-          </Fragment>
-        ))}
-      </div>
+function MiniOpenClozeExercise({ text, answers }: { text: string; answers: string[] }) {
+  return (
+    <div className="mt-4">
+      <OpenClozeExercise text={text} answers={answers} exerciseIndex={0} />
+    </div>
+  );
+}
 
-      {checked && !isSolved && (
-        <p className="mt-3 text-[11px] font-bold text-rose-600 dark:text-rose-400">
-          Правильні відповіді: {answers.join(", ")}
-        </p>
-      )}
-
-      <button
-        type="button"
-        onClick={() => {
-          if (!checked) setChecked(true);
-          else {
-            setChecked(false);
-            setValues(Array.from({ length: gapCount }, () => ""));
-          }
-        }}
-        disabled={!checked && values.some((value) => !value.trim())}
-        className="mt-3 w-full rounded-xl bg-emerald-500 px-3 py-2 text-[11px] font-black uppercase tracking-widest text-white disabled:opacity-40"
-      >
-        {!checked ? "Перевірити" : "Спробувати ще раз"}
-      </button>
+function MiniLetterOrderExercise({ title, paragraphs }: { title: string; paragraphs: string[] }) {
+  return (
+    <div className="mt-4">
+      <LetterOrderExercise paragraphs={paragraphs} exerciseIndex={0} title={title} />
     </div>
   );
 }
@@ -511,7 +465,7 @@ export function ModulePreviewPanel({
                       ## Вправа{"\n"}Закріпіть матеріал з теорії та виконайте вправи нижче.
                     </p>
 
-                    {practice.sections.map((section) => {
+                    {practice.sections.map((section, idx) => {
                       if (section.type === "cards") {
                         return (
                           <MiniQuizletCards
@@ -526,7 +480,53 @@ export function ModulePreviewPanel({
                       if (section.type === "match") {
                         return <MiniMatchingExercise key={section.id} left={section.left} right={section.right} />;
                       }
-                      return <MiniClozeExercise key={section.id} text={section.text} answers={section.answers} />;
+                      if (section.type === "letterOrder") {
+                        return (
+                          <MiniLetterOrderExercise
+                            key={section.id}
+                            title={section.title}
+                            paragraphs={section.paragraphs}
+                          />
+                        );
+                      }
+                      if (section.type === "openCloze") {
+                        return (
+                          <MiniOpenClozeExercise
+                            key={section.id}
+                            text={section.text}
+                            answers={section.answers}
+                          />
+                        );
+                      }
+                      if (section.type === "wordBank") {
+                        return (
+                          <WordBankExercise
+                            key={section.id}
+                            items={section.items}
+                            distractors={section.distractors}
+                            title={section.title}
+                            exerciseIndex={idx}
+                          />
+                        );
+                      }
+                      if (section.type === "multiSelect") {
+                        return (
+                          <MultiSelectExercise
+                            key={section.id}
+                            questions={section.questions}
+                            title={section.title}
+                            exerciseIndex={idx}
+                          />
+                        );
+                      }
+                      return (
+                        <MiniClozeExercise
+                          key={section.id}
+                          text={section.text}
+                          answers={section.answers}
+                          distractors={section.distractors}
+                        />
+                      );
                     })}
 
                     {hasTest && (
