@@ -95,13 +95,7 @@ function formatSavedTime(d: Date): string {
   });
 }
 
-function moveItem<T>(arr: T[], from: number, to: number): T[] {
-  if (to < 0 || to >= arr.length) return arr;
-  const next = [...arr];
-  const [it] = next.splice(from, 1);
-  next.splice(to, 0, it);
-  return next;
-}
+
 
 function stageDropId(stage: number): string {
   return `stage-drop-${stage}`;
@@ -1801,7 +1795,7 @@ function BlockCard({
   onRemove: () => void;
   onChange: (patch: Partial<ScenarioBlock>) => void;
   isOverlay?: boolean;
-  dragListeners?: any;
+  dragListeners?: Record<string, any>;
   dragAttributes?: any;
   setNodeRef?: (node: HTMLElement | null) => void;
   style?: React.CSSProperties;
@@ -2508,7 +2502,7 @@ function BlockFields({
     case "wordBank": {
       const items = block.items.length
         ? block.items
-        : [{ id: `wb-${Date.now()}-1`, text: "", answers: [] }];
+        : [{ id: `wb-initial-1`, text: "", answers: [] }];
       const distractors = block.distractors ?? [];
 
       const setItemText = (idx: number, text: string) => {
@@ -2629,7 +2623,7 @@ function BlockFields({
         ? block.questions
         : [
             {
-              id: `msq-${Date.now()}-1`,
+              id: `msq-initial-1`,
               questionText: "",
               options: [
                 { text: "", isCorrect: true },

@@ -632,8 +632,9 @@ export const ModulePage = () => {
     };
   }, [moduleId, isConstructorPreview]);
 
+  const courseId = module?.course?.id;
   useEffect(() => {
-    if (!module?.course?.id || isConstructorPreview) {
+    if (!courseId || isConstructorPreview) {
       setCourse(null);
       return;
     }
@@ -641,7 +642,7 @@ export const ModulePage = () => {
     let cancelled = false;
     const loadCourse = async () => {
       try {
-        const data = await coursesApi.getCourseById(module.course!.id);
+        const data = await coursesApi.getCourseById(courseId);
         if (!cancelled) {
           setCourse({
             id: data.id,
@@ -663,7 +664,7 @@ export const ModulePage = () => {
     return () => {
       cancelled = true;
     };
-  }, [isConstructorPreview, module?.course?.id]);
+  }, [isConstructorPreview, courseId]);
 
   // ─── Load unlock state ─────────────────────────────────────
   useEffect(() => {

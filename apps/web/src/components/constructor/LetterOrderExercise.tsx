@@ -116,12 +116,14 @@ export function LetterOrderExercise({
 
   useEffect(() => {
     if (completed) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOrder(solvedOrder);
       setChecked(true);
     }
   }, [completed, solvedOrder]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOrder(completed ? solvedOrder : shuffleIndices(cleaned.length));
     setChecked(completed);
     completionNotifiedRef.current = false;
