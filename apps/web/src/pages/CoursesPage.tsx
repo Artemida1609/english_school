@@ -62,12 +62,12 @@ export const CoursesPage = () => {
   }
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-[#030812] overflow-hidden relative text-slate-900 dark:text-white md:rounded-[36px] border border-slate-200/50 dark:border-white/5 shadow-2xl transition-colors duration-500">
+    <div className="bg-slate-50 dark:bg-[#030812] relative text-slate-900 dark:text-white md:rounded-[36px] border border-slate-200/50 dark:border-white/5 shadow-2xl transition-colors duration-500">
       {/* Background Orbs */}
       <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-emerald-300/30 dark:bg-emerald-600/20 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none transition-colors duration-500" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[50%] bg-teal-300/20 dark:bg-teal-600/10 blur-[150px] rounded-full mix-blend-multiply dark:mix-blend-screen pointer-events-none transition-colors duration-500" />
 
-      <section className="relative z-10 p-6 md:p-10 h-full overflow-y-auto custom-scrollbar">
+      <section className="relative z-10 p-6 md:p-10">
         {/* Header */}
         <div className="mb-12 px-1 text-center">
           <motion.p
