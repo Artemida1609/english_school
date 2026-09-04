@@ -9,32 +9,40 @@ export const saveProgress = async (req: AuthRequest, res: Response): Promise<voi
     const { lessonId, completed, score } = req.body
     const userId = req.user!.id
 
-    const progress = await prisma.userProgress.upsert({
-      where: { userId_lessonId: { userId, lessonId } },
-      update: {
-        completed,
-        score,
-        completedAt: completed ? new Date() : null,
-      },
-      create: {
-        userId,
-        lessonId,
-        completed,
-        score,
-        completedAt: completed ? new Date() : null,
-      },
-    })
+    const progress = await prisma.$transaction(async (tx) => {
+      const previousProgress = await tx.userProgress.findUnique({
+        where: { userId_lessonId: { userId, lessonId } },
+        select: { completed: true },
+      })
 
-    // Award XP when completing a lesson
-    if (completed) {
-      await prisma.userProfile.update({
-        where: { userId },
-        data: {
-          xp: { increment: 10 },
-          lastActivity: new Date(),
+      const updatedProgress = await tx.userProgress.upsert({
+        where: { userId_lessonId: { userId, lessonId } },
+        update: {
+          completed,
+          score,
+          completedAt: completed ? new Date() : null,
+        },
+        create: {
+          userId,
+          lessonId,
+          completed,
+          score,
+          completedAt: completed ? new Date() : null,
         },
       })
-    }
+
+      if (completed && !previousProgress?.completed) {
+        await tx.userProfile.update({
+          where: { userId },
+          data: {
+            xp: { increment: 10 },
+            lastActivity: new Date(),
+          },
+        })
+      }
+
+      return updatedProgress
+    })
 
     res.json(progress)
   } catch (error) {
