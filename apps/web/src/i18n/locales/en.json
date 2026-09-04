@@ -4,7 +4,8 @@
     "courses": "Courses",
     "chats": "Chats",
     "store": "Store",
-    "settings": "Settings"
+    "settings": "Settings",
+    "constructor": "Constructor"
   },
   "home": {
     "continueLabel": "Continue",
@@ -51,7 +52,22 @@
       "October",
       "November",
       "December"
-    ]
+    ],
+    "dashboardTitle": "Dashboard",
+    "welcomeBack": "Welcome back, {{name}}!",
+    "student": "Student",
+    "levelBadge": "LEVEL",
+    "levelShort": "LVL",
+    "moduleBadge": "MODULE",
+    "continueCourse": "Continue {{course}}",
+    "thisWeekCount": "+{{count}} this week",
+    "completedPercent": "{{percent}}% complete",
+    "avgScore": "average score",
+    "profile": "Profile",
+    "intermediate": "Intermediate",
+    "themes": "Themes",
+    "accuracyLabel": "Accuracy",
+    "tasksShort": "Tasks"
   },
   "module": {
     "backToModules": "Back to modules",
@@ -97,7 +113,62 @@
     "conversations": "conversations",
     "placeholder": "Write a message...",
     "online": "online",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "selectChat": "Choose a chat from the list",
+    "inTab": "{{count}} in the tab",
+    "status": {
+      "live": "Live",
+      "off": "Off"
+    },
+    "tabs": {
+      "private": "Private",
+      "group": "Groups"
+    },
+    "actions": {
+      "newPrivate": "+ Private",
+      "newGroup": "+ Group"
+    },
+    "empty": {
+      "private": "No private chats yet",
+      "group": "No group chats yet",
+      "createHint": "Create a new one using the button above"
+    },
+    "roomTypes": {
+      "private": "Private chat",
+      "group": "Group"
+    },
+    "user": "User",
+    "me": "you",
+    "connectionLost": "No Live connection — messages cannot be sent right now.",
+    "loading": "Loading…",
+    "noUsersFound": "No users found",
+    "create": {
+      "privateTitle": "New private chat",
+      "groupTitle": "New group",
+      "privateDesc": "Choose two people who will have this chat",
+      "groupDesc": "Group name and members",
+      "groupNameLabel": "Group name",
+      "groupNamePlaceholder": "For example: A2 Speaking",
+      "usersLabel": "Users",
+      "selectedCount": "Members ({{count}}/2)",
+      "userSearchPlaceholder": "Search by name, email or role…",
+      "cancel": "Cancel",
+      "submit": "Create",
+      "creating": "Creating…"
+    },
+    "roles": {
+      "student": "Student",
+      "teacher": "Teacher",
+      "admin": "Admin"
+    },
+    "errors": {
+      "loadUsers": "Failed to load users",
+      "selectTwo": "Choose exactly two participants",
+      "privateCreateFailed": "Failed to create chat",
+      "groupNameRequired": "Enter a group name",
+      "groupMembersRequired": "Choose at least one participant",
+      "groupCreateFailed": "Failed to create group"
+    }
   },
   "store": {
     "title": "Our store",
@@ -335,5 +406,9 @@
       "completedModules": "Completed modules",
       "daysInRow": "Days in a row"
     }
+  },
+  "header": {
+    "days": "days",
+    "xp": "xp"
   }
 }

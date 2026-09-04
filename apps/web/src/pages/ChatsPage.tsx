@@ -15,14 +15,8 @@ import { useSocket } from "../hooks/useSocket";
 type ChatTab = "PRIVATE" | "GROUP";
 type CreateMode = "PRIVATE" | "GROUP" | null;
 
-const ROLE_LABEL: Record<string, string> = {
-  STUDENT: "Студент",
-  TEACHER: "Викладач",
-  ADMIN: "Адмін",
-};
-
 export const ChatsPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dispatch = useAppDispatch();
   const { rooms, messages, roomsLoading, messagesLoading, creatingRoom, error } =
     useAppSelector((s) => s.chat);
@@ -102,7 +96,7 @@ export const ChatsPage = () => {
             mine: data.userId === currentUser?.id,
             time:
               data.time ??
-              new Date().toLocaleTimeString("uk", {
+              new Date().toLocaleTimeString(i18n.resolvedLanguage?.startsWith("en") ? "en-US" : "uk-UA", {
                 hour: "2-digit",
                 minute: "2-digit",
               }),
@@ -112,7 +106,7 @@ export const ChatsPage = () => {
         }),
       );
     });
-  }, [resolvedRoomId, currentUser?.id, onMessage, dispatch]);
+  }, [resolvedRoomId, currentUser?.id, onMessage, dispatch, i18n.resolvedLanguage]);
 
   const openCreate = async (mode: CreateMode) => {
     if (!mode || !canManageChats) return;
@@ -127,7 +121,9 @@ export const ChatsPage = () => {
       const users = await chatApi.getUsers();
       setChatUsers(users);
     } catch (e) {
-      setUsersError(e instanceof Error ? e.message : "Не вдалося завантажити користувачів");
+      setUsersError(
+        e instanceof Error ? e.message : t("chats.errors.loadUsers", "Не вдалося завантажити користувачів"),
+      );
       setChatUsers([]);
     } finally {
       setUsersLoading(false);
@@ -162,7 +158,7 @@ export const ChatsPage = () => {
 
     if (createMode === "PRIVATE") {
       if (selectedUserIds.length !== 2) {
-        setCreateError("Оберіть рівно двох учасників");
+        setCreateError(t("chats.errors.selectTwo", "Оберіть рівно двох учасників"));
         return;
       }
       const result = await dispatch(
@@ -174,17 +170,17 @@ export const ChatsPage = () => {
         setActiveRoomId(result.payload.id);
         setShowSidebar(false);
       } else {
-        setCreateError((result.payload as string) || "Не вдалося створити чат");
+        setCreateError((result.payload as string) || t("chats.errors.privateCreateFailed", "Не вдалося створити чат"));
       }
       return;
     }
 
     if (!groupName.trim()) {
-      setCreateError("Вкажіть назву групи");
+      setCreateError(t("chats.errors.groupNameRequired", "Вкажіть назву групи"));
       return;
     }
     if (selectedUserIds.length < 1) {
-      setCreateError("Оберіть хоча б одного учасника");
+      setCreateError(t("chats.errors.groupMembersRequired", "Оберіть хоча б одного учасника"));
       return;
     }
     const result = await dispatch(
@@ -200,7 +196,7 @@ export const ChatsPage = () => {
       setActiveRoomId(result.payload.id);
       setShowSidebar(false);
     } else {
-      setCreateError((result.payload as string) || "Не вдалося створити групу");
+      setCreateError((result.payload as string) || t("chats.errors.groupCreateFailed", "Не вдалося створити групу"));
     }
   };
 
@@ -239,10 +235,10 @@ export const ChatsPage = () => {
                   animate={{ opacity: 1, x: 0 }}
                   className="truncate text-xl font-black text-slate-900 dark:text-white"
                 >
-                  {t("chats.title", "Повідомлення")}
+                  {t("chats.title")}
                 </motion.h1>
                 <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                  {filteredRooms.length} у вкладці
+                  {t("chats.inTab", { count: filteredRooms.length, defaultValue: `${filteredRooms.length} у вкладці` })}
                 </p>
               </div>
               <div
@@ -253,7 +249,7 @@ export const ChatsPage = () => {
                 }`}
               >
                 <div className={`h-2 w-2 rounded-full ${isConnected ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,1)]" : "bg-slate-400"}`} />
-                <span className="text-[10px] font-black uppercase tracking-wider">{isConnected ? "Live" : "Off"}</span>
+                <span className="text-[10px] font-black uppercase tracking-wider">{isConnected ? t("chats.status.live") : t("chats.status.off")}</span>
               </div>
             </div>
 
@@ -261,24 +257,24 @@ export const ChatsPage = () => {
               <button
                 type="button"
                 onClick={() => setTab("PRIVATE")}
-                className={`rounded-lg py-2.5 text-[11px] font-black uppercase tracking-wider transition-colors ${
+                className={`rounded-lg py-2.5 text-[11px] font-black uppercase cursor-pointer tracking-wider transition-colors ${
                   tab === "PRIVATE"
                     ? "bg-white text-emerald-600 shadow-sm dark:bg-slate-800"
                     : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                 }`}
               >
-                Приватні
+                {t("chats.tabs.private")}
               </button>
               <button
                 type="button"
                 onClick={() => setTab("GROUP")}
-                className={`rounded-lg py-2.5 text-[11px] font-black uppercase tracking-wider transition-colors ${
+                className={`rounded-lg py-2.5 text-[11px] font-black uppercase cursor-pointer tracking-wider transition-colors ${
                   tab === "GROUP"
                     ? "bg-white text-violet-600 shadow-sm dark:bg-slate-800"
                     : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                 }`}
               >
-                Групи
+                {t("chats.tabs.group")}
               </button>
             </div>
 
@@ -287,16 +283,16 @@ export const ChatsPage = () => {
                 <button
                   type="button"
                   onClick={() => void openCreate("PRIVATE")}
-                  className="flex-1 rounded-xl border border-emerald-300/60 bg-emerald-50 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+                  className="flex-1 cursor-pointer rounded-xl border border-emerald-300/60 bg-emerald-50 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
                 >
-                  + Приватний
+                  {t("chats.actions.newPrivate")}
                 </button>
                 <button
                   type="button"
                   onClick={() => void openCreate("GROUP")}
-                  className="flex-1 rounded-xl border border-violet-300/60 bg-violet-50 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-violet-800 hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/40 dark:text-violet-200"
+                  className="flex-1 cursor-pointer rounded-xl border border-violet-300/60 bg-violet-50 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-violet-800 hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/40 dark:text-violet-200"
                 >
-                  + Група
+                  {t("chats.actions.newGroup")}
                 </button>
               </div>
             )}
@@ -308,9 +304,9 @@ export const ChatsPage = () => {
           <div className="custom-scrollbar min-h-0 w-full flex-1 overflow-y-auto">
           {filteredRooms.length === 0 ? (
             <div className="px-5 py-8 text-center text-sm text-slate-500">
-              {tab === "PRIVATE" ? "Немає приватних чатів" : "Немає групових чатів"}
+              {tab === "PRIVATE" ? t("chats.empty.private") : t("chats.empty.group")}
               {canManageChats && (
-                <p className="mt-2 text-xs text-slate-400">Створіть новий кнопкою вище</p>
+                <p className="mt-2 text-xs text-slate-400">{t("chats.empty.createHint")}</p>
               )}
             </div>
           ) : (
@@ -322,7 +318,7 @@ export const ChatsPage = () => {
                   setActiveRoomId(room.id);
                   setShowSidebar(false);
                 }}
-                className={`w-full flex items-center gap-4 px-5 py-4 transition-colors text-left border-l-[3px]
+                className={`w-full cursor-pointer flex items-center gap-4 px-5 py-4 transition-colors text-left border-l-[3px]
                   ${activeRoom?.id === room.id
                     ? "bg-emerald-500/10 border-emerald-500"
                     : "border-transparent hover:bg-white/10"}`}
@@ -342,7 +338,7 @@ export const ChatsPage = () => {
                     </span>
                   </div>
                   <p className="text-xs font-medium text-slate-500 truncate">
-                    {room.lastMessage || room.subtitle || "Немає повідомлень"}
+                    {room.lastMessage || room.subtitle || t("chats.noMessages")}
                   </p>
                 </div>
                 {room.unread > 0 && (
@@ -363,7 +359,7 @@ export const ChatsPage = () => {
               <button
                 type="button"
                 onClick={() => setShowSidebar(true)}
-                className="md:hidden flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-slate-400"
+                  className="md:hidden flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-slate-400 cursor-pointer"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
@@ -375,7 +371,7 @@ export const ChatsPage = () => {
                   {activeRoom.name}
                 </h2>
                 <p className="text-[11px] font-semibold text-emerald-500 uppercase tracking-widest mt-0.5">
-                  {activeRoom.subtitle ?? (activeRoom.type === "PRIVATE" ? "Приватний чат" : "Група")}
+                  {activeRoom.subtitle ?? (activeRoom.type === "PRIVATE" ? t("chats.roomTypes.private") : t("chats.roomTypes.group"))}
                 </p>
               </div>
             </header>
@@ -397,7 +393,7 @@ export const ChatsPage = () => {
                     <div className={`max-w-[85%] md:max-w-[70%] flex flex-col ${msg.mine ? "items-end" : "items-start"}`}>
                       {!msg.mine && (
                         <span className="text-[11px] font-bold text-slate-400 mb-1.5 px-2">
-                          {msg.userName ?? "Користувач"}
+                          {msg.userName ?? t("chats.user")}
                         </span>
                       )}
                       <div
@@ -424,7 +420,7 @@ export const ChatsPage = () => {
             <footer className="p-4 border-t border-slate-200/50 dark:border-white/5 bg-transparent flex-shrink-0">
               {!isConnected && (
                 <p className="mb-2 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                  Немає Live-зʼєднання — повідомлення зараз не надіслати.
+                  {t("chats.connectionLost")}
                 </p>
               )}
               <div className="flex items-center gap-3 bg-white/40 dark:bg-black/40 backdrop-blur-xl rounded-2xl p-2 border border-slate-200 dark:border-white/10 focus-within:border-emerald-500/50 transition-colors shadow-inner">
@@ -433,14 +429,14 @@ export const ChatsPage = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  placeholder={t("chats.placeholder", "Написати повідомлення...")}
+                  placeholder={t("chats.placeholder")}
                   className="flex-1 bg-transparent text-[15px] font-medium text-slate-900 dark:text-white px-3 outline-none placeholder:text-slate-500"
                 />
                 <button
                   type="button"
                   onClick={handleSend}
                   disabled={!input.trim() || !isConnected}
-                  className="flex-shrink-0 w-10 h-10 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50
+                  className="flex-shrink-0 w-10 h-10 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 cursor-pointer
                     rounded-xl flex items-center justify-center text-white transition-colors shadow-lg"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="translate-x-[1px] translate-y-[-1px]">
@@ -457,7 +453,7 @@ export const ChatsPage = () => {
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <p className="text-sm font-bold uppercase tracking-widest">{t("chats.selectChat", "Оберіть чат зі списку")}</p>
+            <p className="text-sm font-bold uppercase tracking-widest">{t("chats.selectChat")}</p>
           </div>
         )}
       </div>
@@ -481,12 +477,12 @@ export const ChatsPage = () => {
               <div className="px-5 py-4 border-b border-slate-200/70 dark:border-white/10 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                    {createMode === "PRIVATE" ? "Новий приватний чат" : "Нова група"}
+                    {createMode === "PRIVATE" ? t("chats.create.privateTitle") : t("chats.create.groupTitle")}
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {createMode === "PRIVATE"
-                      ? "Оберіть двох людей, які матимуть цей чат"
-                      : "Назва групи та учасники"}
+                      ? t("chats.create.privateDesc")
+                      : t("chats.create.groupDesc")}
                   </p>
                 </div>
                 <button
@@ -502,11 +498,11 @@ export const ChatsPage = () => {
               <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
                 {createMode === "GROUP" && (
                   <label className="block">
-                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Назва групи</span>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">{t("chats.create.groupNameLabel")}</span>
                     <input
                       value={groupName}
                       onChange={(e) => setGroupName(e.target.value)}
-                      placeholder="Наприклад: A2 Speaking"
+                      placeholder={t("chats.create.groupNamePlaceholder")}
                       className="mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-emerald-500"
                     />
                   </label>
@@ -515,13 +511,13 @@ export const ChatsPage = () => {
                 <label className="block">
                   <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">
                     {createMode === "PRIVATE"
-                      ? `Учасники (${selectedUserIds.length}/2)`
-                      : "Користувачі"}
+                      ? t("chats.create.selectedCount", { count: selectedUserIds.length, defaultValue: `Учасники (${selectedUserIds.length}/2)` })
+                      : t("chats.create.usersLabel")}
                   </span>
                   <input
                     value={userQuery}
                     onChange={(e) => setUserQuery(e.target.value)}
-                    placeholder="Пошук за іменем, email або роллю…"
+                    placeholder={t("chats.create.userSearchPlaceholder")}
                     className="mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-emerald-500"
                   />
                 </label>
@@ -548,11 +544,11 @@ export const ChatsPage = () => {
 
                 <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-64 overflow-y-auto">
                   {usersLoading ? (
-                    <div className="py-8 text-center text-sm text-slate-400">Завантаження…</div>
+                    <div className="py-8 text-center text-sm text-slate-400">{t("chats.loading")}</div>
                   ) : usersError ? (
                     <div className="py-6 px-4 text-center text-sm text-rose-500">{usersError}</div>
                   ) : filteredUsers.length === 0 ? (
-                    <div className="py-6 text-center text-sm text-slate-400">Нікого не знайдено</div>
+                    <div className="py-6 text-center text-sm text-slate-400">{t("chats.noUsersFound")}</div>
                   ) : (
                     filteredUsers.map((u) => {
                       const selected = selectedUserIds.includes(u.id);
@@ -579,12 +575,12 @@ export const ChatsPage = () => {
                           <span className="flex-1 min-w-0">
                             <span className="block text-sm font-bold text-slate-900 dark:text-white truncate">
                               {u.name}
-                              {u.id === currentUser?.id ? " (ви)" : ""}
+                              {u.id === currentUser?.id ? ` (${t("chats.me")})` : ""}
                             </span>
                             <span className="block text-xs text-slate-500 truncate">{u.email}</span>
                           </span>
                           <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                            {ROLE_LABEL[u.role] ?? u.role}
+                            {t(`chats.roles.${u.role.toLowerCase()}`, { defaultValue: u.role })}
                           </span>
                         </button>
                       );
@@ -604,7 +600,7 @@ export const ChatsPage = () => {
                   disabled={creatingRoom}
                   className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5"
                 >
-                  Скасувати
+                  {t("chats.create.cancel")}
                 </button>
                 <button
                   type="button"
@@ -616,7 +612,7 @@ export const ChatsPage = () => {
                   }
                   className="rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-2.5 text-sm font-black text-white"
                 >
-                  {creatingRoom ? "Створення…" : "Створити"}
+                  {creatingRoom ? t("chats.create.creating") : t("chats.create.submit")}
                 </button>
               </div>
             </motion.div>

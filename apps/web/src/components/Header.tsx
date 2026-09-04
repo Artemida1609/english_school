@@ -6,8 +6,10 @@ import { LogoIcon } from "../icons/LogoIcon";
 import { ProfileIcon } from "../icons/ProfileIcon";
 import type { RootState } from "../store";
 import { apiFetch } from "../api/client";
+import { useTranslation } from "react-i18next";
 
 export const Header = () => {
+  const { t } = useTranslation();
   const { avatar } = useSelector((s: RootState) => s.auth);
   const [xp, setXp] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -66,7 +68,7 @@ export const Header = () => {
               {streak}
             </span>
             <span className="text-sm text-orange-400 dark:text-orange-500 font-medium hidden sm:inline">
-              days
+              {t("header.days")}
             </span>
           </div>
 
@@ -82,7 +84,7 @@ export const Header = () => {
               className="text-xs font-extrabold text-white inline-flex items-center justify-center
               bg-emerald-400 dark:bg-emerald-600 rounded-full w-5 h-5 leading-none tracking-tight"
             >
-              xp
+              {t("header.xp")}
             </span>
             <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
               {xp}

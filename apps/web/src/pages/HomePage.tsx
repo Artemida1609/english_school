@@ -143,19 +143,25 @@ export const HomePage = () => {
     {
       label: t("progress.tasksCompleted"),
       value: tasksCompleted.toString(),
-      sub: `+${Math.max(0, Math.min(5, tasksCompleted))} цього тижня`,
+      sub: t("home.thisWeekCount", {
+        count: Math.max(0, Math.min(5, tasksCompleted)),
+        defaultValue: `+${Math.max(0, Math.min(5, tasksCompleted))} цього тижня`,
+      }),
       iconType: "clipboard",
     },
     {
       label: t("progress.topicsLearned"),
       value: `${topicsStudied}/${topicsTotal}`,
-      sub: `${topicsTotal ? Math.round((topicsStudied / topicsTotal) * 100) : 0}% завершено`,
+      sub: t("home.completedPercent", {
+        percent: topicsTotal ? Math.round((topicsStudied / topicsTotal) * 100) : 0,
+        defaultValue: `${topicsTotal ? Math.round((topicsStudied / topicsTotal) * 100) : 0}% завершено`,
+      }),
       iconType: "target",
     },
     {
       label: t("progress.accuracy"),
       value: `${accuracy}%`,
-      sub: "середня оцінка",
+      sub: t("home.avgScore"),
       iconType: "bolt",
     },
   ];
@@ -180,7 +186,7 @@ export const HomePage = () => {
                 transition={{ duration: 0.6 }}
                 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-800 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-emerald-100 dark:via-white dark:to-teal-200"
               >
-                Dashboard
+                {t("home.dashboardTitle")}
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, x: -20 }}
@@ -188,7 +194,7 @@ export const HomePage = () => {
                 transition={{ duration: 0.6, delay: 0.1 }}
                 className="text-slate-500 dark:text-emerald-200/50 text-sm mt-1 font-medium"
               >
-                Welcome back, {user?.name || "Student"}!
+                {t("home.welcomeBack", { name: user?.name || t("home.student") })}
               </motion.p>
             </div>
           </div>
@@ -228,14 +234,14 @@ export const HomePage = () => {
               <div>
                 <p className="text-[10px] text-slate-500 dark:text-emerald-200/60 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-2">
                   <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/30">
-                    РІВЕНЬ {continueModule?.stage || 1}
+                    {t("home.levelBadge")} {continueModule?.stage || 1}
                   </span>
                   <span>•</span>
-                  <span>МОДУЛЬ {continueModule ? (continueModule.orderIndex ?? 0) + 1 : 1}</span>
+                  <span>{t("home.moduleBadge")} {continueModule ? (continueModule.orderIndex ?? 0) + 1 : 1}</span>
                 </p>
                 <h2 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-white drop-shadow-sm leading-tight">
                   <span className="block text-sm text-emerald-600 dark:text-emerald-400 font-medium mb-1">{courseTitle}</span>
-                  {continueModule?.title || `Продовжити ${courseTitle}`}
+                  {continueModule?.title || t("home.continueCourse", { course: courseTitle, defaultValue: `Продовжити ${courseTitle}` })}
                 </h2>
               </div>
             </div>
@@ -459,7 +465,7 @@ export const HomePage = () => {
             {/* Inner Glow Map */}
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-400/10 dark:bg-emerald-500/20 blur-[50px] rounded-full pointer-events-none group-hover:bg-emerald-300/20 dark:group-hover:bg-emerald-400/30 transition-colors duration-700" />
             
-            <p className="absolute top-4 left-4 text-[10px] font-bold text-slate-400 dark:text-white/30 uppercase tracking-[0.2em]">{t("home.profile", "Profile")}</p>
+            <p className="absolute top-4 left-4 text-[10px] font-bold text-slate-400 dark:text-white/30 uppercase tracking-[0.2em]">{t("home.profile")}</p>
             <div className="absolute top-4 right-4 flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 cursor-pointer transition-colors border border-slate-200 dark:border-white/5">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-slate-600 dark:text-white">
                 <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -478,7 +484,7 @@ export const HomePage = () => {
                 </div>
               </div>
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] font-black tracking-[0.2em] px-3 py-1 rounded-full border border-emerald-300/50 shadow-[0_0_10px_rgba(16,185,129,0.4)] dark:shadow-[0_0_20px_rgba(20,184,166,0.8)] whitespace-nowrap z-20">
-                LVL {level}
+                {t("home.levelShort")} {level}
               </div>
             </div>
 
@@ -486,14 +492,14 @@ export const HomePage = () => {
               {user?.name ?? "Student"}
             </h2>
             <p className="text-[13px] text-emerald-600 dark:text-emerald-300/60 font-semibold mb-6 mt-1 tracking-wide">
-              Intermediate
+              {t("home.intermediate")}
             </p>
             
             <div className="grid grid-cols-3 gap-0 bg-slate-50 dark:bg-[#050B10]/50 rounded-2xl border border-slate-200 dark:border-white/5 divide-x divide-slate-200 dark:divide-white/5 overflow-hidden">
               {[
-                [tasksCompleted.toString(), t("progress.tasksCompleted").split(" ")[0] || "Tasks"],
-                [topicsStudied.toString(), "Themes"],
-                [accuracy.toString() + "%", "Accuracy"],
+                [tasksCompleted.toString(), t("home.tasksShort")],
+                  [topicsStudied.toString(), t("home.themes")],
+                  [accuracy.toString() + "%", t("home.accuracyLabel")],
               ].map(([v, l], idx) => (
                 <div key={idx} className="flex flex-col items-center py-4 px-2 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-default">
                   <p className="text-lg font-black text-slate-800 dark:text-white mb-0.5">{v}</p>

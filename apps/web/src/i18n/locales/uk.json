@@ -4,7 +4,8 @@
     "courses": "Курси",
     "chats": "Чати",
     "store": "Магазин",
-    "settings": "Налаштування"
+    "settings": "Налаштування",
+    "constructor": "Конструктор"
   },
   "home": {
     "continueLabel": "Продовжити",
@@ -51,7 +52,22 @@
       "Жовтень",
       "Листопад",
       "Грудень"
-    ]
+    ],
+    "dashboardTitle": "Дашборд",
+    "welcomeBack": "Ласкаво просимо назад, {{name}}!",
+    "student": "Учень",
+    "levelBadge": "РІВЕНЬ",
+    "levelShort": "РІВ.",
+    "moduleBadge": "МОДУЛЬ",
+    "continueCourse": "Продовжити {{course}}",
+    "thisWeekCount": "+{{count}} цього тижня",
+    "completedPercent": "{{percent}}% завершено",
+    "avgScore": "середня оцінка",
+    "profile": "Профіль",
+    "intermediate": "Середній",
+    "themes": "Теми",
+    "accuracyLabel": "Точність",
+    "tasksShort": "Завдання"
   },
   "module": {
     "backToModules": "Назад до модулів",
@@ -97,7 +113,62 @@
     "conversations": "розмови",
     "placeholder": "Написати повідомлення...",
     "online": "онлайн",
-    "yesterday": "Вчора"
+    "yesterday": "Вчора",
+    "selectChat": "Оберіть чат зі списку",
+    "inTab": "{{count}} у вкладці",
+    "status": {
+      "live": "Live",
+      "off": "Off"
+    },
+    "tabs": {
+      "private": "Приватні",
+      "group": "Групи"
+    },
+    "actions": {
+      "newPrivate": "+ Приватний",
+      "newGroup": "+ Група"
+    },
+    "empty": {
+      "private": "Немає приватних чатів",
+      "group": "Немає групових чатів",
+      "createHint": "Створіть новий кнопкою вище"
+    },
+    "roomTypes": {
+      "private": "Приватний чат",
+      "group": "Група"
+    },
+    "user": "Користувач",
+    "me": "ви",
+    "connectionLost": "Немає Live-зʼєднання — повідомлення зараз не надіслати.",
+    "loading": "Завантаження…",
+    "noUsersFound": "Нікого не знайдено",
+    "create": {
+      "privateTitle": "Новий приватний чат",
+      "groupTitle": "Нова група",
+      "privateDesc": "Оберіть двох людей, які матимуть цей чат",
+      "groupDesc": "Назва групи та учасники",
+      "groupNameLabel": "Назва групи",
+      "groupNamePlaceholder": "Наприклад: A2 Speaking",
+      "usersLabel": "Користувачі",
+      "selectedCount": "Учасники ({{count}}/2)",
+      "userSearchPlaceholder": "Пошук за іменем, email або роллю…",
+      "cancel": "Скасувати",
+      "submit": "Створити",
+      "creating": "Створення…"
+    },
+    "roles": {
+      "student": "Студент",
+      "teacher": "Викладач",
+      "admin": "Адмін"
+    },
+    "errors": {
+      "loadUsers": "Не вдалося завантажити користувачів",
+      "selectTwo": "Оберіть рівно двох учасників",
+      "privateCreateFailed": "Не вдалося створити чат",
+      "groupNameRequired": "Вкажіть назву групи",
+      "groupMembersRequired": "Оберіть хоча б одного учасника",
+      "groupCreateFailed": "Не вдалося створити групу"
+    }
   },
   "store": {
     "title": "Наш магазин",
@@ -335,5 +406,9 @@
       "completedModules": "Завершених модулів",
       "daysInRow": "Днів поспіль"
     }
+  },
+  "header": {
+    "days": "днів",
+    "xp": "xp"
   }
 }

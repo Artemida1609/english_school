@@ -12,6 +12,8 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
+  type DraggableAttributes,
+  type DraggableSyntheticListeners,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -1795,8 +1797,8 @@ function BlockCard({
   onRemove: () => void;
   onChange: (patch: Partial<ScenarioBlock>) => void;
   isOverlay?: boolean;
-  dragListeners?: Record<string, any>;
-  dragAttributes?: any;
+  dragListeners?: DraggableSyntheticListeners;
+  dragAttributes?: DraggableAttributes;
   setNodeRef?: (node: HTMLElement | null) => void;
   style?: React.CSSProperties;
 }) {

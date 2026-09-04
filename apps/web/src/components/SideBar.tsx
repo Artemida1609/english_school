@@ -6,18 +6,19 @@ import { LayoutTemplate } from "lucide-react"
 import { ChatsIcon } from "../icons/ChatsIcon"
 import { CoursesIcon } from "../icons/CoursesIcon"
 import { SettingsIcon } from "../icons/SettingsIcon"
+import { useTranslation } from "react-i18next"
 import type { RootState } from "../store"
 // import { StoreIcon } from "../icons/StoreIcon"
 
 const constructorItem = {
-  name: "Конструктор",
+  name: "nav.constructor",
   href: "/constructor",
   icon: <LayoutTemplate className="w-6 h-6" strokeWidth={1.8} />,
 }
 
 const baseNavItems = [
   {
-    name: "Головна",
+    name: "nav.home",
     href: "/",
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -27,9 +28,9 @@ const baseNavItems = [
       </svg>
     ),
   },
-  { name: "Налаштування", href: "/settings", icon: <SettingsIcon /> },
-  { name: "Чати",    href: "/chats",    icon: <ChatsIcon /> },
-  { name: "Курс",  href: "/course",  icon: <CoursesIcon /> },
+  { name: "nav.settings", href: "/settings", icon: <SettingsIcon /> },
+  { name: "nav.chats", href: "/chats", icon: <ChatsIcon /> },
+  { name: "nav.courses", href: "/course", icon: <CoursesIcon /> },
   // {
   //   name: "Профіль",
   //   href: "/profile",
@@ -44,6 +45,7 @@ const baseNavItems = [
 ]
 
 export const SideBar = () => {
+  const { t } = useTranslation()
   const role = useSelector((s: RootState) => s.auth.user?.role)
   const navItems = useMemo(() => {
     if (role === "TEACHER" || role === "ADMIN") {
@@ -84,7 +86,7 @@ export const SideBar = () => {
             {item.icon}
           </span>
           <span className="text-[10px] md:text-[10px] font-semibold mt-1 w-full px-1 text-center leading-tight whitespace-normal break-words">
-            {item.name}
+            {t(item.name)}
           </span>
         </NavLink>
       ))}

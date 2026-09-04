@@ -663,6 +663,13 @@ export const CourseDetailPage = () => {
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                     <div className={`h-1 sm:h-1.5 w-full bg-gradient-to-r ${strip}`} />
+                    {locked && (
+                      <div className="absolute inset-0 z-30 flex items-center justify-center rounded-[20px] sm:rounded-[24px] bg-black/55 backdrop-blur-[2px] pointer-events-none">
+                        <span className="text-sm sm:text-base font-black text-white uppercase tracking-[0.25em] text-center px-4">
+                          Блоковано
+                        </span>
+                      </div>
+                    )}
 
                     {/* Image */}
                     <div className="relative overflow-hidden h-36 sm:h-44">
@@ -697,14 +704,6 @@ export const CourseDetailPage = () => {
                       )}
 
                       <ModuleProgressBar moduleId={mod.id} onComplete={handleModuleComplete} />
-
-                      {locked && (
-                        <div className="absolute inset-0 bg-black/45 z-20 flex items-center justify-center rounded-[20px]">
-                          <span className="text-sm font-black text-white uppercase tracking-widest">
-                            Блоковано
-                          </span>
-                        </div>
-                      )}
 
                       <div className="border-t border-slate-200 dark:border-white/10 mt-4 pt-4 flex items-center justify-between">
                         <span className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-white/40 uppercase tracking-widest">

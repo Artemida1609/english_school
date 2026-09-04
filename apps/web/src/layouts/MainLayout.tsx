@@ -7,17 +7,17 @@ export const MainLayout = () => {
   const isChats = pathname.startsWith("/chats");
 
   return (
-    <div className="flex flex-col bg-slate-50 dark:bg-[#030812] transition-colors duration-500">
+    <div className="flex min-h-screen flex-col bg-slate-50 transition-colors duration-500 dark:bg-[#030812]">
       {/* Spacer: Header is position:fixed and does not consume flex space */}
       <div className="h-16 w-full flex-shrink-0" aria-hidden />
       <Header />
 
-      <div className="flex">
+      <div className="flex flex-1 min-h-0">
         <SideBar />
         <main
           className={`relative flex-1
           bg-slate-50 pb-16 dark:bg-[#030812] md:ml-20 md:pb-0
-          transition-colors duration-500
+          min-h-0 transition-colors duration-500
           ${isChats ? "overflow-hidden" : ""}`}
         >
           <Outlet />

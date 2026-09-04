@@ -454,8 +454,6 @@ export const ModulePage = () => {
   const courseModules = useMemo(
     () =>
       [...(course?.modules ?? [])].sort((a, b) => {
-        const stageDiff = (a.stage ?? 1) - (b.stage ?? 1);
-        if (stageDiff !== 0) return stageDiff;
         return a.orderIndex - b.orderIndex;
       }),
     [course?.modules],
@@ -676,7 +674,8 @@ export const ModulePage = () => {
     let isCancelled = false;
     const loadUnlock = async () => {
       try {
-        const profileRes = await apiFetch<{ learning?: { modules?: Array<{ id: string; unlocked?: boolean }> } }>("/api/profile/me");
+        const profileQuery = course?.id ? `?courseId=${course.id}` : "";
+        const profileRes = await apiFetch<{ learning?: { modules?: Array<{ id: string; unlocked?: boolean }> } }>(`/api/profile/me${profileQuery}`);
         if (isCancelled) return;
         const found = profileRes.learning?.modules?.find((m) => m.id === moduleId);
         setModuleLocked(found ? !found.unlocked : false);
@@ -686,7 +685,7 @@ export const ModulePage = () => {
     };
     void loadUnlock();
     return () => { isCancelled = true; };
-  }, [moduleId, isConstructorPreview, isStaffUser]);
+  }, [course?.id, moduleId, isConstructorPreview, isStaffUser]);
 
   // ─── Load lesson details ───────────────────────────────────
   useEffect(() => {
@@ -919,7 +918,7 @@ export const ModulePage = () => {
   const backHref = isConstructorPreview
     ? "/constructor"
     : returnStage
-      ? `/course?stage=${returnStage}`
+      ? `/course?stage=${returnStage}${course?.id ? `&courseId=${course.id}` : ""}`
       : "/course";
 
   const handleContinueFromCompletion = useCallback(() => {

@@ -47,9 +47,27 @@ export const StreakCard = () => {
   const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const weekDays = t("home.weekDays", { returnObjects: true }) as string[];
+  const fallbackWeekDays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
+  const fallbackMonths = [
+    "Січень",
+    "Лютий",
+    "Березень",
+    "Квітень",
+    "Травень",
+    "Червень",
+    "Липень",
+    "Серпень",
+    "Вересень",
+    "Жовтень",
+    "Листопад",
+    "Грудень",
+  ];
 
-  const months = t("home.months", { returnObjects: true }) as string[];
+  const weekDaysValue = t("home.weekDays", { returnObjects: true });
+  const weekDays = Array.isArray(weekDaysValue) ? weekDaysValue : fallbackWeekDays;
+
+  const monthsValue = t("home.months", { returnObjects: true });
+  const months = Array.isArray(monthsValue) ? monthsValue : fallbackMonths;
   const monthName = `${months[month]} ${year}`;
 
   const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
